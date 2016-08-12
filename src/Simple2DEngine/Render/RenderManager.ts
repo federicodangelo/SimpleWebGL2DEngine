@@ -49,6 +49,64 @@ module Simple2DEngine.Render {
             this.onWindowResize();
         }
 
+        
+        /**
+         * Enters full screen mode. This function can only be called when triggered from a user initiated action (ex: click event handler)
+         */
+        public enterFullscreen() {
+            //Taken from phaser source code!!
+            //https://github.com/photonstorm/phaser/blob/master/src/system/Device.js
+
+            var fs = [
+                'requestFullscreen',
+                'requestFullScreen',
+                'webkitRequestFullscreen',
+                'webkitRequestFullScreen',
+                'msRequestFullscreen',
+                'msRequestFullScreen',
+                'mozRequestFullScreen',
+                'mozRequestFullscreen'
+            ];
+
+            var element : any = this.mainCanvas;
+
+            for (var i = 0; i < fs.length; i++)
+            {
+                if (element[fs[i]])
+                {
+                    element[fs[i]]();
+                    break;
+                }
+            }
+        }
+
+        public exitFullscreen() {
+            //Taken from phaser source code!!
+            //https://github.com/photonstorm/phaser/blob/master/src/system/Device.js
+            
+            var cfs = [
+                'cancelFullScreen',
+                'exitFullscreen',
+                'webkitCancelFullScreen',
+                'webkitExitFullscreen',
+                'msCancelFullScreen',
+                'msExitFullscreen',
+                'mozCancelFullScreen',
+                'mozExitFullscreen'
+            ];
+
+            var doc : any = document;
+
+            for (var i = 0; i < cfs.length; i++)
+            {
+                if (doc[cfs[i]])
+                {
+                    doc[cfs[i]]();
+                    break;
+                }
+            }
+        }
+
         public draw() : void {
 
             if (this.engine.input.pointerDown)

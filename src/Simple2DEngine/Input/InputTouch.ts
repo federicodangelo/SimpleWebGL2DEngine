@@ -66,6 +66,9 @@ module Simple2DEngine.Input {
         private onTouchStart = (ev: TouchEvent) => {
             ev.preventDefault();
             this.updateLastPositions(ev);
+
+            //TEST!!
+            this.engine.renderer.enterFullscreen();
         }
 
         private onTouchEnd = (ev: TouchEvent) => {

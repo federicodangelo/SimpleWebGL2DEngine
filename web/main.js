@@ -105,6 +105,7 @@ var Simple2DEngine;
                         _this._leftDown = true;
                     else if (ev.button === 2)
                         _this._rightDown = true;
+                    _this.engine.renderer.enterFullscreen();
                 };
                 this.onMouseMove = function (ev) {
                     ev.preventDefault();
@@ -204,6 +205,8 @@ var Simple2DEngine;
                 this.onTouchStart = function (ev) {
                     ev.preventDefault();
                     _this.updateLastPositions(ev);
+                    //TEST!!
+                    _this.engine.renderer.enterFullscreen();
                 };
                 this.onTouchEnd = function (ev) {
                     ev.preventDefault();
@@ -305,6 +308,51 @@ var Simple2DEngine;
                     this.gl = this.mainCanvas.getContext("experimental-webgl");
                 this.gl.clearColor(1, 0, 0, 1); //red
                 this.onWindowResize();
+            };
+            /**
+             * Enters full screen mode. This function can only be called when triggered from a user initiated action (ex: click event handler)
+             */
+            RenderManager.prototype.enterFullscreen = function () {
+                //Taken from phaser source code!!
+                //https://github.com/photonstorm/phaser/blob/master/src/system/Device.js
+                var fs = [
+                    'requestFullscreen',
+                    'requestFullScreen',
+                    'webkitRequestFullscreen',
+                    'webkitRequestFullScreen',
+                    'msRequestFullscreen',
+                    'msRequestFullScreen',
+                    'mozRequestFullScreen',
+                    'mozRequestFullscreen'
+                ];
+                var element = this.mainCanvas;
+                for (var i = 0; i < fs.length; i++) {
+                    if (element[fs[i]]) {
+                        element[fs[i]]();
+                        break;
+                    }
+                }
+            };
+            RenderManager.prototype.exitFullscreen = function () {
+                //Taken from phaser source code!!
+                //https://github.com/photonstorm/phaser/blob/master/src/system/Device.js
+                var cfs = [
+                    'cancelFullScreen',
+                    'exitFullscreen',
+                    'webkitCancelFullScreen',
+                    'webkitExitFullscreen',
+                    'msCancelFullScreen',
+                    'msExitFullscreen',
+                    'mozCancelFullScreen',
+                    'mozExitFullscreen'
+                ];
+                var doc = document;
+                for (var i = 0; i < cfs.length; i++) {
+                    if (doc[cfs[i]]) {
+                        doc[cfs[i]]();
+                        break;
+                    }
+                }
             };
             RenderManager.prototype.draw = function () {
                 if (this.engine.input.pointerDown)

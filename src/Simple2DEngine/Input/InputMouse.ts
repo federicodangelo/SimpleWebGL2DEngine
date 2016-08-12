@@ -69,6 +69,8 @@ module Simple2DEngine.Input {
                 this._leftDown = true;
             else if (ev.button === 2)
                 this._rightDown = true;
+
+            this.engine.renderer.enterFullscreen();
         }
 
         private onMouseMove = (ev: MouseEvent) => {
