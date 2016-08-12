@@ -1,0 +1,12 @@
+﻿{
+  "name": "simple-webgl-2d-engine",
+  "version": "0.1.0",
+  "description": "Simple WebGL 2D Engine",
+  "author": "Fede",
+  "devDependencies": {
+    "gulp": "*",
+    "gulp-typescript": "*",
+    "gulp-sourcemaps": "*",
+    "gulp-webserver": "*"
+  }
+}

@@ -1,0 +1,11 @@
+// Place your settings in this file to overwrite default and user settings.
+{
+    "files.exclude": {
+		"**/.git": true,
+		"**/.DS_Store": true,
+        "node_modules": true //hide node_modules used by npm
+	},
+    
+    // Disable git, use the GitHub client
+    "git.enabled": false
+}
