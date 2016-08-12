@@ -105,6 +105,7 @@ var Simple2DEngine;
                         _this._leftDown = true;
                     else if (ev.button === 2)
                         _this._rightDown = true;
+                    //TEST!!
                     _this.engine.renderer.enterFullscreen();
                 };
                 this.onMouseMove = function (ev) {

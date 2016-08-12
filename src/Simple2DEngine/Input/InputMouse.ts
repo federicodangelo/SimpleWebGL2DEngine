@@ -70,6 +70,7 @@ module Simple2DEngine.Input {
             else if (ev.button === 2)
                 this._rightDown = true;
 
+            //TEST!!
             this.engine.renderer.enterFullscreen();
         }
 
