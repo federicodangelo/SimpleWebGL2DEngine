@@ -8,6 +8,15 @@
             "url": "http://localhost:8000/web/index.html",
             "sourceMaps": true,
             "webRoot": "${workspaceRoot}/web"
+        },
+        {
+            "name": "Attach localhost with sourcemaps",
+            "type": "chrome",
+            "request": "attach",
+            "port": 9222,
+            "url": "http://localhost:8000/web/index.html",
+            "sourceMaps": true,
+            "webRoot": "${workspaceRoot}/web"            
         }
 	]
 }

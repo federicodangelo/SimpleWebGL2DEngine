@@ -1,8 +1,6 @@
-module Simple2DEngine.Input {
+module Simple2DEngine {
 
     export class InputManager {
-
-        private engine : Simple2DEngine;
 
         private inputTouch : Input.InputTouch;
         private inputMouse : Input.InputMouse;
@@ -31,9 +29,7 @@ module Simple2DEngine.Input {
             return 0;
         }
 
-        constructor(engine : Simple2DEngine) {
-            this.engine = engine;
-
+        constructor() {
             this.inputTouch = new Input.InputTouch(engine);
             this.inputMouse = new Input.InputMouse(engine);
         }

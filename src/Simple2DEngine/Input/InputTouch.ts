@@ -8,17 +8,13 @@ module Simple2DEngine.Input {
 
     export class InputTouch {
         
-        private engine : Simple2DEngine;
-
         private _touches : Array<Touch>;
 
         public get touches() {
             return this._touches;
         }
 
-        constructor(engine : Simple2DEngine) {
-            this.engine = engine;
-
+        constructor() {
             this._touches = new Array<Touch>();
 
             document.addEventListener("touchstart", this.onTouchStart, true);
@@ -56,7 +52,7 @@ module Simple2DEngine.Input {
 
                 var touch = this.getOrCreateTouch(id);
 
-                if (x >= 0 && x < this.engine.renderer.screenWidth && y >= 0 && y < this.engine.renderer.screenHeight) {
+                if (x >= 0 && x < engine.renderer.screenWidth && y >= 0 && y < engine.renderer.screenHeight) {
                     touch.x = x;
                     touch.y = y;
                 }
@@ -68,7 +64,7 @@ module Simple2DEngine.Input {
             this.updateLastPositions(ev);
 
             //TEST!!
-            this.engine.renderer.enterFullscreen();
+            //this.engine.renderer.enterFullscreen();
         }
 
         private onTouchEnd = (ev: TouchEvent) => {

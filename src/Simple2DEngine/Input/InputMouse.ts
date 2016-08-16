@@ -2,8 +2,6 @@ module Simple2DEngine.Input {
 
     export class InputMouse {
 
-        private engine : Simple2DEngine;
-
         private _lastX : number;
         private _lastY : number;
         private _leftDown : boolean;
@@ -37,9 +35,7 @@ module Simple2DEngine.Input {
             3: Fourth button, typically the Browser Back button
             4: Fifth button, typically the Browser Forward button
         */
-        constructor(engine : Simple2DEngine) {
-            this.engine = engine;
-
+        constructor() {
             this._lastX = 0;
             this._lastY = 0;
             this._leftDown = false;
@@ -55,7 +51,7 @@ module Simple2DEngine.Input {
 
 
         private updateLastPosition(ev: MouseEvent) {
-            if (ev.x >= 0 && ev.x < this.engine.renderer.screenWidth && ev.y >= 0 && ev.y < this.engine.renderer.screenHeight) {
+            if (ev.x >= 0 && ev.x < engine.renderer.screenWidth && ev.y >= 0 && ev.y < engine.renderer.screenHeight) {
                 this._lastX = ev.x;
                 this._lastY = ev.y;
             }
@@ -71,7 +67,7 @@ module Simple2DEngine.Input {
                 this._rightDown = true;
 
             //TEST!!
-            this.engine.renderer.enterFullscreen();
+            //this.engine.renderer.enterFullscreen();
         }
 
         private onMouseMove = (ev: MouseEvent) => {

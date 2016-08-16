@@ -11,8 +11,4 @@
     "node_modules",
     "web"
   ]
-  //,
-  //"files": [
-  //    "src/main.ts"
-  //]
 }

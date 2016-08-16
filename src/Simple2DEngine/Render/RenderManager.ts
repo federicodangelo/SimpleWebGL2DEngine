@@ -1,8 +1,7 @@
-module Simple2DEngine.Render {
+module Simple2DEngine {
 
     export class RenderManager {
         
-        private engine : Simple2DEngine;
         private mainCanvas : HTMLCanvasElement; 
         private gl : WebGLRenderingContext;
 
@@ -17,9 +16,7 @@ module Simple2DEngine.Render {
             return this._screenHeight;
         } 
 
-        constructor(engine : Simple2DEngine) {
-            this.engine = engine;
-
+        constructor() {
             this.mainCanvas = <HTMLCanvasElement> document.getElementById("mainCanvas");
 
             if (this.mainCanvas) {
@@ -107,14 +104,37 @@ module Simple2DEngine.Render {
             }
         }
 
+        private tmpMatrix : Matrix3 = Matrix3.create();
+        private tmpVector : Vector2 = Vector2.create();
+
         public draw() : void {
 
-            if (this.engine.input.pointerDown)
+            if (engine.input.pointerDown)
                 this.gl.clearColor(1, 0, 0, 1); //red
             else
                 this.gl.clearColor(0, 1, 0, 1); //green
 
             this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+            var allEntities = engine.entities.entities;
+            var tmpMatrix = this.tmpMatrix;
+            var tmpVector = this.tmpVector;
+
+            for (var i = 0; i < allEntities.length; i++) {
+                var entity = allEntities[i];
+
+                entity.transform.getLocalToGlobalMatrix(tmpMatrix);
+
+                //Get 0,0 position
+                Vector2.set(tmpVector, 0, 0);
+                Vector2.transformMat3(tmpVector, tmpVector, tmpMatrix);
+
+                console.log("entity " + i + " is at: " + Vector2.toString(tmpVector));
+
+                //console.log(mat3.toString(this.tmpMatrix));
+            }
+
+
         }
     }
 }

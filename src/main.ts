@@ -1,4 +1,10 @@
 window.onload = () => {
-    var engine = new Simple2DEngine.Simple2DEngine();
-    engine.init();
+    new Simple2DEngine.Engine();
+    Simple2DEngine.engine.init();
+    requestAnimationFrame(update);
 };
+
+function update() {
+    Simple2DEngine.engine.update();
+    requestAnimationFrame(update);
+}
