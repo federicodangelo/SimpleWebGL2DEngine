@@ -51,10 +51,16 @@ module Simple2DEngine {
         private lastUpdateTime : number = 0;
 
         public update() : void {
+            
+            if (this._renderer.contextLost) {
+                //Context lost, don't do anything else
+                return; 
+            }
+
             var now = Date.now() / 1000;
 
             if (this.lastUpdateTime === 0)
-                Time.deltaTime = now - 1 / 60; //assume 60 fps in first frame, so Time.deltaTime is never 0!
+                Time.deltaTime = 1 / 60; //assume 60 fps in first frame, so Time.deltaTime is never 0!
             else
                 Time.deltaTime = now - this.lastUpdateTime;
 

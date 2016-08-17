@@ -9,6 +9,11 @@ module Simple2DEngine {
         private _screenHeight : number;
 
         private _commands : RenderCommands;
+        private _contextLost : boolean; 
+
+        public get contextLost() {
+            return this._contextLost;
+        }
 
         public get screenWidth() : number {
             return this._screenWidth;
@@ -29,6 +34,10 @@ module Simple2DEngine {
 
                 //resize canvas on window resize
                 window.addEventListener("resize", () => this.onWindowResize(), false);
+
+                //register webgl context lost event
+                this.mainCanvas.addEventListener("webglcontextlost", () => this.onWebGLContextLost(), false);
+                this.mainCanvas.addEventListener("webglcontextrestored", () => this.onWebGLContextRestored(), false);
                 
                 this.initWebGL();
             }
@@ -37,15 +46,23 @@ module Simple2DEngine {
         private onWindowResize() {
             this._screenWidth = window.innerWidth;
             this._screenHeight = window.innerHeight;
-
             this.mainCanvas.width = this._screenWidth;
             this.mainCanvas.height = this._screenHeight;
             this.gl.viewport(0, 0, this._screenWidth, this._screenHeight);
         }
 
+        private onWebGLContextLost() {
+            this._contextLost = true;
+            console.error("WebGL context lost! Not handled yet..")
+        }
+
+        private onWebGLContextRestored() {
+            this._contextLost = false;
+        }
+
         private initWebGL() : void {
 
-            this.gl = <WebGLRenderingContext> this.mainCanvas.getContext("webgl");
+            this.gl = <WebGLRenderingContext> this.mainCanvas.getContext("webgl", { alpha: false });
 
             if (!this.gl)
                 this.gl = <WebGLRenderingContext> this.mainCanvas.getContext("experimental-webgl");

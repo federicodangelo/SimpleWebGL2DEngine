@@ -56,9 +56,13 @@ var Simple2DEngine;
             this.e1 = e1;
         };
         Engine.prototype.update = function () {
+            if (this._renderer.contextLost) {
+                //Context lost, don't do anything else
+                return;
+            }
             var now = Date.now() / 1000;
             if (this.lastUpdateTime === 0)
-                Simple2DEngine.Time.deltaTime = now - 1 / 60; //assume 60 fps in first frame, so Time.deltaTime is never 0!
+                Simple2DEngine.Time.deltaTime = 1 / 60; //assume 60 fps in first frame, so Time.deltaTime is never 0!
             else
                 Simple2DEngine.Time.deltaTime = now - this.lastUpdateTime;
             this.lastUpdateTime = now;
@@ -2601,6 +2605,18 @@ var Simple2DEngine;
 })(Simple2DEngine || (Simple2DEngine = {}));
 var Simple2DEngine;
 (function (Simple2DEngine) {
+    var Time = (function () {
+        function Time() {
+        }
+        Time.initStatic = function () {
+            Time.deltaTime = 0;
+        };
+        return Time;
+    }());
+    Simple2DEngine.Time = Time;
+})(Simple2DEngine || (Simple2DEngine = {}));
+var Simple2DEngine;
+(function (Simple2DEngine) {
     var RenderBuffer = (function () {
         function RenderBuffer(gl) {
             this.gl = gl;
@@ -2730,9 +2746,19 @@ var Simple2DEngine;
                 window.addEventListener("contextmenu", function (ev) { ev.preventDefault(); }, true);
                 //resize canvas on window resize
                 window.addEventListener("resize", function () { return _this.onWindowResize(); }, false);
+                //register webgl context lost event
+                this.mainCanvas.addEventListener("webglcontextlost", function () { return _this.onWebGLContextLost(); }, false);
+                this.mainCanvas.addEventListener("webglcontextrestored", function () { return _this.onWebGLContextRestored(); }, false);
                 this.initWebGL();
             }
         }
+        Object.defineProperty(RenderManager.prototype, "contextLost", {
+            get: function () {
+                return this._contextLost;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(RenderManager.prototype, "screenWidth", {
             get: function () {
                 return this._screenWidth;
@@ -2754,8 +2780,15 @@ var Simple2DEngine;
             this.mainCanvas.height = this._screenHeight;
             this.gl.viewport(0, 0, this._screenWidth, this._screenHeight);
         };
+        RenderManager.prototype.onWebGLContextLost = function () {
+            this._contextLost = true;
+            console.error("WebGL context lost! Not handled yet..");
+        };
+        RenderManager.prototype.onWebGLContextRestored = function () {
+            this._contextLost = false;
+        };
         RenderManager.prototype.initWebGL = function () {
-            this.gl = this.mainCanvas.getContext("webgl");
+            this.gl = this.mainCanvas.getContext("webgl", { alpha: false });
             if (!this.gl)
                 this.gl = this.mainCanvas.getContext("experimental-webgl");
             this.gl.clearColor(1, 0, 0, 1); //red
@@ -2904,18 +2937,6 @@ var Simple2DEngine;
         return RenderShader;
     }());
     Simple2DEngine.RenderShader = RenderShader;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
-    var Time = (function () {
-        function Time() {
-        }
-        Time.initStatic = function () {
-            Time.deltaTime = 0;
-        };
-        return Time;
-    }());
-    Simple2DEngine.Time = Time;
 })(Simple2DEngine || (Simple2DEngine = {}));
 
 //# sourceMappingURL=main.js.map
