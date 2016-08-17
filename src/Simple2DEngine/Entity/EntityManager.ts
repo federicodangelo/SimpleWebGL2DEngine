@@ -1,3 +1,5 @@
+/// <reference path="Entity.ts" />
+
 module Simple2DEngine {
     
     export class EntityManager {

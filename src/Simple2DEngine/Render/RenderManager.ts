@@ -1,15 +1,18 @@
+/// <reference path="RenderCommands.ts" />
+
 module Simple2DEngine {
 
     export class RenderManager {
         
         private mainCanvas : HTMLCanvasElement; 
-        private gl : WebGLRenderingContext;
+        private _gl : WebGLRenderingContext;
 
         private _screenWidth : number;
         private _screenHeight : number;
 
-        private _commands : RenderCommands;
         private _contextLost : boolean; 
+
+        private _commands : RenderCommands;
 
         public get contextLost() {
             return this._contextLost;
@@ -22,6 +25,10 @@ module Simple2DEngine {
         public get screenHeight() : number {
             return this._screenHeight;
         } 
+
+        public get gl() {
+            return this._gl;
+        }
 
         constructor() {
             this.mainCanvas = <HTMLCanvasElement> document.getElementById("mainCanvas");
@@ -62,14 +69,17 @@ module Simple2DEngine {
 
         private initWebGL() : void {
 
-            this.gl = <WebGLRenderingContext> this.mainCanvas.getContext("webgl", { alpha: false });
+            this._gl = <WebGLRenderingContext> this.mainCanvas.getContext("webgl", { alpha: false });
 
-            if (!this.gl)
-                this.gl = <WebGLRenderingContext> this.mainCanvas.getContext("experimental-webgl");
+            if (!this._gl)
+                this._gl = <WebGLRenderingContext> this.mainCanvas.getContext("experimental-webgl");
 
-            this.gl.clearColor(1, 0, 0, 1); //red
+            if (!this._gl)
+                return;
 
-            this._commands = new RenderCommands(this.gl);
+            this._gl.clearColor(0, 0, 0, 1); //black
+
+            this._commands = new RenderCommands(this._gl);
 
             this.onWindowResize();
         }
@@ -132,15 +142,12 @@ module Simple2DEngine {
             }
         }
 
-        private tmpMatrix : Matrix3 = Matrix3.create();
-        private tmpVector : Vector2 = Vector2.create();
-
         public draw() : void {
 
             if (engine.input.pointerDown)
-                this.gl.clearColor(1, 0, 0, 1); //red
-            else
                 this.gl.clearColor(0, 1, 0, 1); //green
+            else
+                this.gl.clearColor(0, 0, 0, 1); //black
 
             this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
@@ -153,23 +160,9 @@ module Simple2DEngine {
                 var entity = allEntities[i];
 
                 entity.drawer.draw(this._commands);
-
-/*
-                entity.transform.getLocalToGlobalMatrix(tmpMatrix);
-
-                //Get 0,0 position
-                Vector2.set(tmpVector, 0, 0);
-                Vector2.transformMat3(tmpVector, tmpVector, tmpMatrix);
-
-                console.log("entity " + i + " is at: " + Vector2.toString(tmpVector));
-
-                //console.log(mat3.toString(this.tmpMatrix));
-                */
             }
 
             this._commands.end();
-
-
         }
     }
 }

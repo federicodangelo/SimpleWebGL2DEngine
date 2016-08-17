@@ -1,3 +1,5 @@
+/// <reference path="Component.ts" />
+
 module Simple2DEngine {
 
     export class Drawer extends Component {

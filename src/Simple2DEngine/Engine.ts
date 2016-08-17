@@ -1,3 +1,7 @@
+/// <reference path="Input/InputManager.ts" />
+/// <reference path="Render/RenderManager.ts" />
+/// <reference path="Entity/EntityManager.ts" />
+
 module Simple2DEngine {
 
     export var engine : Engine;
