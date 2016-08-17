@@ -6,6 +6,7 @@ module Simple2DEngine {
         private _position : Vector2;
         private _rotation : number;
         private _scale : Vector2;
+        private _size : Vector2;
 
         public get parent() {
             return this._parent;
@@ -79,11 +80,36 @@ module Simple2DEngine {
             this._scale[1] = v;
         }
 
+        public get size() {
+            return this._size;
+        }
+
+        public set size(s:Vector2) {
+            Vector2.copy(this._size, s);
+        }
+
+        public get sizeX() {
+            return this._size[0];
+        }
+
+        public set sizeX(v:number) {
+            this._size[0] = v;
+        }
+
+        public get sizeY() {
+            return this._size[1];
+        }
+
+        public set sizeY(v:number) {
+            this._size[1] = v;
+        }
+
         public constructor() {
             super();
             this._position = Vector2.create();
             this._rotation = 0;
             this._scale = Vector2.fromValues(1, 1); 
+            this._size = Vector2.fromValues(32, 32);
         }
 
         public getLocalMatrix(out:Matrix3) : Matrix3 {

@@ -4,6 +4,7 @@ module Simple2DEngine {
 
         private _components : Array<Component> = new Array<Component>();
         private _transform : Transform;
+        private _drawer : Drawer;
 
         public get components() {
             return this._components;
@@ -13,8 +14,13 @@ module Simple2DEngine {
             return this._transform;
         }
 
+        public get drawer() {
+            return this._drawer;
+        
+    }
         constructor() {
             this._transform = this.addComponent(Transform);
+            this._drawer = this.addComponent(Drawer);
         }
 
         public addComponent<T extends Component>(clazz : {new() : T}) : T {

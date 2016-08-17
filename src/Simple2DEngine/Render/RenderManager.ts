@@ -8,6 +8,8 @@ module Simple2DEngine {
         private _screenWidth : number;
         private _screenHeight : number;
 
+        private _commands : RenderCommands;
+
         public get screenWidth() : number {
             return this._screenWidth;
         } 
@@ -42,6 +44,8 @@ module Simple2DEngine {
                 this.gl = <WebGLRenderingContext> this.mainCanvas.getContext("experimental-webgl");
 
             this.gl.clearColor(1, 0, 0, 1); //red
+
+            this._commands = new RenderCommands(this.gl);
 
             this.onWindowResize();
         }
@@ -117,12 +121,16 @@ module Simple2DEngine {
             this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
             var allEntities = engine.entities.entities;
-            var tmpMatrix = this.tmpMatrix;
-            var tmpVector = this.tmpVector;
+
+            this._commands.start();
 
             for (var i = 0; i < allEntities.length; i++) {
+
                 var entity = allEntities[i];
 
+                entity.drawer.draw(this._commands);
+
+/*
                 entity.transform.getLocalToGlobalMatrix(tmpMatrix);
 
                 //Get 0,0 position
@@ -132,7 +140,10 @@ module Simple2DEngine {
                 console.log("entity " + i + " is at: " + Vector2.toString(tmpVector));
 
                 //console.log(mat3.toString(this.tmpMatrix));
+                */
             }
+
+            this._commands.end();
 
 
         }

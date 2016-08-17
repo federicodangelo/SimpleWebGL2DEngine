@@ -30,8 +30,8 @@ module Simple2DEngine {
         }
 
         constructor() {
-            this.inputTouch = new Input.InputTouch(engine);
-            this.inputMouse = new Input.InputMouse(engine);
+            this.inputTouch = new Input.InputTouch();
+            this.inputMouse = new Input.InputMouse();
         }
 
         public update() : void {

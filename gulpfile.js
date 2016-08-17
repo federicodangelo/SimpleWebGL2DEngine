@@ -1,8 +1,8 @@
+var webserver = require('gulp-webserver');
 var gulp = require('gulp');
 var ts = require('gulp-typescript');
-var webserver = require('gulp-webserver');
 var sourcemaps = require('gulp-sourcemaps');
- 
+
 var tsProject = ts.createProject('tsconfig.json');
  
 gulp.task('scripts', function() {

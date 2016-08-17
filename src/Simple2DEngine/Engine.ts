@@ -25,20 +25,22 @@ module Simple2DEngine {
         }
 
         public init() : void {
+            Drawer.initStatic();
+            
             this._renderer = new RenderManager();
             this._input = new InputManager();
             this._entities = new EntityManager();
 
             var e1 = this.entities.addEntity();
+
+            e1.transform.localX = 100;
+            e1.transform.localY = 100;
+
             var e2 = this.entities.addEntity();
             e2.transform.parent = e1.transform;
 
-            e1.transform.localX = 10;
-            //e1.transform.localRotationDegrees = 90;
-            //e1.transform.localScaleX = 2;
-            //e1.transform.localScaleY = 2;
-            //e2.transform.localY = 1;
-            e2.transform.localX = 15;
+            e2.transform.localY = 100;
+            e2.transform.localX = 100;
         }
 
         public update() : void {
