@@ -22,7 +22,14 @@ module Simple2DEngine {
             this.mainCanvas = <HTMLCanvasElement> document.getElementById("mainCanvas");
 
             if (this.mainCanvas) {
+
+                //don't show context menu
+                this.mainCanvas.addEventListener("contextmenu", (ev: PointerEvent) => { ev.preventDefault();  }, true);
+                window.addEventListener("contextmenu", (ev: PointerEvent) => { ev.preventDefault(); }, true);
+
+                //resize canvas on window resize
                 window.addEventListener("resize", () => this.onWindowResize(), false);
+                
                 this.initWebGL();
             }
         }

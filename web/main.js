@@ -16,6 +16,7 @@ var Simple2DEngine;
 (function (Simple2DEngine) {
     var Engine = (function () {
         function Engine() {
+            this.lastUpdateTime = 0;
             Simple2DEngine.engine = this;
         }
         Object.defineProperty(Engine.prototype, "renderer", {
@@ -41,18 +42,27 @@ var Simple2DEngine;
         });
         Engine.prototype.init = function () {
             Simple2DEngine.Drawer.initStatic();
+            Simple2DEngine.Time.initStatic();
             this._renderer = new Simple2DEngine.RenderManager();
             this._input = new Simple2DEngine.InputManager();
             this._entities = new Simple2DEngine.EntityManager();
             var e1 = this.entities.addEntity();
-            e1.transform.localX = 100;
-            e1.transform.localY = 100;
+            e1.transform.localX = 300;
+            e1.transform.localY = 300;
             var e2 = this.entities.addEntity();
             e2.transform.parent = e1.transform;
             e2.transform.localY = 100;
             e2.transform.localX = 100;
+            this.e1 = e1;
         };
         Engine.prototype.update = function () {
+            var now = Date.now() / 1000;
+            if (this.lastUpdateTime === 0)
+                Simple2DEngine.Time.deltaTime = now - 1 / 60; //assume 60 fps in first frame, so Time.deltaTime is never 0!
+            else
+                Simple2DEngine.Time.deltaTime = now - this.lastUpdateTime;
+            this.lastUpdateTime = now;
+            this.e1.transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime;
             this._input.update();
             this._renderer.draw();
         };
@@ -317,6 +327,232 @@ var Simple2DEngine;
         return EntityManager;
     }());
     Simple2DEngine.EntityManager = EntityManager;
+})(Simple2DEngine || (Simple2DEngine = {}));
+var Simple2DEngine;
+(function (Simple2DEngine) {
+    var InputManager = (function () {
+        function InputManager() {
+            this.inputTouch = new Simple2DEngine.Input.InputTouch();
+            this.inputMouse = new Simple2DEngine.Input.InputMouse();
+        }
+        Object.defineProperty(InputManager.prototype, "pointerDown", {
+            get: function () {
+                return this.inputMouse.isDown || this.inputTouch.touches.length > 0;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(InputManager.prototype, "pointerX", {
+            get: function () {
+                if (this.inputMouse.isDown)
+                    return this.inputMouse.x;
+                if (this.inputTouch.touches.length > 0)
+                    return this.inputTouch.touches[0].x;
+                return 0;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(InputManager.prototype, "pointerY", {
+            get: function () {
+                if (this.inputMouse.isDown)
+                    return this.inputMouse.y;
+                if (this.inputTouch.touches.length > 0)
+                    return this.inputTouch.touches[0].y;
+                return 0;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        InputManager.prototype.update = function () {
+            //Nothing to do..
+        };
+        return InputManager;
+    }());
+    Simple2DEngine.InputManager = InputManager;
+})(Simple2DEngine || (Simple2DEngine = {}));
+var Simple2DEngine;
+(function (Simple2DEngine) {
+    var Input;
+    (function (Input) {
+        var InputMouse = (function () {
+            /*
+            Mouse buttons values (from https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button):
+                0: Main button pressed, usually the left button or the un-initialized state
+                1: Auxiliary button pressed, usually the wheel button or the middle button (if present)
+                2: Secondary button pressed, usually the right button
+                3: Fourth button, typically the Browser Back button
+                4: Fifth button, typically the Browser Forward button
+            */
+            function InputMouse() {
+                var _this = this;
+                this.onMouseDown = function (ev) {
+                    ev.preventDefault();
+                    _this.updateLastPosition(ev);
+                    if (ev.button === 0)
+                        _this._leftDown = true;
+                    else if (ev.button === 2)
+                        _this._rightDown = true;
+                    //TEST!!
+                    //this.engine.renderer.enterFullscreen();
+                };
+                this.onMouseMove = function (ev) {
+                    ev.preventDefault();
+                    _this.updateLastPosition(ev);
+                };
+                this.onMouseOut = function (ev) {
+                    ev.preventDefault();
+                    //Nothing to do..
+                };
+                this.onMouseOver = function (ev) {
+                    ev.preventDefault();
+                    //Nothing to do..
+                };
+                this.onMouseUp = function (ev) {
+                    ev.preventDefault();
+                    _this.updateLastPosition(ev);
+                    if (ev.button === 0)
+                        _this._leftDown = false;
+                    else if (ev.button === 2)
+                        _this._rightDown = false;
+                };
+                this.onMouseWheel = function (ev) {
+                    ev.preventDefault();
+                    //TODO: Do we handle this?
+                };
+                this._lastX = 0;
+                this._lastY = 0;
+                this._leftDown = false;
+                this._rightDown = false;
+                document.addEventListener("mousedown", this.onMouseDown, true);
+                document.addEventListener("mousemove", this.onMouseMove, true);
+                document.addEventListener("mouseout", this.onMouseOut, true);
+                document.addEventListener("mouseover", this.onMouseOver, true);
+                document.addEventListener("mouseup", this.onMouseUp, true);
+                document.addEventListener("mousewheel", this.onMouseWheel, true);
+            }
+            Object.defineProperty(InputMouse.prototype, "x", {
+                get: function () {
+                    return this._lastX;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Object.defineProperty(InputMouse.prototype, "y", {
+                get: function () {
+                    return this._lastY;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Object.defineProperty(InputMouse.prototype, "isDown", {
+                get: function () {
+                    return this._leftDown || this._rightDown;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Object.defineProperty(InputMouse.prototype, "isLeftDown", {
+                get: function () {
+                    return this._leftDown;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            Object.defineProperty(InputMouse.prototype, "isRightDown", {
+                get: function () {
+                    return this._rightDown;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            InputMouse.prototype.updateLastPosition = function (ev) {
+                if (ev.x >= 0 && ev.x < Simple2DEngine.engine.renderer.screenWidth && ev.y >= 0 && ev.y < Simple2DEngine.engine.renderer.screenHeight) {
+                    this._lastX = ev.x;
+                    this._lastY = ev.y;
+                }
+            };
+            return InputMouse;
+        }());
+        Input.InputMouse = InputMouse;
+    })(Input = Simple2DEngine.Input || (Simple2DEngine.Input = {}));
+})(Simple2DEngine || (Simple2DEngine = {}));
+var Simple2DEngine;
+(function (Simple2DEngine) {
+    var Input;
+    (function (Input) {
+        var Touch = (function () {
+            function Touch() {
+            }
+            return Touch;
+        }());
+        Input.Touch = Touch;
+        var InputTouch = (function () {
+            function InputTouch() {
+                var _this = this;
+                this.onTouchStart = function (ev) {
+                    ev.preventDefault();
+                    _this.updateLastPositions(ev);
+                    //TEST!!
+                    //this.engine.renderer.enterFullscreen();
+                };
+                this.onTouchEnd = function (ev) {
+                    ev.preventDefault();
+                    for (var i = 0; i < ev.changedTouches.length; i++)
+                        _this.removeTouch(ev.changedTouches[i].identifier);
+                };
+                this.onTouchMove = function (ev) {
+                    ev.preventDefault();
+                    _this.updateLastPositions(ev);
+                };
+                this.onTouchCancel = function (ev) {
+                    ev.preventDefault();
+                    for (var i = 0; i < ev.changedTouches.length; i++)
+                        _this.removeTouch(ev.changedTouches[i].identifier);
+                };
+                this._touches = new Array();
+                document.addEventListener("touchstart", this.onTouchStart, true);
+                document.addEventListener("touchend", this.onTouchEnd, true);
+                document.addEventListener("touchmove", this.onTouchMove, true);
+                document.addEventListener("touchcancel", this.onTouchCancel, true);
+            }
+            Object.defineProperty(InputTouch.prototype, "touches", {
+                get: function () {
+                    return this._touches;
+                },
+                enumerable: true,
+                configurable: true
+            });
+            InputTouch.prototype.removeTouch = function (id) {
+                for (var i = 0; i < this._touches.length; i++)
+                    if (this._touches[i].id === id)
+                        this._touches.splice(i, 1);
+            };
+            InputTouch.prototype.getOrCreateTouch = function (id) {
+                for (var i = 0; i < this._touches.length; i++)
+                    if (this._touches[i].id === id)
+                        return this._touches[i];
+                var newTouch = new Touch();
+                newTouch.id = id;
+                this._touches.push(newTouch);
+                return newTouch;
+            };
+            InputTouch.prototype.updateLastPositions = function (ev) {
+                for (var i = 0; i < ev.changedTouches.length; i++) {
+                    var id = ev.changedTouches[i].identifier;
+                    var x = ev.changedTouches[i].clientX;
+                    var y = ev.changedTouches[i].clientY;
+                    var touch = this.getOrCreateTouch(id);
+                    if (x >= 0 && x < Simple2DEngine.engine.renderer.screenWidth && y >= 0 && y < Simple2DEngine.engine.renderer.screenHeight) {
+                        touch.x = x;
+                        touch.y = y;
+                    }
+                }
+            };
+            return InputTouch;
+        }());
+        Input.InputTouch = InputTouch;
+    })(Input = Simple2DEngine.Input || (Simple2DEngine.Input = {}));
 })(Simple2DEngine || (Simple2DEngine = {}));
 //Port of glMatrix, taken from: https://github.com/toji/gl-matrix
 var Simple2DEngine;
@@ -2365,232 +2601,6 @@ var Simple2DEngine;
 })(Simple2DEngine || (Simple2DEngine = {}));
 var Simple2DEngine;
 (function (Simple2DEngine) {
-    var InputManager = (function () {
-        function InputManager() {
-            this.inputTouch = new Simple2DEngine.Input.InputTouch();
-            this.inputMouse = new Simple2DEngine.Input.InputMouse();
-        }
-        Object.defineProperty(InputManager.prototype, "pointerDown", {
-            get: function () {
-                return this.inputMouse.isDown || this.inputTouch.touches.length > 0;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(InputManager.prototype, "pointerX", {
-            get: function () {
-                if (this.inputMouse.isDown)
-                    return this.inputMouse.x;
-                if (this.inputTouch.touches.length > 0)
-                    return this.inputTouch.touches[0].x;
-                return 0;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(InputManager.prototype, "pointerY", {
-            get: function () {
-                if (this.inputMouse.isDown)
-                    return this.inputMouse.y;
-                if (this.inputTouch.touches.length > 0)
-                    return this.inputTouch.touches[0].y;
-                return 0;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        InputManager.prototype.update = function () {
-            //Nothing to do..
-        };
-        return InputManager;
-    }());
-    Simple2DEngine.InputManager = InputManager;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
-    var Input;
-    (function (Input) {
-        var InputMouse = (function () {
-            /*
-            Mouse buttons values (from https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button):
-                0: Main button pressed, usually the left button or the un-initialized state
-                1: Auxiliary button pressed, usually the wheel button or the middle button (if present)
-                2: Secondary button pressed, usually the right button
-                3: Fourth button, typically the Browser Back button
-                4: Fifth button, typically the Browser Forward button
-            */
-            function InputMouse() {
-                var _this = this;
-                this.onMouseDown = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPosition(ev);
-                    if (ev.button === 0)
-                        _this._leftDown = true;
-                    else if (ev.button === 2)
-                        _this._rightDown = true;
-                    //TEST!!
-                    //this.engine.renderer.enterFullscreen();
-                };
-                this.onMouseMove = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPosition(ev);
-                };
-                this.onMouseOut = function (ev) {
-                    ev.preventDefault();
-                    //Nothing to do..
-                };
-                this.onMouseOver = function (ev) {
-                    ev.preventDefault();
-                    //Nothing to do..
-                };
-                this.onMouseUp = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPosition(ev);
-                    if (ev.button === 0)
-                        _this._leftDown = false;
-                    else if (ev.button === 2)
-                        _this._rightDown = false;
-                };
-                this.onMouseWheel = function (ev) {
-                    ev.preventDefault();
-                    //TODO: Do we handle this?
-                };
-                this._lastX = 0;
-                this._lastY = 0;
-                this._leftDown = false;
-                this._rightDown = false;
-                document.addEventListener("mousedown", this.onMouseDown, true);
-                document.addEventListener("mousemove", this.onMouseMove, true);
-                document.addEventListener("mouseout", this.onMouseOut, true);
-                document.addEventListener("mouseover", this.onMouseOver, true);
-                document.addEventListener("mouseup", this.onMouseUp, true);
-                document.addEventListener("mousewheel", this.onMouseWheel, true);
-            }
-            Object.defineProperty(InputMouse.prototype, "x", {
-                get: function () {
-                    return this._lastX;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "y", {
-                get: function () {
-                    return this._lastY;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "isDown", {
-                get: function () {
-                    return this._leftDown || this._rightDown;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "isLeftDown", {
-                get: function () {
-                    return this._leftDown;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "isRightDown", {
-                get: function () {
-                    return this._rightDown;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            InputMouse.prototype.updateLastPosition = function (ev) {
-                if (ev.x >= 0 && ev.x < Simple2DEngine.engine.renderer.screenWidth && ev.y >= 0 && ev.y < Simple2DEngine.engine.renderer.screenHeight) {
-                    this._lastX = ev.x;
-                    this._lastY = ev.y;
-                }
-            };
-            return InputMouse;
-        }());
-        Input.InputMouse = InputMouse;
-    })(Input = Simple2DEngine.Input || (Simple2DEngine.Input = {}));
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
-    var Input;
-    (function (Input) {
-        var Touch = (function () {
-            function Touch() {
-            }
-            return Touch;
-        }());
-        Input.Touch = Touch;
-        var InputTouch = (function () {
-            function InputTouch() {
-                var _this = this;
-                this.onTouchStart = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPositions(ev);
-                    //TEST!!
-                    //this.engine.renderer.enterFullscreen();
-                };
-                this.onTouchEnd = function (ev) {
-                    ev.preventDefault();
-                    for (var i = 0; i < ev.changedTouches.length; i++)
-                        _this.removeTouch(ev.changedTouches[i].identifier);
-                };
-                this.onTouchMove = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPositions(ev);
-                };
-                this.onTouchCancel = function (ev) {
-                    ev.preventDefault();
-                    for (var i = 0; i < ev.changedTouches.length; i++)
-                        _this.removeTouch(ev.changedTouches[i].identifier);
-                };
-                this._touches = new Array();
-                document.addEventListener("touchstart", this.onTouchStart, true);
-                document.addEventListener("touchend", this.onTouchEnd, true);
-                document.addEventListener("touchmove", this.onTouchMove, true);
-                document.addEventListener("touchcancel", this.onTouchCancel, true);
-            }
-            Object.defineProperty(InputTouch.prototype, "touches", {
-                get: function () {
-                    return this._touches;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            InputTouch.prototype.removeTouch = function (id) {
-                for (var i = 0; i < this._touches.length; i++)
-                    if (this._touches[i].id === id)
-                        this._touches.splice(i, 1);
-            };
-            InputTouch.prototype.getOrCreateTouch = function (id) {
-                for (var i = 0; i < this._touches.length; i++)
-                    if (this._touches[i].id === id)
-                        return this._touches[i];
-                var newTouch = new Touch();
-                newTouch.id = id;
-                this._touches.push(newTouch);
-                return newTouch;
-            };
-            InputTouch.prototype.updateLastPositions = function (ev) {
-                for (var i = 0; i < ev.changedTouches.length; i++) {
-                    var id = ev.changedTouches[i].identifier;
-                    var x = ev.changedTouches[i].clientX;
-                    var y = ev.changedTouches[i].clientY;
-                    var touch = this.getOrCreateTouch(id);
-                    if (x >= 0 && x < Simple2DEngine.engine.renderer.screenWidth && y >= 0 && y < Simple2DEngine.engine.renderer.screenHeight) {
-                        touch.x = x;
-                        touch.y = y;
-                    }
-                }
-            };
-            return InputTouch;
-        }());
-        Input.InputTouch = InputTouch;
-    })(Input = Simple2DEngine.Input || (Simple2DEngine.Input = {}));
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
     var RenderBuffer = (function () {
         function RenderBuffer(gl) {
             this.gl = gl;
@@ -2715,6 +2725,10 @@ var Simple2DEngine;
             this.tmpVector = Simple2DEngine.Vector2.create();
             this.mainCanvas = document.getElementById("mainCanvas");
             if (this.mainCanvas) {
+                //don't show context menu
+                this.mainCanvas.addEventListener("contextmenu", function (ev) { ev.preventDefault(); }, true);
+                window.addEventListener("contextmenu", function (ev) { ev.preventDefault(); }, true);
+                //resize canvas on window resize
                 window.addEventListener("resize", function () { return _this.onWindowResize(); }, false);
                 this.initWebGL();
             }
@@ -2890,6 +2904,18 @@ var Simple2DEngine;
         return RenderShader;
     }());
     Simple2DEngine.RenderShader = RenderShader;
+})(Simple2DEngine || (Simple2DEngine = {}));
+var Simple2DEngine;
+(function (Simple2DEngine) {
+    var Time = (function () {
+        function Time() {
+        }
+        Time.initStatic = function () {
+            Time.deltaTime = 0;
+        };
+        return Time;
+    }());
+    Simple2DEngine.Time = Time;
 })(Simple2DEngine || (Simple2DEngine = {}));
 
 //# sourceMappingURL=main.js.map
