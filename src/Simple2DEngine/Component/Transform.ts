@@ -10,12 +10,28 @@ module Simple2DEngine {
         private _scale : Vector2;
         private _size : Vector2;
 
+        //Linked list of children
+        private _firstChild : Transform;
+        private _lastChild : Transform;
+
+        //Linked list of siblings
+        private _prevSibling : Transform;
+        private _nextSibling : Transform;
+
         public get parent() {
             return this._parent;
         }
 
+        protected onInit() : void {
+            engine.entities.root.addChild(this);
+        }
+
         public set parent(p:Transform) {
-            this._parent = p;
+            //No need to check for null, all Transform have a parent (except root, but it can't be reparented)
+            this._parent.removeChild(this);
+
+            //addChild() updates this._parent
+            p.addChild(this); 
         }
 
         public get localPosition() {
@@ -139,5 +155,69 @@ module Simple2DEngine {
             Matrix3.invert(out, out);
             return out;
         }
+
+
+        private addChild(p:Transform) {
+            if (this._firstChild == null) {
+                this._firstChild = this._lastChild = p;
+            } else {
+                this._lastChild._nextSibling = p;
+                p._prevSibling = this._lastChild;
+                this._lastChild = p;
+            }
+            p._parent = this;
+        }
+
+        private removeChild(p:Transform) {
+            if (p._nextSibling != null)
+                p._nextSibling._prevSibling = p._prevSibling;
+
+            if (p._prevSibling != null)
+                p._prevSibling._nextSibling = p._nextSibling;
+
+            if (p == this._firstChild)
+                this._firstChild = p._nextSibling;
+
+            if (p == this._lastChild)
+                this._lastChild = p._prevSibling;
+
+            p._nextSibling = null;
+            p._prevSibling = null;
+            p._parent = null;
+        }
+
+        public getFirstChild() : Transform {
+            return this._firstChild;
+        }
+
+        public getNextChild(prevChild : Transform) {
+            return prevChild._nextSibling;
+        }
+
+        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : Array<T> {
+
+            if (toReturn == null)
+                toReturn = new Array<T>();
+            else
+                toReturn.length = 0;
+
+            this.getComponentInChildrenInternal(clazz, toReturn);
+
+            return toReturn;
+        }
+
+        private getComponentInChildrenInternal<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : void {
+
+            var comp =  this.getComponent(clazz);
+            if (comp != null)
+                toReturn.push(comp);
+
+            var child = this._firstChild;
+
+            while(child != null) {
+                child.getComponentInChildrenInternal(clazz, toReturn);
+                child = child._nextSibling;
+            }
+        }        
     }
 }

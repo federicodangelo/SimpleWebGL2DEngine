@@ -11,19 +11,7 @@ module Simple2DEngine {
         }
 
         public render() {
-
-            var allEntities = engine.entities.entities;
-
-            this._commands.start();
-
-            for (var i = 0; i < allEntities.length; i++) {
-
-                var entity = allEntities[i];
-
-                entity.drawer.draw(this._commands);
-            }
-
-            this._commands.end();
+            //TODO
         }        
     }
 }

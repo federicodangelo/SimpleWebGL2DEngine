@@ -4,10 +4,10 @@ module Simple2DEngine {
     
     export class EntityManager {
 
-        private _entities : Array<Entity> = new Array<Entity>();
+        private _root : Transform = new Transform();
 
-        public get entities() {
-            return this._entities;
+        public get root() {
+            return this._root;
         }
 
         constructor() {
@@ -15,8 +15,11 @@ module Simple2DEngine {
 
         public addEntity() : Entity {
             var entity = new Entity(); 
-            this._entities.push(entity);
             return entity;
+        }
+
+        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : Array<T> {
+            return this._root.getComponentInChildren(clazz, toReturn);
         }
     }
 }

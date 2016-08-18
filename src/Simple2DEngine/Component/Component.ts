@@ -4,6 +4,9 @@ module Simple2DEngine {
 
         private _entity : Entity;
 
+        //Linked list of components that belong to the same entity
+        public __internal_nextComponent : Component;
+
         public init(entity : Entity) : void {
             this._entity = entity;
             this.onInit();
@@ -17,6 +20,10 @@ module Simple2DEngine {
             
         }
 
-
+        public getComponent<T extends Component>(clazz : {new() : T}) : T {
+            if (this._entity != null)
+                return this._entity.getComponent(clazz);
+            return null;
+        }
     }
 }

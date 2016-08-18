@@ -6,12 +6,19 @@ module Simple2DEngine {
     
     export class Entity {
 
-        private _components : Array<Component> = new Array<Component>();
+        private _name : String = "Entity";
         private _transform : Transform;
         private _drawer : Drawer;
 
-        public get components() {
-            return this._components;
+        //First component in the entity
+        private _firstComponent : Component;
+
+        public get name() {
+            return this._name;
+        }
+
+        public set name(s:String) {
+            this._name = s;
         }
 
         public get transform() {
@@ -20,8 +27,8 @@ module Simple2DEngine {
 
         public get drawer() {
             return this._drawer;
-        
-    }
+        }
+
         constructor() {
             this._transform = this.addComponent(Transform);
             this._drawer = this.addComponent(Drawer);
@@ -29,8 +36,32 @@ module Simple2DEngine {
 
         public addComponent<T extends Component>(clazz : {new() : T}) : T {
             var comp = new clazz();
+            
+            var tmp = this._firstComponent;
+            this._firstComponent = comp;
+            comp.__internal_nextComponent = tmp;
+
             comp.init(this);
             return comp;
+        }
+
+        public getComponent<T extends Component>(clazz : {new() : T}) : T {
+
+            var comp = this._firstComponent;
+
+            while (comp != null) {
+                if (comp instanceof clazz)
+                    return comp;
+                comp = comp.__internal_nextComponent;
+            }
+            
+            return null;
+        }
+
+        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : Array<T> {
+            toReturn = this._transform.getComponentInChildren(clazz, toReturn);
+
+            return toReturn;
         }
     }
 }

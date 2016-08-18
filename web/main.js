@@ -339,6 +339,7 @@ var Simple2DEngine;
     var RenderManager = (function () {
         function RenderManager() {
             var _this = this;
+            this.tmpDrawers = new Array();
             this.mainCanvas = document.getElementById("mainCanvas");
             if (this.mainCanvas) {
                 //don't show context menu
@@ -455,11 +456,12 @@ var Simple2DEngine;
             else
                 this.gl.clearColor(0, 0, 0, 1); //black
             this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-            var allEntities = Simple2DEngine.engine.entities.entities;
+            var tmpDrawers = this.tmpDrawers;
+            Simple2DEngine.engine.entities.getComponentInChildren(Simple2DEngine.Drawer, tmpDrawers);
             this._commands.start();
-            for (var i = 0; i < allEntities.length; i++) {
-                var entity = allEntities[i];
-                entity.drawer.draw(this._commands);
+            for (var i = 0; i < tmpDrawers.length; i++) {
+                var drawer = tmpDrawers[i];
+                drawer.draw(this._commands);
             }
             this._commands.end();
         };
@@ -485,6 +487,11 @@ var Simple2DEngine;
         });
         Component.prototype.onInit = function () {
         };
+        Component.prototype.getComponent = function (clazz) {
+            if (this._entity != null)
+                return this._entity.getComponent(clazz);
+            return null;
+        };
         return Component;
     }());
     Simple2DEngine.Component = Component;
@@ -506,11 +513,17 @@ var Simple2DEngine;
                 return this._parent;
             },
             set: function (p) {
-                this._parent = p;
+                //No need to check for null, all Transform have a parent (except root, but it can't be reparented)
+                this._parent.removeChild(this);
+                //addChild() updates this._parent
+                p.addChild(this);
             },
             enumerable: true,
             configurable: true
         });
+        Transform.prototype.onInit = function () {
+            Simple2DEngine.engine.entities.root.addChild(this);
+        };
         Object.defineProperty(Transform.prototype, "localPosition", {
             get: function () {
                 return this._position;
@@ -642,6 +655,54 @@ var Simple2DEngine;
             Simple2DEngine.Matrix3.invert(out, out);
             return out;
         };
+        Transform.prototype.addChild = function (p) {
+            if (this._firstChild == null) {
+                this._firstChild = this._lastChild = p;
+            }
+            else {
+                this._lastChild._nextSibling = p;
+                p._prevSibling = this._lastChild;
+                this._lastChild = p;
+            }
+            p._parent = this;
+        };
+        Transform.prototype.removeChild = function (p) {
+            if (p._nextSibling != null)
+                p._nextSibling._prevSibling = p._prevSibling;
+            if (p._prevSibling != null)
+                p._prevSibling._nextSibling = p._nextSibling;
+            if (p == this._firstChild)
+                this._firstChild = p._nextSibling;
+            if (p == this._lastChild)
+                this._lastChild = p._prevSibling;
+            p._nextSibling = null;
+            p._prevSibling = null;
+            p._parent = null;
+        };
+        Transform.prototype.getFirstChild = function () {
+            return this._firstChild;
+        };
+        Transform.prototype.getNextChild = function (prevChild) {
+            return prevChild._nextSibling;
+        };
+        Transform.prototype.getComponentInChildren = function (clazz, toReturn) {
+            if (toReturn == null)
+                toReturn = new Array();
+            else
+                toReturn.length = 0;
+            this.getComponentInChildrenInternal(clazz, toReturn);
+            return toReturn;
+        };
+        Transform.prototype.getComponentInChildrenInternal = function (clazz, toReturn) {
+            var comp = this.getComponent(clazz);
+            if (comp != null)
+                toReturn.push(comp);
+            var child = this._firstChild;
+            while (child != null) {
+                child.getComponentInChildrenInternal(clazz, toReturn);
+                child = child._nextSibling;
+            }
+        };
         return Transform;
     }(Simple2DEngine.Component));
     Simple2DEngine.Transform = Transform;
@@ -674,13 +735,16 @@ var Simple2DEngine;
 (function (Simple2DEngine) {
     var Entity = (function () {
         function Entity() {
-            this._components = new Array();
+            this._name = "Entity";
             this._transform = this.addComponent(Simple2DEngine.Transform);
             this._drawer = this.addComponent(Simple2DEngine.Drawer);
         }
-        Object.defineProperty(Entity.prototype, "components", {
+        Object.defineProperty(Entity.prototype, "name", {
             get: function () {
-                return this._components;
+                return this._name;
+            },
+            set: function (s) {
+                this._name = s;
             },
             enumerable: true,
             configurable: true
@@ -701,8 +765,24 @@ var Simple2DEngine;
         });
         Entity.prototype.addComponent = function (clazz) {
             var comp = new clazz();
+            var tmp = this._firstComponent;
+            this._firstComponent = comp;
+            comp.__internal_nextComponent = tmp;
             comp.init(this);
             return comp;
+        };
+        Entity.prototype.getComponent = function (clazz) {
+            var comp = this._firstComponent;
+            while (comp != null) {
+                if (comp instanceof clazz)
+                    return comp;
+                comp = comp.__internal_nextComponent;
+            }
+            return null;
+        };
+        Entity.prototype.getComponentInChildren = function (clazz, toReturn) {
+            toReturn = this._transform.getComponentInChildren(clazz, toReturn);
+            return toReturn;
         };
         return Entity;
     }());
@@ -713,19 +793,21 @@ var Simple2DEngine;
 (function (Simple2DEngine) {
     var EntityManager = (function () {
         function EntityManager() {
-            this._entities = new Array();
+            this._root = new Simple2DEngine.Transform();
         }
-        Object.defineProperty(EntityManager.prototype, "entities", {
+        Object.defineProperty(EntityManager.prototype, "root", {
             get: function () {
-                return this._entities;
+                return this._root;
             },
             enumerable: true,
             configurable: true
         });
         EntityManager.prototype.addEntity = function () {
             var entity = new Simple2DEngine.Entity();
-            this._entities.push(entity);
             return entity;
+        };
+        EntityManager.prototype.getComponentInChildren = function (clazz, toReturn) {
+            return this._root.getComponentInChildren(clazz, toReturn);
         };
         return EntityManager;
     }());
@@ -769,9 +851,11 @@ var Simple2DEngine;
             this._input = new Simple2DEngine.InputManager();
             this._entities = new Simple2DEngine.EntityManager();
             var e1 = this.entities.addEntity();
+            e1.name = "e1";
             e1.transform.localX = 300;
             e1.transform.localY = 300;
             var e2 = this.entities.addEntity();
+            e2.name = "e2";
             e2.transform.parent = e1.transform;
             e2.transform.localY = 100;
             e2.transform.localX = 100;
@@ -808,13 +892,7 @@ var Simple2DEngine;
             this._commands = new Simple2DEngine.RenderCommands(Simple2DEngine.engine.renderer.gl);
         };
         Camera.prototype.render = function () {
-            var allEntities = Simple2DEngine.engine.entities.entities;
-            this._commands.start();
-            for (var i = 0; i < allEntities.length; i++) {
-                var entity = allEntities[i];
-                entity.drawer.draw(this._commands);
-            }
-            this._commands.end();
+            //TODO
         };
         return Camera;
     }(Simple2DEngine.Component));

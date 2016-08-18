@@ -39,11 +39,14 @@ module Simple2DEngine {
             this._entities = new EntityManager();
 
             var e1 = this.entities.addEntity();
+            e1.name = "e1";
 
             e1.transform.localX = 300;
             e1.transform.localY = 300;
 
             var e2 = this.entities.addEntity();
+            e2.name = "e2";
+            
             e2.transform.parent = e1.transform;
 
             e2.transform.localY = 100;

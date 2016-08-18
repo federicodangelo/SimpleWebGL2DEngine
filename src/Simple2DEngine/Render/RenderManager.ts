@@ -142,6 +142,8 @@ module Simple2DEngine {
             }
         }
 
+        private tmpDrawers : Array<Drawer> = new Array<Drawer>();
+
         public draw() : void {
 
             if (engine.input.pointerDown)
@@ -151,15 +153,15 @@ module Simple2DEngine {
 
             this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-            var allEntities = engine.entities.entities;
+            var tmpDrawers = this.tmpDrawers;
+
+            engine.entities.getComponentInChildren(Drawer, tmpDrawers);
 
             this._commands.start();
 
-            for (var i = 0; i < allEntities.length; i++) {
-
-                var entity = allEntities[i];
-
-                entity.drawer.draw(this._commands);
+            for (var i = 0; i < tmpDrawers.length; i++) {
+                var drawer = tmpDrawers[i];
+                drawer.draw(this._commands);
             }
 
             this._commands.end();
