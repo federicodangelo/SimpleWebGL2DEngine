@@ -62,13 +62,15 @@ module Simple2DEngine {
         private trianglesCount : number;
 
         static ELEMENT_SIZE : number = 2 * 4 + 4 * 1; //(2 floats [X,Y] + 4 byte [R,G,B,A] )
+        static MAX_TRIANGLES = 4096;
+        static MAX_ELEMENTS: number = RenderCommands.MAX_TRIANGLES * 3; //3 elements per triangle
 
         public constructor(gl : WebGLRenderingContext) {
             this.gl = gl;
             this.renderProgram = new RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderBuffer = new RenderBuffer(gl);
 
-            this.backingArray = new ArrayBuffer(1024 * 3 * RenderCommands.ELEMENT_SIZE);
+            this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
 
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
@@ -86,6 +88,11 @@ module Simple2DEngine {
         }
 
         public drawRect(mat: Matrix3, size : Vector2) : void {
+
+            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES) {
+                this.end();
+                this.start();
+            }
 
             var tmpV1 = this.tmpV1;
             var tmpV2 = this.tmpV2;

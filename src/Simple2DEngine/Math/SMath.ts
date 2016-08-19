@@ -16,5 +16,13 @@ module Simple2DEngine {
                 return max;
             return v;
         }
+
+        public static randomInRangeFloat(min:number, max:number) {
+            return min + Math.random() * (max - min); 
+        }
+
+        public static randomInRangeInteger(min:number, max:number) {
+            return Math.floor(min + Math.random() * (max - min)); 
+        }
     }
 }

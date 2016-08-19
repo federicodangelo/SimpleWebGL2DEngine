@@ -349,7 +349,7 @@ var Simple2DEngine;
             this.gl = gl;
             this.renderProgram = new Simple2DEngine.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderBuffer = new Simple2DEngine.RenderBuffer(gl);
-            this.backingArray = new ArrayBuffer(1024 * 3 * RenderCommands.ELEMENT_SIZE);
+            this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
         }
@@ -359,6 +359,10 @@ var Simple2DEngine;
             this.colorsOffset = 0;
         };
         RenderCommands.prototype.drawRect = function (mat, size) {
+            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES) {
+                this.end();
+                this.start();
+            }
             var tmpV1 = this.tmpV1;
             var tmpV2 = this.tmpV2;
             var tmpV3 = this.tmpV3;
@@ -428,6 +432,8 @@ var Simple2DEngine;
         RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n            }\n        ";
         RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            void main() {\n                gl_FragColor = v_color;\n            }\n        ";
         RenderCommands.ELEMENT_SIZE = 2 * 4 + 4 * 1; //(2 floats [X,Y] + 4 byte [R,G,B,A] )
+        RenderCommands.MAX_TRIANGLES = 4096;
+        RenderCommands.MAX_ELEMENTS = RenderCommands.MAX_TRIANGLES * 3; //3 elements per triangle
         return RenderCommands;
     }());
     Simple2DEngine.RenderCommands = RenderCommands;
@@ -501,8 +507,13 @@ var Simple2DEngine;
                 this._gl = this.mainCanvas.getContext("experimental-webgl");
             if (!this._gl)
                 return;
-            this._gl.clearColor(0, 0, 0, 1); //black
-            this._commands = new Simple2DEngine.RenderCommands(this._gl);
+            var gl = this._gl;
+            //Default clear color
+            gl.clearColor(0, 0, 0, 1);
+            //Disable depth test and writing to depth mask
+            gl.disable(gl.DEPTH_TEST);
+            gl.depthMask(false);
+            this._commands = new Simple2DEngine.RenderCommands(gl);
             this.onWindowResize();
         };
         /**
@@ -2245,23 +2256,23 @@ var GameLogic = (function (_super) {
     __extends(GameLogic, _super);
     function GameLogic() {
         _super.apply(this, arguments);
+        this.entities = new Array();
     }
     GameLogic.prototype.onInit = function () {
         this.cam = Simple2DEngine.EntityFactory.buildCamera();
-        var e1 = Simple2DEngine.EntityFactory.buildDrawer().entity;
-        e1.name = "e1";
-        e1.transform.localX = 300;
-        e1.transform.localY = 300;
-        var e2 = Simple2DEngine.EntityFactory.buildDrawer().entity;
-        e2.addComponent(Simple2DEngine.Drawer);
-        e2.name = "e2";
-        e2.transform.parent = e1.transform;
-        e2.transform.localY = 100;
-        e2.transform.localX = 100;
-        this.e1 = e1;
+        var sWidth = Simple2DEngine.engine.renderer.screenWidth;
+        var sHeight = Simple2DEngine.engine.renderer.screenHeight;
+        for (var i = 0; i < 8192; i++) {
+            var e = Simple2DEngine.EntityFactory.buildDrawer().entity;
+            e.name = "Entity " + i;
+            e.transform.localX = Simple2DEngine.SMath.randomInRangeFloat(100, sWidth - 200);
+            e.transform.localY = Simple2DEngine.SMath.randomInRangeFloat(100, sHeight - 200);
+            this.entities.push(e);
+        }
     };
     GameLogic.prototype.update = function () {
-        this.e1.transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime;
+        for (var i = 0; i < this.entities.length; i++)
+            this.entities[i].transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime;
         if (Simple2DEngine.engine.input.pointerDown)
             this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
         else
@@ -3189,6 +3200,12 @@ var Simple2DEngine;
             else if (v > max)
                 return max;
             return v;
+        };
+        SMath.randomInRangeFloat = function (min, max) {
+            return min + Math.random() * (max - min);
+        };
+        SMath.randomInRangeInteger = function (min, max) {
+            return Math.floor(min + Math.random() * (max - min));
         };
         SMath.deg2rad = Math.PI / 180;
         SMath.rad2deg = 180 / Math.PI;

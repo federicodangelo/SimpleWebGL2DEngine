@@ -77,9 +77,16 @@ module Simple2DEngine {
             if (!this._gl)
                 return;
 
-            this._gl.clearColor(0, 0, 0, 1); //black
+            var gl = this._gl;
 
-            this._commands = new RenderCommands(this._gl);
+            //Default clear color
+            gl.clearColor(0, 0, 0, 1); 
+
+            //Disable depth test and writing to depth mask
+            gl.disable(gl.DEPTH_TEST);
+            gl.depthMask(false);
+            
+            this._commands = new RenderCommands(gl);
 
             this.onWindowResize();
         }

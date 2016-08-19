@@ -3,32 +3,29 @@
 class GameLogic extends Simple2DEngine.Behavior {
 
     private cam : Simple2DEngine.Camera;
-    private e1 : Simple2DEngine.Entity;
+    private entities : Array<Simple2DEngine.Entity> = new Array<Simple2DEngine.Entity>();
 
     public onInit() : void {
 
-        this.cam = Simple2DEngine.EntityFactory.buildCamera(); 
+        this.cam = Simple2DEngine.EntityFactory.buildCamera();
 
-        var e1 = Simple2DEngine.EntityFactory.buildDrawer().entity;
-        e1.name = "e1";
+        let sWidth = Simple2DEngine.engine.renderer.screenWidth;
+        let sHeight = Simple2DEngine.engine.renderer.screenHeight;
 
-        e1.transform.localX = 300;
-        e1.transform.localY = 300;
+        for (let i = 0; i < 8192; i++) {
+            let e = Simple2DEngine.EntityFactory.buildDrawer().entity;
 
-        var e2 = Simple2DEngine.EntityFactory.buildDrawer().entity;
-        e2.addComponent(Simple2DEngine.Drawer);
-        e2.name = "e2";
-        
-        e2.transform.parent = e1.transform;
+            e.name = "Entity " + i;
+            e.transform.localX = Simple2DEngine.SMath.randomInRangeFloat(100, sWidth - 200);
+            e.transform.localY = Simple2DEngine.SMath.randomInRangeFloat(100, sHeight - 200);
 
-        e2.transform.localY = 100;
-        e2.transform.localX = 100;
-
-        this.e1 = e1;        
+            this.entities.push(e);
+        }
     }
 
     public update() : void {
-        this.e1.transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime; 
+        for (let i = 0; i < this.entities.length; i++)
+            this.entities[i].transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime; 
 
         if (Simple2DEngine.engine.input.pointerDown)
             this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
