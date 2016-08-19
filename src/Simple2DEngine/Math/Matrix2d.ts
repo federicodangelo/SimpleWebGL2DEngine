@@ -38,6 +38,11 @@ module s2d {
      *  0, 0, 1]
      * </pre>
      * The last row is ignored so the array is shorter and operations are faster.
+     * Array order is:
+     * <pre>
+     * [0, 2, 4,
+     *  1, 3, 5]
+     * </pre>
      */
     export class Matrix2d extends Float32Array {
 

@@ -21,7 +21,7 @@ module s2d {
         private _nextSibling: Transform = null;
 
         private _localMatrix : Matrix2d = Matrix2d.create();
-        private _localMatrixDirty : boolean = true;
+        //private _localMatrixDirty : boolean = true;
 
         public get parent() {
             return this._parent;
@@ -51,7 +51,10 @@ module s2d {
 
         public set localPosition(p: Vector2) {
             Vector2.copy(this._position, p);
-            this._localMatrixDirty = true;
+            //this._localMatrixDirty = true;
+
+            this._localMatrix[4] = this._position[0];
+            this._localMatrix[5] = this._position[1];
         }
 
         public get localX() {
@@ -60,7 +63,9 @@ module s2d {
 
         public set localX(v: number) {
             this._position[0] = v;
-            this._localMatrixDirty = true;
+            //this._localMatrixDirty = true;
+
+            this._localMatrix[4] = this._position[0];
         }
 
         public get localY() {
@@ -69,7 +74,9 @@ module s2d {
 
         public set localY(v: number) {
             this._position[1] = v;
-            this._localMatrixDirty = true;
+            //this._localMatrixDirty = true;
+
+            this._localMatrix[5] = this._position[1];
         }
 
         public get localRotationRadians() {
@@ -78,7 +85,16 @@ module s2d {
 
         public set localRotationRadians(rad: number) {
             this._rotation = rad;
-            this._localMatrixDirty = true;
+            //this._localMatrixDirty = true;
+
+            var ss = this._scale;
+            var s = Math.sin(rad);
+            var c = Math.cos(rad);
+
+            this._localMatrix[0] = ss[0] * c;
+            this._localMatrix[1] = ss[1] * s;
+            this._localMatrix[2] = ss[0] * -s;
+            this._localMatrix[3] = ss[1] * c;
         }
 
         public get localRotationDegrees() {
@@ -86,17 +102,24 @@ module s2d {
         }
 
         public set localRotationDegrees(deg: number) {
-            this._rotation = deg * SMath.deg2rad;
-            this._localMatrixDirty = true;
+            this.localRotationRadians = deg * SMath.deg2rad;
         }
 
         public get localScale() {
             return this._scale;
         }
 
-        public set localScale(s: Vector2) {
-            Vector2.copy(this._scale, s);
-            this._localMatrixDirty = true;
+        public set localScale(ss: Vector2) {
+            Vector2.copy(this._scale, ss);
+            //this._localMatrixDirty = true;
+
+            var s = Math.sin(this._rotation);
+            var c = Math.cos(this._rotation);
+
+            this._localMatrix[0] = ss[0] * c;
+            this._localMatrix[1] = ss[1] * s;
+            this._localMatrix[2] = ss[0] * -s;
+            this._localMatrix[3] = ss[1] * c;
         }
 
         public get localScaleX() {
@@ -105,7 +128,14 @@ module s2d {
 
         public set localScaleX(v: number) {
             this._scale[0] = v;
-            this._localMatrixDirty = true;
+            //this._localMatrixDirty = true;
+
+            var ss = this._scale;
+            var s = Math.sin(this._rotation);
+            var c = Math.cos(this._rotation);
+
+            this._localMatrix[0] = ss[0] * c;
+            this._localMatrix[2] = ss[0] * -s;
         }
 
         public get localScaleY() {
@@ -114,7 +144,14 @@ module s2d {
 
         public set localScaleY(v: number) {
             this._scale[1] = v;
-            this._localMatrixDirty = true;
+            //this._localMatrixDirty = true;
+
+            var ss = this._scale;
+            var s = Math.sin(this._rotation);
+            var c = Math.cos(this._rotation);
+
+            this._localMatrix[1] = ss[1] * s;
+            this._localMatrix[3] = ss[1] * c;
         }
 
         public get halfSize() {
@@ -123,7 +160,6 @@ module s2d {
 
         public set halfSize(s: Vector2) {
             Vector2.copy(this._halfSize, s);
-            this._localMatrixDirty = true;
         }
 
         public get halfSizeX() {
@@ -132,7 +168,6 @@ module s2d {
 
         public set halfSizeX(v: number) {
             this._halfSize[0] = v;
-            this._localMatrixDirty = true;
         }
 
         public get halfSizeY() {
@@ -141,31 +176,44 @@ module s2d {
 
         public set halfSizeY(v: number) {
             this._halfSize[1] = v;
-            this._localMatrixDirty = true;
         }
 
+        /*
         private getLocalMatrix(): Matrix2d {
-
             var localMatrix = this._localMatrix;
 
             if (this._localMatrixDirty) {
-                Matrix2d.fromTranslation(localMatrix, this._position);
-                Matrix2d.scale(localMatrix,localMatrix, this._scale);
-                Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
+
+                //Matrix2d.fromTranslation(localMatrix, this._position);
+                //Matrix2d.scale(localMatrix,localMatrix, this._scale);
+                //Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
+
+                var pp = this._position;
+                var ss = this._scale;
+
+                var s = Math.sin(this._rotation);
+                var c = Math.cos(this._rotation);
+
+                localMatrix[0] = ss[0] * c;
+                localMatrix[1] = ss[1] * s;
+                localMatrix[2] = ss[0] * -s;
+                localMatrix[3] = ss[1] * c;
+                localMatrix[4] = pp[0];
+                localMatrix[5] = pp[1];
+
                 this._localMatrixDirty = false;
             }
 
             return localMatrix;
         }
+        */
 
         public getLocalToGlobalMatrix(out: Matrix2d): Matrix2d {
-            var localMatrix = this.getLocalMatrix();
-
             if (this._parent !== null) {
                 this._parent.getLocalToGlobalMatrix(out);
-                Matrix2d.mul(out, out, localMatrix);
+                Matrix2d.mul(out, out, this._localMatrix);
             } else {
-                Matrix2d.copy(out, localMatrix);
+                Matrix2d.copy(out, this._localMatrix);
             }
             return out;
         }

@@ -652,9 +652,9 @@ var s2d;
             this._prevSibling = null;
             this._nextSibling = null;
             this._localMatrix = s2d.Matrix2d.create();
-            this._localMatrixDirty = true;
         }
         Object.defineProperty(Transform.prototype, "parent", {
+            //private _localMatrixDirty : boolean = true;
             get: function () {
                 return this._parent;
             },
@@ -681,7 +681,9 @@ var s2d;
             },
             set: function (p) {
                 s2d.Vector2.copy(this._position, p);
-                this._localMatrixDirty = true;
+                //this._localMatrixDirty = true;
+                this._localMatrix[4] = this._position[0];
+                this._localMatrix[5] = this._position[1];
             },
             enumerable: true,
             configurable: true
@@ -692,7 +694,8 @@ var s2d;
             },
             set: function (v) {
                 this._position[0] = v;
-                this._localMatrixDirty = true;
+                //this._localMatrixDirty = true;
+                this._localMatrix[4] = this._position[0];
             },
             enumerable: true,
             configurable: true
@@ -703,7 +706,8 @@ var s2d;
             },
             set: function (v) {
                 this._position[1] = v;
-                this._localMatrixDirty = true;
+                //this._localMatrixDirty = true;
+                this._localMatrix[5] = this._position[1];
             },
             enumerable: true,
             configurable: true
@@ -714,7 +718,14 @@ var s2d;
             },
             set: function (rad) {
                 this._rotation = rad;
-                this._localMatrixDirty = true;
+                //this._localMatrixDirty = true;
+                var ss = this._scale;
+                var s = Math.sin(rad);
+                var c = Math.cos(rad);
+                this._localMatrix[0] = ss[0] * c;
+                this._localMatrix[1] = ss[1] * s;
+                this._localMatrix[2] = ss[0] * -s;
+                this._localMatrix[3] = ss[1] * c;
             },
             enumerable: true,
             configurable: true
@@ -724,8 +735,7 @@ var s2d;
                 return this._rotation * s2d.SMath.rad2deg;
             },
             set: function (deg) {
-                this._rotation = deg * s2d.SMath.deg2rad;
-                this._localMatrixDirty = true;
+                this.localRotationRadians = deg * s2d.SMath.deg2rad;
             },
             enumerable: true,
             configurable: true
@@ -734,9 +744,15 @@ var s2d;
             get: function () {
                 return this._scale;
             },
-            set: function (s) {
-                s2d.Vector2.copy(this._scale, s);
-                this._localMatrixDirty = true;
+            set: function (ss) {
+                s2d.Vector2.copy(this._scale, ss);
+                //this._localMatrixDirty = true;
+                var s = Math.sin(this._rotation);
+                var c = Math.cos(this._rotation);
+                this._localMatrix[0] = ss[0] * c;
+                this._localMatrix[1] = ss[1] * s;
+                this._localMatrix[2] = ss[0] * -s;
+                this._localMatrix[3] = ss[1] * c;
             },
             enumerable: true,
             configurable: true
@@ -747,7 +763,12 @@ var s2d;
             },
             set: function (v) {
                 this._scale[0] = v;
-                this._localMatrixDirty = true;
+                //this._localMatrixDirty = true;
+                var ss = this._scale;
+                var s = Math.sin(this._rotation);
+                var c = Math.cos(this._rotation);
+                this._localMatrix[0] = ss[0] * c;
+                this._localMatrix[2] = ss[0] * -s;
             },
             enumerable: true,
             configurable: true
@@ -758,7 +779,12 @@ var s2d;
             },
             set: function (v) {
                 this._scale[1] = v;
-                this._localMatrixDirty = true;
+                //this._localMatrixDirty = true;
+                var ss = this._scale;
+                var s = Math.sin(this._rotation);
+                var c = Math.cos(this._rotation);
+                this._localMatrix[1] = ss[1] * s;
+                this._localMatrix[3] = ss[1] * c;
             },
             enumerable: true,
             configurable: true
@@ -769,7 +795,6 @@ var s2d;
             },
             set: function (s) {
                 s2d.Vector2.copy(this._halfSize, s);
-                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -780,7 +805,6 @@ var s2d;
             },
             set: function (v) {
                 this._halfSize[0] = v;
-                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -791,29 +815,46 @@ var s2d;
             },
             set: function (v) {
                 this._halfSize[1] = v;
-                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
         });
-        Transform.prototype.getLocalMatrix = function () {
+        /*
+        private getLocalMatrix(): Matrix2d {
             var localMatrix = this._localMatrix;
+
             if (this._localMatrixDirty) {
-                s2d.Matrix2d.fromTranslation(localMatrix, this._position);
-                s2d.Matrix2d.scale(localMatrix, localMatrix, this._scale);
-                s2d.Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
+
+                //Matrix2d.fromTranslation(localMatrix, this._position);
+                //Matrix2d.scale(localMatrix,localMatrix, this._scale);
+                //Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
+
+                var pp = this._position;
+                var ss = this._scale;
+
+                var s = Math.sin(this._rotation);
+                var c = Math.cos(this._rotation);
+
+                localMatrix[0] = ss[0] * c;
+                localMatrix[1] = ss[1] * s;
+                localMatrix[2] = ss[0] * -s;
+                localMatrix[3] = ss[1] * c;
+                localMatrix[4] = pp[0];
+                localMatrix[5] = pp[1];
+
                 this._localMatrixDirty = false;
             }
+
             return localMatrix;
-        };
+        }
+        */
         Transform.prototype.getLocalToGlobalMatrix = function (out) {
-            var localMatrix = this.getLocalMatrix();
             if (this._parent !== null) {
                 this._parent.getLocalToGlobalMatrix(out);
-                s2d.Matrix2d.mul(out, out, localMatrix);
+                s2d.Matrix2d.mul(out, out, this._localMatrix);
             }
             else {
-                s2d.Matrix2d.copy(out, localMatrix);
+                s2d.Matrix2d.copy(out, this._localMatrix);
             }
             return out;
         };
@@ -2324,21 +2365,6 @@ var GameLogic = (function (_super) {
     GameLogic.TEST_MOVING = true;
     return GameLogic;
 }(s2d.Behavior));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildDrawer = function () {
-            return new s2d.Entity("Drawer").addComponent(s2d.Drawer);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
-})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
 (function (s2d) {
@@ -2353,6 +2379,21 @@ var s2d;
         return Camera;
     }(s2d.Component));
     s2d.Camera = Camera;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EntityFactory = (function () {
+        function EntityFactory() {
+        }
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildDrawer = function () {
+            return new s2d.Entity("Drawer").addComponent(s2d.Drawer);
+        };
+        return EntityFactory;
+    }());
+    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -2840,6 +2881,11 @@ var s2d;
      *  0, 0, 1]
      * </pre>
      * The last row is ignored so the array is shorter and operations are faster.
+     * Array order is:
+     * <pre>
+     * [0, 2, 4,
+     *  1, 3, 5]
+     * </pre>
      */
     var Matrix2d = (function (_super) {
         __extends(Matrix2d, _super);
