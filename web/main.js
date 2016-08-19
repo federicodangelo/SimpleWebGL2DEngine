@@ -444,8 +444,8 @@ var Simple2DEngine;
     var RenderManager = (function () {
         function RenderManager() {
             var _this = this;
-            this.tmpCameras = new Array();
-            this.tmpDrawers = new Array();
+            this.tmpCameras = new Array(4);
+            this.tmpDrawers = new Array(1024);
             this.mainCanvas = document.getElementById("mainCanvas");
             if (this.mainCanvas) {
                 //don't show context menu
@@ -563,17 +563,17 @@ var Simple2DEngine;
         };
         RenderManager.prototype.draw = function () {
             var cameras = this.tmpCameras;
-            Simple2DEngine.engine.entities.getComponentInChildren(Simple2DEngine.Camera, cameras);
+            var camerasLen = Simple2DEngine.engine.entities.getComponentInChildren(Simple2DEngine.Camera, cameras);
             var drawers = this.tmpDrawers;
-            Simple2DEngine.engine.entities.getComponentInChildren(Simple2DEngine.Drawer, drawers);
-            if (cameras.length == 0)
+            var drawersLen = Simple2DEngine.engine.entities.getComponentInChildren(Simple2DEngine.Drawer, drawers);
+            if (camerasLen === 0)
                 console.warn("No cameras to draw!!");
-            if (drawers.length == 0)
+            if (drawersLen === 0)
                 console.warn("No entities to draw!!");
-            for (var i = 0; i < cameras.length; i++)
-                this.renderCamera(cameras[i], drawers);
+            for (var i = 0; i < camerasLen; i++)
+                this.renderCamera(cameras[i], drawers, drawersLen);
         };
-        RenderManager.prototype.renderCamera = function (camera, drawers) {
+        RenderManager.prototype.renderCamera = function (camera, drawers, drawersLen) {
             var gl = this.gl;
             var commands = this._commands;
             var clearFlags = 0;
@@ -586,7 +586,7 @@ var Simple2DEngine;
             if (clearFlags != 0)
                 gl.clear(clearFlags);
             commands.start();
-            for (var i = 0; i < drawers.length; i++)
+            for (var i = 0; i < drawersLen; i++)
                 drawers[i].draw(commands);
             commands.end();
         };
@@ -598,6 +598,7 @@ var Simple2DEngine;
 (function (Simple2DEngine) {
     var Component = (function () {
         function Component() {
+            this._entity = null;
         }
         Component.prototype.init = function (entity) {
             this._entity = entity;
@@ -627,23 +628,32 @@ var Simple2DEngine;
     var Transform = (function (_super) {
         __extends(Transform, _super);
         function Transform() {
-            _super.call(this);
+            _super.apply(this, arguments);
+            this._parent = null;
             this._position = Simple2DEngine.Vector2.create();
             this._rotation = 0;
             this._scale = Simple2DEngine.Vector2.fromValues(1, 1);
             this._size = Simple2DEngine.Vector2.fromValues(32, 32);
+            //Linked list of children
+            this._firstChild = null;
+            this._lastChild = null;
+            //Linked list of siblings
+            this._prevSibling = null;
+            this._nextSibling = null;
+            this._localMatrix = Simple2DEngine.Matrix3.create();
+            this._localMatrixDirty = true;
         }
         Object.defineProperty(Transform.prototype, "parent", {
             get: function () {
                 return this._parent;
             },
             set: function (p) {
-                if (this._parent == null)
+                if (this._parent === null)
                     Simple2DEngine.engine.entities.root.removeChild(this);
                 else
                     this._parent.removeChild(this);
                 this._parent = p;
-                if (this._parent == null)
+                if (this._parent === null)
                     Simple2DEngine.engine.entities.root.addChild(this);
                 else
                     this._parent.addChild(this);
@@ -660,6 +670,7 @@ var Simple2DEngine;
             },
             set: function (p) {
                 Simple2DEngine.Vector2.copy(this._position, p);
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -670,6 +681,7 @@ var Simple2DEngine;
             },
             set: function (v) {
                 this._position[0] = v;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -680,6 +692,7 @@ var Simple2DEngine;
             },
             set: function (v) {
                 this._position[1] = v;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -690,6 +703,7 @@ var Simple2DEngine;
             },
             set: function (rad) {
                 this._rotation = rad;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -700,6 +714,7 @@ var Simple2DEngine;
             },
             set: function (deg) {
                 this._rotation = deg * Simple2DEngine.SMath.deg2rad;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -710,6 +725,7 @@ var Simple2DEngine;
             },
             set: function (s) {
                 Simple2DEngine.Vector2.copy(this._scale, s);
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -720,6 +736,7 @@ var Simple2DEngine;
             },
             set: function (v) {
                 this._scale[0] = v;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -730,6 +747,7 @@ var Simple2DEngine;
             },
             set: function (v) {
                 this._scale[1] = v;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -740,6 +758,7 @@ var Simple2DEngine;
             },
             set: function (s) {
                 Simple2DEngine.Vector2.copy(this._size, s);
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -750,6 +769,7 @@ var Simple2DEngine;
             },
             set: function (v) {
                 this._size[0] = v;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
@@ -760,29 +780,29 @@ var Simple2DEngine;
             },
             set: function (v) {
                 this._size[1] = v;
+                this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
         });
-        Transform.prototype.getLocalMatrix = function (out) {
-            Simple2DEngine.Matrix3.fromTranslation(out, this._position);
-            Simple2DEngine.Matrix3.scale(out, out, this._scale);
-            Simple2DEngine.Matrix3.rotate(out, out, this._rotation);
-            return out;
-        };
-        Transform.initStatic = function () {
-            Transform.tmpMatsIndex = 0;
-            Transform.tmpMats = new Array(Transform.MAX_NESTING);
-            for (var i = 0; i < Transform.MAX_NESTING; i++)
-                Transform.tmpMats[i] = Simple2DEngine.Matrix3.create();
+        Transform.prototype.getLocalMatrix = function () {
+            var localMatrix = this._localMatrix;
+            if (this._localMatrixDirty) {
+                Simple2DEngine.Matrix3.fromTranslation(localMatrix, this._position);
+                Simple2DEngine.Matrix3.scale(localMatrix, localMatrix, this._scale);
+                Simple2DEngine.Matrix3.rotate(localMatrix, localMatrix, this._rotation);
+                this._localMatrixDirty = false;
+            }
+            return localMatrix;
         };
         Transform.prototype.getLocalToGlobalMatrix = function (out) {
-            this.getLocalMatrix(out);
-            if (this._parent != null) {
-                var tmp = Transform.tmpMats[Transform.tmpMatsIndex++];
-                this._parent.getLocalToGlobalMatrix(tmp);
-                Simple2DEngine.Matrix3.mul(out, tmp, out);
-                Transform.tmpMatsIndex--;
+            var localMatrix = this.getLocalMatrix();
+            if (this._parent !== null) {
+                this._parent.getLocalToGlobalMatrix(out);
+                Simple2DEngine.Matrix3.mul(out, out, localMatrix);
+            }
+            else {
+                Simple2DEngine.Matrix3.copy(out, localMatrix);
             }
             return out;
         };
@@ -792,7 +812,7 @@ var Simple2DEngine;
             return out;
         };
         Transform.prototype.addChild = function (p) {
-            if (this._firstChild == null) {
+            if (this._firstChild === null) {
                 this._firstChild = this._lastChild = p;
             }
             else {
@@ -802,13 +822,13 @@ var Simple2DEngine;
             }
         };
         Transform.prototype.removeChild = function (p) {
-            if (p._nextSibling != null)
+            if (p._nextSibling !== null)
                 p._nextSibling._prevSibling = p._prevSibling;
-            if (p._prevSibling != null)
+            if (p._prevSibling !== null)
                 p._prevSibling._nextSibling = p._nextSibling;
-            if (p == this._firstChild)
+            if (p === this._firstChild)
                 this._firstChild = p._nextSibling;
-            if (p == this._lastChild)
+            if (p === this._lastChild)
                 this._lastChild = p._prevSibling;
             p._nextSibling = null;
             p._prevSibling = null;
@@ -820,22 +840,18 @@ var Simple2DEngine;
             return prevChild._nextSibling;
         };
         Transform.prototype.getComponentInChildren = function (clazz, toReturn) {
-            if (toReturn == null)
-                toReturn = new Array();
-            else
-                toReturn.length = 0;
-            this.getComponentInChildrenInternal(clazz, toReturn);
-            return toReturn;
+            return this.getComponentInChildrenInternal(clazz, toReturn, 0);
         };
-        Transform.prototype.getComponentInChildrenInternal = function (clazz, toReturn) {
+        Transform.prototype.getComponentInChildrenInternal = function (clazz, toReturn, index) {
             var comp = this.getComponent(clazz);
-            if (comp != null)
-                toReturn.push(comp);
+            if (comp !== null)
+                toReturn[index++] = comp;
             var child = this._firstChild;
-            while (child != null) {
-                child.getComponentInChildrenInternal(clazz, toReturn);
+            while (child !== null) {
+                index = child.getComponentInChildrenInternal(clazz, toReturn, index);
                 child = child._nextSibling;
             }
+            return index;
         };
         Transform.MAX_NESTING = 128;
         return Transform;
@@ -2077,6 +2093,9 @@ var Simple2DEngine;
         function Entity(name) {
             if (name === void 0) { name = "Entity"; }
             this._name = "Entity";
+            this._transform = null;
+            //First component in the entity
+            this._firstComponent = null;
             this._name = name;
             this._transform = this.addComponent(Simple2DEngine.Transform);
         }
@@ -2107,7 +2126,7 @@ var Simple2DEngine;
         };
         Entity.prototype.getComponent = function (clazz) {
             var comp = this._firstComponent;
-            while (comp != null) {
+            while (comp !== null) {
                 if (comp instanceof clazz)
                     return comp;
                 comp = comp.__internal_nextComponent;
@@ -2115,8 +2134,7 @@ var Simple2DEngine;
             return null;
         };
         Entity.prototype.getComponentInChildren = function (clazz, toReturn) {
-            toReturn = this._transform.getComponentInChildren(clazz, toReturn);
-            return toReturn;
+            return this._transform.getComponentInChildren(clazz, toReturn);
         };
         return Entity;
     }());
@@ -2128,7 +2146,7 @@ var Simple2DEngine;
     var EntityManager = (function () {
         function EntityManager() {
             this._root = new Simple2DEngine.Transform();
-            this.tmpBehaviors = new Array();
+            this.tmpBehaviors = new Array(1024);
         }
         Object.defineProperty(EntityManager.prototype, "root", {
             get: function () {
@@ -2142,8 +2160,8 @@ var Simple2DEngine;
         };
         EntityManager.prototype.update = function () {
             var behaviors = this.tmpBehaviors;
-            this.getComponentInChildren(Simple2DEngine.Behavior, behaviors);
-            for (var i = 0; i < behaviors.length; i++) {
+            var behaviorsLen = this.getComponentInChildren(Simple2DEngine.Behavior, behaviors);
+            for (var i = 0; i < behaviorsLen; i++) {
                 var behavior = behaviors[i];
                 behavior.update();
             }
@@ -2198,7 +2216,6 @@ var Simple2DEngine;
         });
         Engine.prototype.init = function () {
             Simple2DEngine.Drawer.initStatic();
-            Simple2DEngine.Transform.initStatic();
             Simple2DEngine.Time.initStatic();
             this._renderer = new Simple2DEngine.RenderManager();
             this._input = new Simple2DEngine.InputManager();
@@ -2267,23 +2284,30 @@ var GameLogic = (function (_super) {
             e.name = "Entity " + i;
             e.transform.localX = Simple2DEngine.SMath.randomInRangeFloat(100, sWidth - 200);
             e.transform.localY = Simple2DEngine.SMath.randomInRangeFloat(100, sHeight - 200);
-            if (i > 0 && i % 3 == 0)
-                e.transform.parent = this.entities[i - 2].transform;
-            if (i > 0 && i % 5 == 0)
-                e.transform.parent = this.entities[i - 4].transform;
-            if (i > 0 && i % 7 == 0)
-                e.transform.parent = this.entities[i - 6].transform;
+            if (GameLogic.TEST_NESTING) {
+                if (i > 0 && i % 3 == 0)
+                    e.transform.parent = this.entities[i - 2].transform;
+                if (i > 0 && i % 5 == 0)
+                    e.transform.parent = this.entities[i - 4].transform;
+                if (i > 0 && i % 7 == 0)
+                    e.transform.parent = this.entities[i - 6].transform;
+            }
             this.entities.push(e);
         }
     };
     GameLogic.prototype.update = function () {
-        for (var i = 0; i < this.entities.length; i++)
-            this.entities[i].transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime;
+        if (GameLogic.TEST_MOVING) {
+            var entities = this.entities;
+            for (var i = 0; i < entities.length; i++)
+                entities[i].transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime;
+        }
         if (Simple2DEngine.engine.input.pointerDown)
             this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
         else
             this.cam.clearColor.rgbaHex = 0x000000FF; //black
     };
+    GameLogic.TEST_NESTING = true;
+    GameLogic.TEST_MOVING = true;
     return GameLogic;
 }(Simple2DEngine.Behavior));
 /// <reference path="Component.ts" />

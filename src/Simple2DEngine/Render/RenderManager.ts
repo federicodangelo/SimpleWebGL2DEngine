@@ -3,40 +3,40 @@
 module Simple2DEngine {
 
     export class RenderManager {
-        
-        private mainCanvas : HTMLCanvasElement; 
-        private _gl : WebGLRenderingContext;
 
-        private _screenWidth : number;
-        private _screenHeight : number;
+        private mainCanvas: HTMLCanvasElement;
+        private _gl: WebGLRenderingContext;
 
-        private _contextLost : boolean; 
+        private _screenWidth: number;
+        private _screenHeight: number;
 
-        private _commands : RenderCommands;
+        private _contextLost: boolean;
+
+        private _commands: RenderCommands;
 
         public get contextLost() {
             return this._contextLost;
         }
 
-        public get screenWidth() : number {
+        public get screenWidth(): number {
             return this._screenWidth;
-        } 
+        }
 
-        public get screenHeight() : number {
+        public get screenHeight(): number {
             return this._screenHeight;
-        } 
+        }
 
         public get gl() {
             return this._gl;
         }
 
         constructor() {
-            this.mainCanvas = <HTMLCanvasElement> document.getElementById("mainCanvas");
+            this.mainCanvas = <HTMLCanvasElement>document.getElementById("mainCanvas");
 
             if (this.mainCanvas) {
 
                 //don't show context menu
-                this.mainCanvas.addEventListener("contextmenu", (ev: PointerEvent) => { ev.preventDefault();  }, true);
+                this.mainCanvas.addEventListener("contextmenu", (ev: PointerEvent) => { ev.preventDefault(); }, true);
                 window.addEventListener("contextmenu", (ev: PointerEvent) => { ev.preventDefault(); }, true);
 
                 //resize canvas on window resize
@@ -45,7 +45,7 @@ module Simple2DEngine {
                 //register webgl context lost event
                 this.mainCanvas.addEventListener("webglcontextlost", () => this.onWebGLContextLost(), false);
                 this.mainCanvas.addEventListener("webglcontextrestored", () => this.onWebGLContextRestored(), false);
-                
+
                 this.initWebGL();
             }
         }
@@ -67,12 +67,12 @@ module Simple2DEngine {
             this._contextLost = false;
         }
 
-        private initWebGL() : void {
+        private initWebGL(): void {
 
-            this._gl = <WebGLRenderingContext> this.mainCanvas.getContext("webgl", { alpha: false });
+            this._gl = <WebGLRenderingContext>this.mainCanvas.getContext("webgl", { alpha: false });
 
             if (!this._gl)
-                this._gl = <WebGLRenderingContext> this.mainCanvas.getContext("experimental-webgl");
+                this._gl = <WebGLRenderingContext>this.mainCanvas.getContext("experimental-webgl");
 
             if (!this._gl)
                 return;
@@ -80,18 +80,18 @@ module Simple2DEngine {
             var gl = this._gl;
 
             //Default clear color
-            gl.clearColor(0, 0, 0, 1); 
+            gl.clearColor(0, 0, 0, 1);
 
             //Disable depth test and writing to depth mask
             gl.disable(gl.DEPTH_TEST);
             gl.depthMask(false);
-            
+
             this._commands = new RenderCommands(gl);
 
             this.onWindowResize();
         }
 
-        
+
         /**
          * Enters full screen mode. This function can only be called when triggered from a user initiated action (ex: click event handler)
          */
@@ -110,12 +110,10 @@ module Simple2DEngine {
                 'mozRequestFullscreen'
             ];
 
-            var element : any = this.mainCanvas;
+            var element: any = this.mainCanvas;
 
-            for (var i = 0; i < fs.length; i++)
-            {
-                if (element[fs[i]])
-                {
+            for (var i = 0; i < fs.length; i++) {
+                if (element[fs[i]]) {
                     element[fs[i]]();
                     break;
                 }
@@ -125,7 +123,7 @@ module Simple2DEngine {
         public exitFullscreen() {
             //Taken from phaser source code!!
             //https://github.com/photonstorm/phaser/blob/master/src/system/Device.js
-            
+
             var cfs = [
                 'cancelFullScreen',
                 'exitFullscreen',
@@ -137,40 +135,38 @@ module Simple2DEngine {
                 'mozExitFullscreen'
             ];
 
-            var doc : any = document;
+            var doc: any = document;
 
-            for (var i = 0; i < cfs.length; i++)
-            {
-                if (doc[cfs[i]])
-                {
+            for (var i = 0; i < cfs.length; i++) {
+                if (doc[cfs[i]]) {
                     doc[cfs[i]]();
                     break;
                 }
             }
         }
 
-        private tmpCameras : Array<Camera> = new Array<Camera>();
-        private tmpDrawers : Array<Drawer> = new Array<Drawer>();
+        private tmpCameras: Array<Camera> = new Array<Camera>(4);
+        private tmpDrawers: Array<Drawer> = new Array<Drawer>(1024);
 
-        public draw() : void {
+        public draw(): void {
 
             var cameras = this.tmpCameras;
-            engine.entities.getComponentInChildren(Camera, cameras);
-            
-            var drawers = this.tmpDrawers;
-            engine.entities.getComponentInChildren(Drawer, drawers);
+            var camerasLen = engine.entities.getComponentInChildren(Camera, cameras);
 
-            if (cameras.length == 0)
+            var drawers = this.tmpDrawers;
+            var drawersLen = engine.entities.getComponentInChildren(Drawer, drawers);
+
+            if (camerasLen === 0)
                 console.warn("No cameras to draw!!");
 
-            if (drawers.length == 0)
+            if (drawersLen === 0)
                 console.warn("No entities to draw!!");
 
-            for (let i = 0; i < cameras.length; i++)
-                this.renderCamera(cameras[i], drawers);
+            for (let i = 0; i < camerasLen; i++)
+                this.renderCamera(cameras[i], drawers, drawersLen);
         }
 
-        private renderCamera(camera : Camera, drawers : Array<Drawer>) {
+        private renderCamera(camera: Camera, drawers: Array<Drawer>, drawersLen: number) {
 
             var gl = this.gl;
             var commands = this._commands;
@@ -190,7 +186,7 @@ module Simple2DEngine {
 
             commands.start();
 
-            for (let i = 0; i < drawers.length; i++)
+            for (let i = 0; i < drawersLen; i++)
                 drawers[i].draw(commands);
 
             commands.end();

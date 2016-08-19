@@ -13,19 +13,19 @@ module Simple2DEngine {
         constructor() {
         }
 
-        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : Array<T> {
+        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : number {
             return this._root.getComponentInChildren(clazz, toReturn);
         }
 
-        private tmpBehaviors : Array<Behavior> = new Array<Behavior>();        
+        private tmpBehaviors : Array<Behavior> = new Array<Behavior>(1024);        
 
         public update() : void {
 
             var behaviors:Array<Behavior> = this.tmpBehaviors;
 
-            this.getComponentInChildren(Behavior, behaviors);
+            var behaviorsLen = this.getComponentInChildren(Behavior, behaviors);
 
-            for (var i = 0; i < behaviors.length; i++) {
+            for (var i = 0; i < behaviorsLen; i++) {
                 var behavior = behaviors[i];
                 behavior.update();
             }

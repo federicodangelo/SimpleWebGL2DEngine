@@ -2,7 +2,7 @@ module Simple2DEngine {
     
     export class Component {
 
-        private _entity : Entity;
+        private _entity : Entity = null;
 
         //Linked list of components that belong to the same entity
         public __internal_nextComponent : Component;

@@ -33,7 +33,6 @@ module Simple2DEngine {
 
         public init() : void {
             Drawer.initStatic();
-            Transform.initStatic();
             Time.initStatic();
             
             this._renderer = new RenderManager();

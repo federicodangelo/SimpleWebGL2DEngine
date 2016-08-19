@@ -7,10 +7,10 @@ module Simple2DEngine {
     export class Entity {
 
         private _name : String = "Entity";
-        private _transform : Transform;
+        private _transform : Transform = null;
 
         //First component in the entity
-        private _firstComponent : Component;
+        private _firstComponent : Component = null;
 
         public get name() {
             return this._name;
@@ -44,7 +44,7 @@ module Simple2DEngine {
 
             var comp = this._firstComponent;
 
-            while (comp != null) {
+            while (comp !== null) {
                 if (comp instanceof clazz)
                     return comp;
                 comp = comp.__internal_nextComponent;
@@ -53,10 +53,8 @@ module Simple2DEngine {
             return null;
         }
 
-        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : Array<T> {
-            toReturn = this._transform.getComponentInChildren(clazz, toReturn);
-
-            return toReturn;
+        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : number {
+            return this._transform.getComponentInChildren(clazz, toReturn);
         }
     }
 }
