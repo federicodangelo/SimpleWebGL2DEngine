@@ -1,6 +1,7 @@
 /// <reference path="Input/InputManager.ts" />
 /// <reference path="Render/RenderManager.ts" />
 /// <reference path="Entity/EntityManager.ts" />
+/// <reference path="Util/Time.ts" />
 
 module Simple2DEngine {
 
@@ -39,36 +40,12 @@ module Simple2DEngine {
             this._input = new InputManager();
             this._entities = new EntityManager();
 
-            var e1 = this.entities.addEntity();
-            e1.name = "e1";
-
-            e1.transform.localX = 300;
-            e1.transform.localY = 300;
-
-            var e2 = this.entities.addEntity();
-            e2.name = "e2";
-            
-            e2.transform.parent = e1.transform;
-
-            e2.transform.localY = 100;
-            e2.transform.localX = 100;
-
-            e2.transform.parent = null;
-
-            e2.transform.parent = e1.transform;
-
-            this.e1 = e1;
         }
 
         private lastUpdateTime : number = 0;
 
         public update() : void {
             
-            if (this._renderer.contextLost) {
-                //Context lost, don't do anything else
-                return; 
-            }
-
             var now = Date.now() / 1000;
 
             if (this.lastUpdateTime === 0)
@@ -78,11 +55,19 @@ module Simple2DEngine {
 
             this.lastUpdateTime = now;
 
-            this.e1.transform.localRotationDegrees += 360 * Time.deltaTime; 
+            if (this._renderer.contextLost) {
+                //Context lost, don't do anything else
+                return; 
+            }
 
+            //Update input
             this._input.update();
-            this._renderer.draw();
 
+            //Call update() on all Behaviors
+            this._entities.update();
+
+            //Render
+            this._renderer.draw();
         }
     }
 }

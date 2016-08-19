@@ -142,29 +142,39 @@ module Simple2DEngine {
             }
         }
 
+        private tmpCameras : Array<Camera> = new Array<Camera>();
         private tmpDrawers : Array<Drawer> = new Array<Drawer>();
 
         public draw() : void {
 
-            if (engine.input.pointerDown)
-                this.gl.clearColor(0, 1, 0, 1); //green
-            else
-                this.gl.clearColor(0, 0, 0, 1); //black
+            var cameras = this.tmpCameras;
+            engine.entities.getComponentInChildren(Camera, cameras);
+            
+            var drawers = this.tmpDrawers;
+            engine.entities.getComponentInChildren(Drawer, drawers);
 
-            this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+            if (cameras.length == 0)
+                console.warn("No cameras to draw!!");
 
-            var tmpDrawers = this.tmpDrawers;
+            if (drawers.length == 0)
+                console.warn("No entities to draw!!");
 
-            engine.entities.getComponentInChildren(Drawer, tmpDrawers);
+            for (let i = 0; i < cameras.length; i++) {
 
-            this._commands.start();
+                var camera = cameras[i];
 
-            for (var i = 0; i < tmpDrawers.length; i++) {
-                var drawer = tmpDrawers[i];
-                drawer.draw(this._commands);
+                this.gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
+                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+
+                this._commands.start();
+
+                for (let j = 0; j < drawers.length; j++) {
+                    var drawer = drawers[j];
+                    drawer.draw(this._commands);
+                }
+
+                this._commands.end();
             }
-
-            this._commands.end();
         }
     }
 }

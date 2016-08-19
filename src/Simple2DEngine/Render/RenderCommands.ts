@@ -1,3 +1,6 @@
+/// <reference path="RenderBuffer.ts" />
+/// <reference path="RenderProgram.ts" />
+
 module Simple2DEngine {
     export class RenderCommands {
 
@@ -166,7 +169,8 @@ module Simple2DEngine {
             this.renderProgram.setVertexAttributePointer("a_position", this.renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
             this.renderProgram.setVertexAttributePointer("a_color", this.renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
 
-            this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
+            if (this.trianglesCount > 0)
+                this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
         }
     }
 }

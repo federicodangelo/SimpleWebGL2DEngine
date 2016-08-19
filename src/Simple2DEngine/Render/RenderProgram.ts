@@ -1,3 +1,5 @@
+/// <reference path="RenderShader.ts" />
+
 module Simple2DEngine {
     export class RenderProgram {
 

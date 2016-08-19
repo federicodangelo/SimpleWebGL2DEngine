@@ -8,7 +8,6 @@ module Simple2DEngine {
 
         private _name : String = "Entity";
         private _transform : Transform;
-        private _drawer : Drawer;
 
         //First component in the entity
         private _firstComponent : Component;
@@ -25,13 +24,9 @@ module Simple2DEngine {
             return this._transform;
         }
 
-        public get drawer() {
-            return this._drawer;
-        }
-
-        constructor() {
+        constructor(name:String = "Entity") {
+            this._name = name;
             this._transform = this.addComponent(Transform);
-            this._drawer = this.addComponent(Drawer);
         }
 
         public addComponent<T extends Component>(clazz : {new() : T}) : T {

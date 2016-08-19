@@ -1,0 +1,12 @@
+module Simple2DEngine {
+    export class EntityFactory {
+
+        public static buildCamera() : Camera {
+            return new Entity("Camera").addComponent(Camera);
+        }
+
+        public static buildDrawer() : Drawer {
+            return new Entity("Drawer").addComponent(Drawer);
+        }
+    }
+}

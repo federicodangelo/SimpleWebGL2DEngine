@@ -13,13 +13,22 @@ module Simple2DEngine {
         constructor() {
         }
 
-        public addEntity() : Entity {
-            var entity = new Entity(); 
-            return entity;
-        }
-
         public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : Array<T> {
             return this._root.getComponentInChildren(clazz, toReturn);
+        }
+
+        private tmpBehaviors : Array<Behavior> = new Array<Behavior>();        
+
+        public update() : void {
+
+            var behaviors:Array<Behavior> = this.tmpBehaviors;
+
+            this.getComponentInChildren(Behavior, behaviors);
+
+            for (var i = 0; i < behaviors.length; i++) {
+                var behavior = behaviors[i];
+                behavior.update();
+            }
         }
     }
 }

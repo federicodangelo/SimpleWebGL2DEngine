@@ -1,4 +1,6 @@
 /// <reference path="Component.ts" />
+/// <reference path="../Math/Matrix3.ts" />
+/// <reference path="../Math/Vector2.ts" />
 
 module Simple2DEngine {
 

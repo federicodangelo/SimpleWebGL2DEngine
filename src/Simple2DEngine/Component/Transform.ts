@@ -48,7 +48,7 @@ module Simple2DEngine {
 
         public set localPosition(p:Vector2) {
             Vector2.copy(this._position, p);
-        }
+        }   
 
         public get localX() {
             return this._position[0];

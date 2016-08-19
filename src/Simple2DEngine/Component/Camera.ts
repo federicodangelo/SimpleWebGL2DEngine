@@ -3,15 +3,11 @@
 module Simple2DEngine {
 
     export class Camera extends Component {
+        public clearColor : Color;
 
-        private _commands : RenderCommands;
-
-        protected onInit() : void {
-            this._commands = new RenderCommands(engine.renderer.gl);
+        public constructor() {
+            super();
+            this.clearColor = Color.fromRgba(0, 0, 0, 255);
         }
-
-        public render() {
-            //TODO
-        }        
     }
 }
