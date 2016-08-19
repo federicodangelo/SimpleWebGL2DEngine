@@ -428,6 +428,8 @@ var s2d;
             this.trianglesCount += 2;
         };
         RenderCommands.prototype.end = function () {
+            if (!s2d.RenderManager.RENDER_ENABLED)
+                return;
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
             var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
@@ -585,22 +587,25 @@ var s2d;
             this._commands.endFrame();
         };
         RenderManager.prototype.renderCamera = function (camera, drawers, drawersLen) {
-            var gl = this.gl;
             var commands = this._commands;
-            var clearFlags = 0;
-            if (camera.clearColorBuffer) {
-                clearFlags |= gl.COLOR_BUFFER_BIT;
-                gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
+            if (RenderManager.RENDER_ENABLED) {
+                var gl = this.gl;
+                var clearFlags = 0;
+                if (camera.clearColorBuffer) {
+                    clearFlags |= gl.COLOR_BUFFER_BIT;
+                    gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
+                }
+                if (camera.clearDepthBuffer)
+                    clearFlags |= gl.DEPTH_BUFFER_BIT;
+                if (clearFlags != 0)
+                    gl.clear(clearFlags);
             }
-            if (camera.clearDepthBuffer)
-                clearFlags |= gl.DEPTH_BUFFER_BIT;
-            if (clearFlags != 0)
-                gl.clear(clearFlags);
             commands.start();
             for (var i = 0; i < drawersLen; i++)
                 drawers[i].draw(commands);
             commands.end();
         };
+        RenderManager.RENDER_ENABLED = true;
         return RenderManager;
     }());
     s2d.RenderManager = RenderManager;
@@ -849,12 +854,11 @@ var s2d;
         }
         */
         Transform.prototype.getLocalToGlobalMatrix = function (out) {
-            if (this._parent !== null) {
-                this._parent.getLocalToGlobalMatrix(out);
-                s2d.Matrix2d.mul(out, out, this._localMatrix);
-            }
-            else {
-                s2d.Matrix2d.copy(out, this._localMatrix);
+            var p = this._parent;
+            s2d.Matrix2d.copy(out, this._localMatrix);
+            while (p !== null) {
+                s2d.Matrix2d.mul(out, p._localMatrix, out);
+                p = p._parent;
             }
             return out;
         };
@@ -2243,6 +2247,9 @@ var s2d;
     var Engine = (function () {
         function Engine() {
             this.lastUpdateTime = 0;
+            this.lastFpsTime = 0;
+            this.fpsCounter = 0;
+            this.accumulatedUpdateTime = 0;
         }
         Object.defineProperty(Engine.prototype, "renderer", {
             get: function () {
@@ -2275,6 +2282,7 @@ var s2d;
             s2d.input = this._input;
             s2d.renderer = this._renderer;
             s2d.entities = this._entities;
+            this.lastFpsTime = Date.now() / 1000;
         };
         Engine.prototype.update = function () {
             var now = Date.now() / 1000;
@@ -2287,13 +2295,28 @@ var s2d;
                 //Context lost, don't do anything else
                 return;
             }
+            var startTime = performance.now(); // Date.now();
             //Update input
             this._input.update();
             //Call update() on all Behaviors
             this._entities.update();
             //Render
             this._renderer.draw();
+            var endTime = performance.now(); // Date.now();
+            this.accumulatedUpdateTime += endTime - startTime;
+            this.fpsCounter++;
+            if (now - this.lastFpsTime > 1) {
+                var delta = now - this.lastFpsTime;
+                var fps = this.fpsCounter / delta;
+                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
+                this.lastFpsTime = now;
+                this.fpsCounter = 0;
+                this.accumulatedUpdateTime = 0;
+                if (Engine.LOG_PERFORMANCE)
+                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
+            }
         };
+        Engine.LOG_PERFORMANCE = false;
         return Engine;
     }());
     s2d.Engine = Engine;
@@ -2332,6 +2355,24 @@ var GameLogic = (function (_super) {
     }
     GameLogic.prototype.onInit = function () {
         this.cam = s2d.EntityFactory.buildCamera();
+        this.initTestComplex();
+        //this.initTestSimple();
+    };
+    GameLogic.prototype.initTestSimple = function () {
+        var e1 = s2d.EntityFactory.buildDrawer().entity;
+        var e2 = s2d.EntityFactory.buildDrawer().entity;
+        var e3 = s2d.EntityFactory.buildDrawer().entity;
+        e1.transform.localX = 300;
+        e1.transform.localY = 300;
+        e2.transform.parent = e1.transform;
+        e2.transform.localX = 200;
+        e3.transform.parent = e2.transform;
+        e3.transform.localX = 100;
+        this.entities.push(e1);
+        this.entities.push(e2);
+        this.entities.push(e3);
+    };
+    GameLogic.prototype.initTestComplex = function () {
         var sWidth = s2d.engine.renderer.screenWidth;
         var sHeight = s2d.engine.renderer.screenHeight;
         for (var i = 0; i < 8192; i++) {

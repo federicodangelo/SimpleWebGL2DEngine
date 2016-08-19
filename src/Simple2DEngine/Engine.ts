@@ -7,6 +7,8 @@ module s2d {
 
     export class Engine {
 
+        private static LOG_PERFORMANCE = false;
+
         private _input : InputManager;
         private _renderer : RenderManager;
         private _entities : EntityManager;
@@ -36,9 +38,16 @@ module s2d {
             input = this._input;
             renderer = this._renderer;
             entities = this._entities;
+
+
+            this.lastFpsTime = Date.now() / 1000;
         }
 
         private lastUpdateTime : number = 0;
+        private lastFpsTime = 0;
+        private fpsCounter = 0;
+
+        private accumulatedUpdateTime = 0;
 
         public update() : void {
             
@@ -56,6 +65,8 @@ module s2d {
                 return; 
             }
 
+            var startTime = performance.now(); // Date.now();
+
             //Update input
             this._input.update();
 
@@ -64,6 +75,25 @@ module s2d {
 
             //Render
             this._renderer.draw();
+
+            var endTime = performance.now();// Date.now();
+
+            this.accumulatedUpdateTime += endTime - startTime;
+
+            this.fpsCounter++;
+
+            if (now - this.lastFpsTime > 1) {
+                var delta = now - this.lastFpsTime;
+                var fps = this.fpsCounter / delta;
+                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
+
+                this.lastFpsTime = now;
+                this.fpsCounter = 0;
+                this.accumulatedUpdateTime = 0;
+
+                if (Engine.LOG_PERFORMANCE)
+                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
+            }
         }
     }
 

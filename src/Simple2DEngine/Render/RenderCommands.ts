@@ -179,6 +179,9 @@ module s2d {
         }
 
         public end() {
+            if (!RenderManager.RENDER_ENABLED)
+                return;
+
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
 

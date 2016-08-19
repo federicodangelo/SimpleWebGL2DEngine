@@ -209,12 +209,15 @@ module s2d {
         */
 
         public getLocalToGlobalMatrix(out: Matrix2d): Matrix2d {
-            if (this._parent !== null) {
-                this._parent.getLocalToGlobalMatrix(out);
-                Matrix2d.mul(out, out, this._localMatrix);
-            } else {
-                Matrix2d.copy(out, this._localMatrix);
+
+            var p = this._parent;
+            Matrix2d.copy(out, this._localMatrix);
+
+            while (p !== null) {
+                Matrix2d.mul(out, p._localMatrix, out);
+                p = p._parent;
             }
+
             return out;
         }
 

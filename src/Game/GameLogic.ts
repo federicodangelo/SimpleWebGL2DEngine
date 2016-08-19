@@ -12,6 +12,31 @@ class GameLogic extends s2d.Behavior {
 
         this.cam = s2d.EntityFactory.buildCamera();
 
+        this.initTestComplex();
+        //this.initTestSimple();
+    }
+
+    private initTestSimple() {
+
+        let e1 = s2d.EntityFactory.buildDrawer().entity;
+        let e2 = s2d.EntityFactory.buildDrawer().entity;
+        let e3 = s2d.EntityFactory.buildDrawer().entity;
+
+        e1.transform.localX = 300;
+        e1.transform.localY = 300;
+
+        e2.transform.parent = e1.transform;
+        e2.transform.localX = 200;
+
+        e3.transform.parent = e2.transform;
+        e3.transform.localX = 100;
+
+        this.entities.push(e1);
+        this.entities.push(e2);
+        this.entities.push(e3);
+    }
+
+    private initTestComplex() {
         let sWidth = s2d.engine.renderer.screenWidth;
         let sHeight = s2d.engine.renderer.screenHeight;
 
@@ -49,5 +74,6 @@ class GameLogic extends s2d.Behavior {
             this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
         else
             this.cam.clearColor.rgbaHex = 0x000000FF; //black
+
     }
 }

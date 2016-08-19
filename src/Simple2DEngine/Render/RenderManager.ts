@@ -4,6 +4,8 @@ module s2d {
 
     export class RenderManager {
 
+        public static RENDER_ENABLED = true;
+
         private mainCanvas: HTMLCanvasElement;
         private _gl: WebGLRenderingContext;
 
@@ -172,21 +174,24 @@ module s2d {
 
         private renderCamera(camera: Camera, drawers: Array<Drawer>, drawersLen: number) {
 
-            var gl = this.gl;
             var commands = this._commands;
 
-            var clearFlags = 0;
+            if (RenderManager.RENDER_ENABLED) {
+                var gl = this.gl;
 
-            if (camera.clearColorBuffer) {
-                clearFlags |= gl.COLOR_BUFFER_BIT;
-                gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
+                var clearFlags = 0;
+
+                if (camera.clearColorBuffer) {
+                    clearFlags |= gl.COLOR_BUFFER_BIT;
+                    gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
+                }
+
+                if (camera.clearDepthBuffer)
+                    clearFlags |= gl.DEPTH_BUFFER_BIT;
+
+                if (clearFlags != 0)
+                    gl.clear(clearFlags);
             }
-
-            if (camera.clearDepthBuffer)
-                clearFlags |= gl.DEPTH_BUFFER_BIT;
-
-            if (clearFlags != 0)
-                gl.clear(clearFlags);
 
             commands.start();
 
