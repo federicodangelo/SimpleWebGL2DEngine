@@ -342,17 +342,24 @@ var Simple2DEngine;
 (function (Simple2DEngine) {
     var RenderCommands = (function () {
         function RenderCommands(gl) {
+            this.currentRenderBufferIndex = 0;
             this.tmpV1 = Simple2DEngine.Vector2.create();
             this.tmpV2 = Simple2DEngine.Vector2.create();
             this.tmpV3 = Simple2DEngine.Vector2.create();
             this.tmpV4 = Simple2DEngine.Vector2.create();
             this.gl = gl;
             this.renderProgram = new Simple2DEngine.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
-            this.renderBuffer = new Simple2DEngine.RenderBuffer(gl);
+            this.renderBuffers = new Array();
+            for (var i = 0; i < 16; i++)
+                this.renderBuffers.push(new Simple2DEngine.RenderBuffer(gl));
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
         }
+        RenderCommands.prototype.startFrame = function () {
+        };
+        RenderCommands.prototype.endFrame = function () {
+        };
         RenderCommands.prototype.start = function () {
             this.trianglesCount = 0;
             this.trianglesOffset = 0;
@@ -423,11 +430,13 @@ var Simple2DEngine;
         RenderCommands.prototype.end = function () {
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
-            this.renderBuffer.setData(this.backingArray, false);
-            this.renderProgram.setVertexAttributePointer("a_position", this.renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
-            this.renderProgram.setVertexAttributePointer("a_color", this.renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
+            var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
+            renderBuffer.setData(this.backingArray, false);
+            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
+            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
             if (this.trianglesCount > 0)
                 this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
+            this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
         };
         RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n            }\n        ";
         RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            void main() {\n                gl_FragColor = v_color;\n            }\n        ";
@@ -570,8 +579,10 @@ var Simple2DEngine;
                 console.warn("No cameras to draw!!");
             if (drawersLen === 0)
                 console.warn("No entities to draw!!");
+            this._commands.startFrame();
             for (var i = 0; i < camerasLen; i++)
                 this.renderCamera(cameras[i], drawers, drawersLen);
+            this._commands.endFrame();
         };
         RenderManager.prototype.renderCamera = function (camera, drawers, drawersLen) {
             var gl = this.gl;

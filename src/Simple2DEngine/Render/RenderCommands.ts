@@ -50,7 +50,8 @@ module Simple2DEngine {
         private gl : WebGLRenderingContext;
 
         private renderProgram : RenderProgram; 
-        private renderBuffer : RenderBuffer;
+        private renderBuffers : Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
+        private currentRenderBufferIndex = 0;
 
         private backingArray : ArrayBuffer;
         private triangles : Float32Array;
@@ -68,10 +69,12 @@ module Simple2DEngine {
         public constructor(gl : WebGLRenderingContext) {
             this.gl = gl;
             this.renderProgram = new RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
-            this.renderBuffer = new RenderBuffer(gl);
+
+            this.renderBuffers = new Array<RenderBuffer>();
+            for (let i = 0; i < 16; i++)
+                this.renderBuffers.push(new RenderBuffer(gl));
 
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
-
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
         }
@@ -80,6 +83,14 @@ module Simple2DEngine {
         private tmpV2 : Vector2 = Vector2.create(); 
         private tmpV3 : Vector2 = Vector2.create(); 
         private tmpV4 : Vector2 = Vector2.create();  
+
+        public startFrame() {
+            
+        }
+
+        public endFrame() {
+            
+        }
 
         public start() {
             this.trianglesCount = 0;
@@ -171,13 +182,17 @@ module Simple2DEngine {
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
 
-            this.renderBuffer.setData(this.backingArray, false);
+            var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
 
-            this.renderProgram.setVertexAttributePointer("a_position", this.renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
-            this.renderProgram.setVertexAttributePointer("a_color", this.renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
+            renderBuffer.setData(this.backingArray, false);
+
+            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
+            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
 
             if (this.trianglesCount > 0)
                 this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
+
+            this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
         }
     }
 }

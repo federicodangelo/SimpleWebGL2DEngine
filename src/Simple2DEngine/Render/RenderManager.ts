@@ -162,8 +162,12 @@ module Simple2DEngine {
             if (drawersLen === 0)
                 console.warn("No entities to draw!!");
 
+            this._commands.startFrame();
+
             for (let i = 0; i < camerasLen; i++)
                 this.renderCamera(cameras[i], drawers, drawersLen);
+
+            this._commands.endFrame();
         }
 
         private renderCamera(camera: Camera, drawers: Array<Drawer>, drawersLen: number) {
