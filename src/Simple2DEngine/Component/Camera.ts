@@ -3,11 +3,9 @@
 module Simple2DEngine {
 
     export class Camera extends Component {
-        public clearColor : Color;
+        public clearDepthBuffer : boolean = false;
+        public clearColorBuffer : boolean = true;
 
-        public constructor() {
-            super();
-            this.clearColor = Color.fromRgba(0, 0, 0, 255);
-        }
+        public clearColor : Color = Color.fromRgba(0, 0, 0, 255);
     }
 }

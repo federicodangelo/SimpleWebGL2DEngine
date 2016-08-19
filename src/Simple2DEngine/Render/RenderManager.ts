@@ -159,22 +159,34 @@ module Simple2DEngine {
             if (drawers.length == 0)
                 console.warn("No entities to draw!!");
 
-            for (let i = 0; i < cameras.length; i++) {
+            for (let i = 0; i < cameras.length; i++)
+                this.renderCamera(cameras[i], drawers);
+        }
 
-                var camera = cameras[i];
+        private renderCamera(camera : Camera, drawers : Array<Drawer>) {
 
-                this.gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
-                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+            var gl = this.gl;
+            var commands = this._commands;
 
-                this._commands.start();
+            var clearFlags = 0;
 
-                for (let j = 0; j < drawers.length; j++) {
-                    var drawer = drawers[j];
-                    drawer.draw(this._commands);
-                }
-
-                this._commands.end();
+            if (camera.clearColorBuffer) {
+                clearFlags |= gl.COLOR_BUFFER_BIT;
+                gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
             }
+
+            if (camera.clearDepthBuffer)
+                clearFlags |= gl.DEPTH_BUFFER_BIT;
+
+            if (clearFlags != 0)
+                gl.clear(clearFlags);
+
+            commands.start();
+
+            for (let i = 0; i < drawers.length; i++)
+                drawers[i].draw(commands);
+
+            commands.end();
         }
     }
 }

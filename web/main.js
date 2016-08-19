@@ -559,17 +559,25 @@ var Simple2DEngine;
                 console.warn("No cameras to draw!!");
             if (drawers.length == 0)
                 console.warn("No entities to draw!!");
-            for (var i = 0; i < cameras.length; i++) {
-                var camera = cameras[i];
-                this.gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
-                this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-                this._commands.start();
-                for (var j = 0; j < drawers.length; j++) {
-                    var drawer = drawers[j];
-                    drawer.draw(this._commands);
-                }
-                this._commands.end();
+            for (var i = 0; i < cameras.length; i++)
+                this.renderCamera(cameras[i], drawers);
+        };
+        RenderManager.prototype.renderCamera = function (camera, drawers) {
+            var gl = this.gl;
+            var commands = this._commands;
+            var clearFlags = 0;
+            if (camera.clearColorBuffer) {
+                clearFlags |= gl.COLOR_BUFFER_BIT;
+                gl.clearColor(camera.clearColor.r, camera.clearColor.g, camera.clearColor.b, camera.clearColor.a);
             }
+            if (camera.clearDepthBuffer)
+                clearFlags |= gl.DEPTH_BUFFER_BIT;
+            if (clearFlags != 0)
+                gl.clear(clearFlags);
+            commands.start();
+            for (var i = 0; i < drawers.length; i++)
+                drawers[i].draw(commands);
+            commands.end();
         };
         return RenderManager;
     }());
@@ -2267,7 +2275,9 @@ var Simple2DEngine;
     var Camera = (function (_super) {
         __extends(Camera, _super);
         function Camera() {
-            _super.call(this);
+            _super.apply(this, arguments);
+            this.clearDepthBuffer = false;
+            this.clearColorBuffer = true;
             this.clearColor = Simple2DEngine.Color.fromRgba(0, 0, 0, 255);
         }
         return Camera;
