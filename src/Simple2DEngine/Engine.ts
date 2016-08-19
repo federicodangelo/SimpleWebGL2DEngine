@@ -13,6 +13,8 @@ module s2d {
         private _renderer : RenderManager;
         private _entities : EntityManager;
 
+        private _stats : WGLUStats;
+
         public get renderer() {
             return this._renderer;
         }
@@ -33,6 +35,7 @@ module s2d {
             this._renderer = new RenderManager();
             this._input = new InputManager();
             this._entities = new EntityManager();
+            this._stats = new WGLUStats(this._renderer.gl);
 
             //Global vars initialization
             input = this._input;
@@ -65,6 +68,8 @@ module s2d {
                 return; 
             }
 
+            this._stats.begin();
+
             var startTime = performance.now(); // Date.now();
 
             //Update input
@@ -75,6 +80,8 @@ module s2d {
 
             //Render
             this._renderer.draw();
+
+            this._stats.renderOrtho();
 
             var endTime = performance.now();// Date.now();
 
@@ -94,6 +101,8 @@ module s2d {
                 if (Engine.LOG_PERFORMANCE)
                     console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
             }
+
+            this._stats.end();
         }
     }
 

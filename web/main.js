@@ -2278,6 +2278,7 @@ var s2d;
             this._renderer = new s2d.RenderManager();
             this._input = new s2d.InputManager();
             this._entities = new s2d.EntityManager();
+            this._stats = new WGLUStats(this._renderer.gl);
             //Global vars initialization
             s2d.input = this._input;
             s2d.renderer = this._renderer;
@@ -2295,6 +2296,7 @@ var s2d;
                 //Context lost, don't do anything else
                 return;
             }
+            this._stats.begin();
             var startTime = performance.now(); // Date.now();
             //Update input
             this._input.update();
@@ -2302,6 +2304,7 @@ var s2d;
             this._entities.update();
             //Render
             this._renderer.draw();
+            this._stats.renderOrtho();
             var endTime = performance.now(); // Date.now();
             this.accumulatedUpdateTime += endTime - startTime;
             this.fpsCounter++;
@@ -2315,6 +2318,7 @@ var s2d;
                 if (Engine.LOG_PERFORMANCE)
                     console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
             }
+            this._stats.end();
         };
         Engine.LOG_PERFORMANCE = false;
         return Engine;
