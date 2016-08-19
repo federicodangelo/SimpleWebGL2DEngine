@@ -2267,6 +2267,12 @@ var GameLogic = (function (_super) {
             e.name = "Entity " + i;
             e.transform.localX = Simple2DEngine.SMath.randomInRangeFloat(100, sWidth - 200);
             e.transform.localY = Simple2DEngine.SMath.randomInRangeFloat(100, sHeight - 200);
+            if (i > 0 && i % 3 == 0)
+                e.transform.parent = this.entities[i - 2].transform;
+            if (i > 0 && i % 5 == 0)
+                e.transform.parent = this.entities[i - 4].transform;
+            if (i > 0 && i % 7 == 0)
+                e.transform.parent = this.entities[i - 6].transform;
             this.entities.push(e);
         }
     };
