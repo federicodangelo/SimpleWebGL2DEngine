@@ -2,7 +2,7 @@
 /// <reference path="../Math/Matrix3.ts" />
 /// <reference path="../Math/Vector2.ts" />
 
-module Simple2DEngine {
+module s2d {
 
     export class Drawer extends Component {
 
@@ -17,7 +17,7 @@ module Simple2DEngine {
         public draw(commands : RenderCommands) : void {
             var trans = this.entity.transform;
             trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
-            commands.drawRect(Drawer.tmpMatrix, trans.size);
+            commands.drawRect(Drawer.tmpMatrix, trans.halfSize);
         }
    }
 }

@@ -3,8 +3,8 @@ var __extends = (this && this.__extends) || function (d, b) {
     function __() { this.constructor = d; }
     d.prototype = b === null ? Object.create(b) : (__.prototype = b.prototype, new __());
 };
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var Input;
     (function (Input) {
         var InputMouse = (function () {
@@ -99,7 +99,7 @@ var Simple2DEngine;
                 configurable: true
             });
             InputMouse.prototype.updateLastPosition = function (ev) {
-                if (ev.x >= 0 && ev.x < Simple2DEngine.engine.renderer.screenWidth && ev.y >= 0 && ev.y < Simple2DEngine.engine.renderer.screenHeight) {
+                if (ev.x >= 0 && ev.x < s2d.engine.renderer.screenWidth && ev.y >= 0 && ev.y < s2d.engine.renderer.screenHeight) {
                     this._lastX = ev.x;
                     this._lastY = ev.y;
                 }
@@ -107,10 +107,10 @@ var Simple2DEngine;
             return InputMouse;
         }());
         Input.InputMouse = InputMouse;
-    })(Input = Simple2DEngine.Input || (Simple2DEngine.Input = {}));
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
+    })(Input = s2d.Input || (s2d.Input = {}));
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var Input;
     (function (Input) {
         var Touch = (function () {
@@ -175,7 +175,7 @@ var Simple2DEngine;
                     var x = ev.changedTouches[i].clientX;
                     var y = ev.changedTouches[i].clientY;
                     var touch = this.getOrCreateTouch(id);
-                    if (x >= 0 && x < Simple2DEngine.engine.renderer.screenWidth && y >= 0 && y < Simple2DEngine.engine.renderer.screenHeight) {
+                    if (x >= 0 && x < s2d.engine.renderer.screenWidth && y >= 0 && y < s2d.engine.renderer.screenHeight) {
                         touch.x = x;
                         touch.y = y;
                     }
@@ -184,16 +184,16 @@ var Simple2DEngine;
             return InputTouch;
         }());
         Input.InputTouch = InputTouch;
-    })(Input = Simple2DEngine.Input || (Simple2DEngine.Input = {}));
-})(Simple2DEngine || (Simple2DEngine = {}));
+    })(Input = s2d.Input || (s2d.Input = {}));
+})(s2d || (s2d = {}));
 /// <reference path="InputMouse.ts" />
 /// <reference path="InputTouch.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var InputManager = (function () {
         function InputManager() {
-            this.inputTouch = new Simple2DEngine.Input.InputTouch();
-            this.inputMouse = new Simple2DEngine.Input.InputMouse();
+            this.inputTouch = new s2d.Input.InputTouch();
+            this.inputMouse = new s2d.Input.InputMouse();
         }
         Object.defineProperty(InputManager.prototype, "pointerDown", {
             get: function () {
@@ -229,10 +229,10 @@ var Simple2DEngine;
         };
         return InputManager;
     }());
-    Simple2DEngine.InputManager = InputManager;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
+    s2d.InputManager = InputManager;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var RenderBuffer = (function () {
         function RenderBuffer(gl) {
             this.gl = gl;
@@ -253,10 +253,10 @@ var Simple2DEngine;
         };
         return RenderBuffer;
     }());
-    Simple2DEngine.RenderBuffer = RenderBuffer;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
+    s2d.RenderBuffer = RenderBuffer;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var RenderShader = (function () {
         function RenderShader(gl, shaderStr, type) {
             this.gl = gl;
@@ -285,16 +285,16 @@ var Simple2DEngine;
         };
         return RenderShader;
     }());
-    Simple2DEngine.RenderShader = RenderShader;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.RenderShader = RenderShader;
+})(s2d || (s2d = {}));
 /// <reference path="RenderShader.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var RenderProgram = (function () {
         function RenderProgram(gl, vertexShaderStr, fragmentShaderStr) {
             this.gl = gl;
-            this._vertexShader = new Simple2DEngine.RenderShader(gl, vertexShaderStr, gl.VERTEX_SHADER);
-            this._fragmentShader = new Simple2DEngine.RenderShader(gl, fragmentShaderStr, gl.FRAGMENT_SHADER);
+            this._vertexShader = new s2d.RenderShader(gl, vertexShaderStr, gl.VERTEX_SHADER);
+            this._fragmentShader = new s2d.RenderShader(gl, fragmentShaderStr, gl.FRAGMENT_SHADER);
             this._program = gl.createProgram();
             gl.attachShader(this._program, this._vertexShader.shader);
             gl.attachShader(this._program, this._fragmentShader.shader);
@@ -334,24 +334,24 @@ var Simple2DEngine;
         };
         return RenderProgram;
     }());
-    Simple2DEngine.RenderProgram = RenderProgram;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.RenderProgram = RenderProgram;
+})(s2d || (s2d = {}));
 /// <reference path="RenderBuffer.ts" />
 /// <reference path="RenderProgram.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var RenderCommands = (function () {
         function RenderCommands(gl) {
             this.currentRenderBufferIndex = 0;
-            this.tmpV1 = Simple2DEngine.Vector2.create();
-            this.tmpV2 = Simple2DEngine.Vector2.create();
-            this.tmpV3 = Simple2DEngine.Vector2.create();
-            this.tmpV4 = Simple2DEngine.Vector2.create();
+            this.tmpV1 = s2d.Vector2.create();
+            this.tmpV2 = s2d.Vector2.create();
+            this.tmpV3 = s2d.Vector2.create();
+            this.tmpV4 = s2d.Vector2.create();
             this.gl = gl;
-            this.renderProgram = new Simple2DEngine.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
+            this.renderProgram = new s2d.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderBuffers = new Array();
             for (var i = 0; i < 16; i++)
-                this.renderBuffers.push(new Simple2DEngine.RenderBuffer(gl));
+                this.renderBuffers.push(new s2d.RenderBuffer(gl));
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
@@ -365,7 +365,7 @@ var Simple2DEngine;
             this.trianglesOffset = 0;
             this.colorsOffset = 0;
         };
-        RenderCommands.prototype.drawRect = function (mat, size) {
+        RenderCommands.prototype.drawRect = function (mat, halfSize) {
             if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES) {
                 this.end();
                 this.start();
@@ -378,24 +378,24 @@ var Simple2DEngine;
             var trianglesOffset = this.trianglesOffset;
             var colors = this.colors;
             var colorsOffset = this.colorsOffset;
-            var halfSizeX = size[0] * 0.5;
-            var halfSizeY = size[1] * 0.5;
+            var halfSizeX = halfSize[0];
+            var halfSizeY = halfSize[1];
             //Top left
             tmpV1[0] = -halfSizeX;
             tmpV1[1] = -halfSizeY;
-            Simple2DEngine.Vector2.transformMat3(tmpV1, tmpV1, mat);
+            s2d.Vector2.transformMat2d(tmpV1, tmpV1, mat);
             //Top right
             tmpV2[0] = halfSizeX;
             tmpV2[1] = -halfSizeY;
-            Simple2DEngine.Vector2.transformMat3(tmpV2, tmpV2, mat);
+            s2d.Vector2.transformMat2d(tmpV2, tmpV2, mat);
             //Bottom right
             tmpV3[0] = halfSizeX;
             tmpV3[1] = halfSizeY;
-            Simple2DEngine.Vector2.transformMat3(tmpV3, tmpV3, mat);
+            s2d.Vector2.transformMat2d(tmpV3, tmpV3, mat);
             //Bottom left
             tmpV4[0] = -halfSizeX;
             tmpV4[1] = halfSizeY;
-            Simple2DEngine.Vector2.transformMat3(tmpV4, tmpV4, mat);
+            s2d.Vector2.transformMat2d(tmpV4, tmpV4, mat);
             var red = 0xFF0000FF; //ABGR
             var green = 0xFF00FF00; //ABGR
             var blue = 0xFFFF0000; //ABGR
@@ -445,11 +445,11 @@ var Simple2DEngine;
         RenderCommands.MAX_ELEMENTS = RenderCommands.MAX_TRIANGLES * 3; //3 elements per triangle
         return RenderCommands;
     }());
-    Simple2DEngine.RenderCommands = RenderCommands;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.RenderCommands = RenderCommands;
+})(s2d || (s2d = {}));
 /// <reference path="RenderCommands.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var RenderManager = (function () {
         function RenderManager() {
             var _this = this;
@@ -522,7 +522,7 @@ var Simple2DEngine;
             //Disable depth test and writing to depth mask
             gl.disable(gl.DEPTH_TEST);
             gl.depthMask(false);
-            this._commands = new Simple2DEngine.RenderCommands(gl);
+            this._commands = new s2d.RenderCommands(gl);
             this.onWindowResize();
         };
         /**
@@ -572,9 +572,9 @@ var Simple2DEngine;
         };
         RenderManager.prototype.draw = function () {
             var cameras = this.tmpCameras;
-            var camerasLen = Simple2DEngine.engine.entities.getComponentInChildren(Simple2DEngine.Camera, cameras);
+            var camerasLen = s2d.engine.entities.getComponentInChildren(s2d.Camera, cameras);
             var drawers = this.tmpDrawers;
-            var drawersLen = Simple2DEngine.engine.entities.getComponentInChildren(Simple2DEngine.Drawer, drawers);
+            var drawersLen = s2d.engine.entities.getComponentInChildren(s2d.Drawer, drawers);
             if (camerasLen === 0)
                 console.warn("No cameras to draw!!");
             if (drawersLen === 0)
@@ -603,10 +603,10 @@ var Simple2DEngine;
         };
         return RenderManager;
     }());
-    Simple2DEngine.RenderManager = RenderManager;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
+    s2d.RenderManager = RenderManager;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var Component = (function () {
         function Component() {
             this._entity = null;
@@ -625,33 +625,33 @@ var Simple2DEngine;
         Component.prototype.onInit = function () {
         };
         Component.prototype.getComponent = function (clazz) {
-            if (this._entity != null)
+            if (this._entity !== null)
                 return this._entity.getComponent(clazz);
             return null;
         };
         return Component;
     }());
-    Simple2DEngine.Component = Component;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Component = Component;
+})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var Transform = (function (_super) {
         __extends(Transform, _super);
         function Transform() {
             _super.apply(this, arguments);
             this._parent = null;
-            this._position = Simple2DEngine.Vector2.create();
+            this._position = s2d.Vector2.create();
             this._rotation = 0;
-            this._scale = Simple2DEngine.Vector2.fromValues(1, 1);
-            this._size = Simple2DEngine.Vector2.fromValues(32, 32);
+            this._scale = s2d.Vector2.fromValues(1, 1);
+            this._halfSize = s2d.Vector2.fromValues(16, 16);
             //Linked list of children
             this._firstChild = null;
             this._lastChild = null;
             //Linked list of siblings
             this._prevSibling = null;
             this._nextSibling = null;
-            this._localMatrix = Simple2DEngine.Matrix3.create();
+            this._localMatrix = s2d.Matrix2d.create();
             this._localMatrixDirty = true;
         }
         Object.defineProperty(Transform.prototype, "parent", {
@@ -660,12 +660,12 @@ var Simple2DEngine;
             },
             set: function (p) {
                 if (this._parent === null)
-                    Simple2DEngine.engine.entities.root.removeChild(this);
+                    s2d.engine.entities.root.removeChild(this);
                 else
                     this._parent.removeChild(this);
                 this._parent = p;
                 if (this._parent === null)
-                    Simple2DEngine.engine.entities.root.addChild(this);
+                    s2d.engine.entities.root.addChild(this);
                 else
                     this._parent.addChild(this);
             },
@@ -673,14 +673,14 @@ var Simple2DEngine;
             configurable: true
         });
         Transform.prototype.onInit = function () {
-            Simple2DEngine.engine.entities.root.addChild(this);
+            s2d.engine.entities.root.addChild(this);
         };
         Object.defineProperty(Transform.prototype, "localPosition", {
             get: function () {
                 return this._position;
             },
             set: function (p) {
-                Simple2DEngine.Vector2.copy(this._position, p);
+                s2d.Vector2.copy(this._position, p);
                 this._localMatrixDirty = true;
             },
             enumerable: true,
@@ -721,10 +721,10 @@ var Simple2DEngine;
         });
         Object.defineProperty(Transform.prototype, "localRotationDegrees", {
             get: function () {
-                return this._rotation * Simple2DEngine.SMath.rad2deg;
+                return this._rotation * s2d.SMath.rad2deg;
             },
             set: function (deg) {
-                this._rotation = deg * Simple2DEngine.SMath.deg2rad;
+                this._rotation = deg * s2d.SMath.deg2rad;
                 this._localMatrixDirty = true;
             },
             enumerable: true,
@@ -735,7 +735,7 @@ var Simple2DEngine;
                 return this._scale;
             },
             set: function (s) {
-                Simple2DEngine.Vector2.copy(this._scale, s);
+                s2d.Vector2.copy(this._scale, s);
                 this._localMatrixDirty = true;
             },
             enumerable: true,
@@ -763,34 +763,34 @@ var Simple2DEngine;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Transform.prototype, "size", {
+        Object.defineProperty(Transform.prototype, "halfSize", {
             get: function () {
-                return this._size;
+                return this._halfSize;
             },
             set: function (s) {
-                Simple2DEngine.Vector2.copy(this._size, s);
+                s2d.Vector2.copy(this._halfSize, s);
                 this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Transform.prototype, "sizeX", {
+        Object.defineProperty(Transform.prototype, "halfSizeX", {
             get: function () {
-                return this._size[0];
+                return this._halfSize[0];
             },
             set: function (v) {
-                this._size[0] = v;
+                this._halfSize[0] = v;
                 this._localMatrixDirty = true;
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Transform.prototype, "sizeY", {
+        Object.defineProperty(Transform.prototype, "halfSizeY", {
             get: function () {
-                return this._size[1];
+                return this._halfSize[1];
             },
             set: function (v) {
-                this._size[1] = v;
+                this._halfSize[1] = v;
                 this._localMatrixDirty = true;
             },
             enumerable: true,
@@ -799,9 +799,9 @@ var Simple2DEngine;
         Transform.prototype.getLocalMatrix = function () {
             var localMatrix = this._localMatrix;
             if (this._localMatrixDirty) {
-                Simple2DEngine.Matrix3.fromTranslation(localMatrix, this._position);
-                Simple2DEngine.Matrix3.scale(localMatrix, localMatrix, this._scale);
-                Simple2DEngine.Matrix3.rotate(localMatrix, localMatrix, this._rotation);
+                s2d.Matrix2d.fromTranslation(localMatrix, this._position);
+                s2d.Matrix2d.scale(localMatrix, localMatrix, this._scale);
+                s2d.Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
                 this._localMatrixDirty = false;
             }
             return localMatrix;
@@ -810,16 +810,16 @@ var Simple2DEngine;
             var localMatrix = this.getLocalMatrix();
             if (this._parent !== null) {
                 this._parent.getLocalToGlobalMatrix(out);
-                Simple2DEngine.Matrix3.mul(out, out, localMatrix);
+                s2d.Matrix2d.mul(out, out, localMatrix);
             }
             else {
-                Simple2DEngine.Matrix3.copy(out, localMatrix);
+                s2d.Matrix2d.copy(out, localMatrix);
             }
             return out;
         };
         Transform.prototype.getGlobalToLocalMatrix = function (out) {
             this.getLocalToGlobalMatrix(out);
-            Simple2DEngine.Matrix3.invert(out, out);
+            s2d.Matrix2d.invert(out, out);
             return out;
         };
         Transform.prototype.addChild = function (p) {
@@ -866,12 +866,12 @@ var Simple2DEngine;
         };
         Transform.MAX_NESTING = 128;
         return Transform;
-    }(Simple2DEngine.Component));
-    Simple2DEngine.Transform = Transform;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    }(s2d.Component));
+    s2d.Transform = Transform;
+})(s2d || (s2d = {}));
 //Port of glMatrix, taken from: https://github.com/toji/gl-matrix
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1545,24 +1545,24 @@ var Simple2DEngine;
         Matrix3.equals = function (a, b) {
             var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
             var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5], b6 = a[6], b7 = b[7], b8 = b[8];
-            return (Math.abs(a0 - b0) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-                Math.abs(a3 - b3) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-                Math.abs(a4 - b4) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-                Math.abs(a5 - b5) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
-                Math.abs(a6 - b6) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
-                Math.abs(a7 - b7) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
-                Math.abs(a8 - b8) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8)));
+            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+                Math.abs(a2 - b2) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+                Math.abs(a3 - b3) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+                Math.abs(a4 - b4) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+                Math.abs(a5 - b5) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
+                Math.abs(a6 - b6) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
+                Math.abs(a7 - b7) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
+                Math.abs(a8 - b8) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8)));
         };
         ;
         return Matrix3;
     }(Float32Array));
-    Simple2DEngine.Matrix3 = Matrix3;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Matrix3 = Matrix3;
+})(s2d || (s2d = {}));
 //Port of glMatrix, taken from: https://github.com/toji/gl-matrix
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -1976,8 +1976,8 @@ var Simple2DEngine;
         Vector2.equals = function (a, b) {
             var a0 = a[0], a1 = a[1];
             var b0 = b[0], b1 = b[1];
-            return (Math.abs(a0 - b0) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)));
+            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)));
         };
         /**
          * Math.ceil the components of a Vector2
@@ -2070,36 +2070,36 @@ var Simple2DEngine;
         };
         return Vector2;
     }(Float32Array));
-    Simple2DEngine.Vector2 = Vector2;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Vector2 = Vector2;
+})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 /// <reference path="../Math/Matrix3.ts" />
 /// <reference path="../Math/Vector2.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var Drawer = (function (_super) {
         __extends(Drawer, _super);
         function Drawer() {
             _super.apply(this, arguments);
         }
         Drawer.initStatic = function () {
-            Drawer.tmpMatrix = Simple2DEngine.Matrix3.create();
-            Drawer.tmpVector = Simple2DEngine.Vector2.create();
+            Drawer.tmpMatrix = s2d.Matrix3.create();
+            Drawer.tmpVector = s2d.Vector2.create();
         };
         Drawer.prototype.draw = function (commands) {
             var trans = this.entity.transform;
             trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
-            commands.drawRect(Drawer.tmpMatrix, trans.size);
+            commands.drawRect(Drawer.tmpMatrix, trans.halfSize);
         };
         return Drawer;
-    }(Simple2DEngine.Component));
-    Simple2DEngine.Drawer = Drawer;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    }(s2d.Component));
+    s2d.Drawer = Drawer;
+})(s2d || (s2d = {}));
 /// <reference path="../Component/Component.ts" />
 /// <reference path="../Component/Transform.ts" />
 /// <reference path="../Component/Drawer.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var Entity = (function () {
         function Entity(name) {
             if (name === void 0) { name = "Entity"; }
@@ -2108,7 +2108,7 @@ var Simple2DEngine;
             //First component in the entity
             this._firstComponent = null;
             this._name = name;
-            this._transform = this.addComponent(Simple2DEngine.Transform);
+            this._transform = this.addComponent(s2d.Transform);
         }
         Object.defineProperty(Entity.prototype, "name", {
             get: function () {
@@ -2149,14 +2149,14 @@ var Simple2DEngine;
         };
         return Entity;
     }());
-    Simple2DEngine.Entity = Entity;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Entity = Entity;
+})(s2d || (s2d = {}));
 /// <reference path="Entity.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var EntityManager = (function () {
         function EntityManager() {
-            this._root = new Simple2DEngine.Transform();
+            this._root = new s2d.Transform();
             this.tmpBehaviors = new Array(1024);
         }
         Object.defineProperty(EntityManager.prototype, "root", {
@@ -2171,7 +2171,7 @@ var Simple2DEngine;
         };
         EntityManager.prototype.update = function () {
             var behaviors = this.tmpBehaviors;
-            var behaviorsLen = this.getComponentInChildren(Simple2DEngine.Behavior, behaviors);
+            var behaviorsLen = this.getComponentInChildren(s2d.Behavior, behaviors);
             for (var i = 0; i < behaviorsLen; i++) {
                 var behavior = behaviors[i];
                 behavior.update();
@@ -2179,10 +2179,10 @@ var Simple2DEngine;
         };
         return EntityManager;
     }());
-    Simple2DEngine.EntityManager = EntityManager;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
+    s2d.EntityManager = EntityManager;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var Time = (function () {
         function Time() {
         }
@@ -2191,18 +2191,17 @@ var Simple2DEngine;
         };
         return Time;
     }());
-    Simple2DEngine.Time = Time;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Time = Time;
+})(s2d || (s2d = {}));
 /// <reference path="Input/InputManager.ts" />
 /// <reference path="Render/RenderManager.ts" />
 /// <reference path="Entity/EntityManager.ts" />
 /// <reference path="Util/Time.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var Engine = (function () {
         function Engine() {
             this.lastUpdateTime = 0;
-            Simple2DEngine.engine = this;
         }
         Object.defineProperty(Engine.prototype, "renderer", {
             get: function () {
@@ -2226,18 +2225,22 @@ var Simple2DEngine;
             configurable: true
         });
         Engine.prototype.init = function () {
-            Simple2DEngine.Drawer.initStatic();
-            Simple2DEngine.Time.initStatic();
-            this._renderer = new Simple2DEngine.RenderManager();
-            this._input = new Simple2DEngine.InputManager();
-            this._entities = new Simple2DEngine.EntityManager();
+            s2d.Drawer.initStatic();
+            s2d.Time.initStatic();
+            this._renderer = new s2d.RenderManager();
+            this._input = new s2d.InputManager();
+            this._entities = new s2d.EntityManager();
+            //Global vars initialization
+            s2d.input = this._input;
+            s2d.renderer = this._renderer;
+            s2d.entities = this._entities;
         };
         Engine.prototype.update = function () {
             var now = Date.now() / 1000;
             if (this.lastUpdateTime === 0)
-                Simple2DEngine.Time.deltaTime = 1 / 60; //assume 60 fps in first frame, so Time.deltaTime is never 0!
+                s2d.Time.deltaTime = 1 / 60; //assume 60 fps in first frame, so Time.deltaTime is never 0!
             else
-                Simple2DEngine.Time.deltaTime = now - this.lastUpdateTime;
+                s2d.Time.deltaTime = now - this.lastUpdateTime;
             this.lastUpdateTime = now;
             if (this._renderer.contextLost) {
                 //Context lost, don't do anything else
@@ -2252,22 +2255,22 @@ var Simple2DEngine;
         };
         return Engine;
     }());
-    Simple2DEngine.Engine = Engine;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Engine = Engine;
+    s2d.engine = new Engine();
+})(s2d || (s2d = {}));
 /// <reference path="Simple2DEngine/Engine.ts" />
 window.onload = function () {
-    new Simple2DEngine.Engine();
-    Simple2DEngine.engine.init();
+    s2d.engine.init();
     //Creat main game logic entity
-    new Simple2DEngine.Entity("GameLogic").addComponent(GameLogic);
+    new s2d.Entity("GameLogic").addComponent(GameLogic);
     requestAnimationFrame(update);
 };
 function update() {
-    Simple2DEngine.engine.update();
+    s2d.engine.update();
     requestAnimationFrame(update);
 }
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var Behavior = (function (_super) {
         __extends(Behavior, _super);
         function Behavior() {
@@ -2276,9 +2279,9 @@ var Simple2DEngine;
         Behavior.prototype.update = function () {
         };
         return Behavior;
-    }(Simple2DEngine.Component));
-    Simple2DEngine.Behavior = Behavior;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    }(s2d.Component));
+    s2d.Behavior = Behavior;
+})(s2d || (s2d = {}));
 /// <reference path="../Simple2DEngine/Component/Behavior.ts" />
 var GameLogic = (function (_super) {
     __extends(GameLogic, _super);
@@ -2287,14 +2290,14 @@ var GameLogic = (function (_super) {
         this.entities = new Array();
     }
     GameLogic.prototype.onInit = function () {
-        this.cam = Simple2DEngine.EntityFactory.buildCamera();
-        var sWidth = Simple2DEngine.engine.renderer.screenWidth;
-        var sHeight = Simple2DEngine.engine.renderer.screenHeight;
+        this.cam = s2d.EntityFactory.buildCamera();
+        var sWidth = s2d.engine.renderer.screenWidth;
+        var sHeight = s2d.engine.renderer.screenHeight;
         for (var i = 0; i < 8192; i++) {
-            var e = Simple2DEngine.EntityFactory.buildDrawer().entity;
+            var e = s2d.EntityFactory.buildDrawer().entity;
             e.name = "Entity " + i;
-            e.transform.localX = Simple2DEngine.SMath.randomInRangeFloat(100, sWidth - 200);
-            e.transform.localY = Simple2DEngine.SMath.randomInRangeFloat(100, sHeight - 200);
+            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
+            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 200);
             if (GameLogic.TEST_NESTING) {
                 if (i > 0 && i % 3 == 0)
                     e.transform.parent = this.entities[i - 2].transform;
@@ -2310,9 +2313,9 @@ var GameLogic = (function (_super) {
         if (GameLogic.TEST_MOVING) {
             var entities = this.entities;
             for (var i = 0; i < entities.length; i++)
-                entities[i].transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime;
+                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
         }
-        if (Simple2DEngine.engine.input.pointerDown)
+        if (s2d.input.pointerDown)
             this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
         else
             this.cam.clearColor.rgbaHex = 0x000000FF; //black
@@ -2320,39 +2323,39 @@ var GameLogic = (function (_super) {
     GameLogic.TEST_NESTING = true;
     GameLogic.TEST_MOVING = true;
     return GameLogic;
-}(Simple2DEngine.Behavior));
+}(s2d.Behavior));
+var s2d;
+(function (s2d) {
+    var EntityFactory = (function () {
+        function EntityFactory() {
+        }
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildDrawer = function () {
+            return new s2d.Entity("Drawer").addComponent(s2d.Drawer);
+        };
+        return EntityFactory;
+    }());
+    s2d.EntityFactory = EntityFactory;
+})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     var Camera = (function (_super) {
         __extends(Camera, _super);
         function Camera() {
             _super.apply(this, arguments);
             this.clearDepthBuffer = false;
             this.clearColorBuffer = true;
-            this.clearColor = Simple2DEngine.Color.fromRgba(0, 0, 0, 255);
+            this.clearColor = s2d.Color.fromRgba(0, 0, 0, 255);
         }
         return Camera;
-    }(Simple2DEngine.Component));
-    Simple2DEngine.Camera = Camera;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new Simple2DEngine.Entity("Camera").addComponent(Simple2DEngine.Camera);
-        };
-        EntityFactory.buildDrawer = function () {
-            return new Simple2DEngine.Entity("Drawer").addComponent(Simple2DEngine.Drawer);
-        };
-        return EntityFactory;
-    }());
-    Simple2DEngine.EntityFactory = EntityFactory;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
+    }(s2d.Component));
+    s2d.Camera = Camera;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var Color = (function () {
         function Color() {
         }
@@ -2387,10 +2390,10 @@ var Simple2DEngine;
         Color.fromRgba = function (r, g, b, a) {
             if (a === void 0) { a = 255; }
             var c = new Color();
-            r = Simple2DEngine.SMath.clamp(r, 0, 255);
-            g = Simple2DEngine.SMath.clamp(g, 0, 255);
-            b = Simple2DEngine.SMath.clamp(b, 0, 255);
-            a = Simple2DEngine.SMath.clamp(a, 0, 255);
+            r = s2d.SMath.clamp(r, 0, 255);
+            g = s2d.SMath.clamp(g, 0, 255);
+            b = s2d.SMath.clamp(b, 0, 255);
+            a = s2d.SMath.clamp(a, 0, 255);
             c.rgbaHex = (r << 24) | (g << 16) | (b << 8) | a;
             return c;
         };
@@ -2401,11 +2404,11 @@ var Simple2DEngine;
         };
         return Color;
     }());
-    Simple2DEngine.Color = Color;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Color = Color;
+})(s2d || (s2d = {}));
 //Port of glMatrix, taken from: https://github.com/toji/gl-matrix
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -2717,10 +2720,10 @@ var Simple2DEngine;
         Matrix2.equals = function (a, b) {
             var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
             var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
-            return (Math.abs(a0 - b0) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-                Math.abs(a3 - b3) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)));
+            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+                Math.abs(a2 - b2) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+                Math.abs(a3 - b3) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)));
         };
         /**
          * Multiply each element of the matrix by a scalar.
@@ -2796,11 +2799,11 @@ var Simple2DEngine;
         };
         return Matrix2;
     }(Float32Array));
-    Simple2DEngine.Matrix2 = Matrix2;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.Matrix2 = Matrix2;
+})(s2d || (s2d = {}));
 //Port of glMatrix, taken from: https://github.com/toji/gl-matrix
-var Simple2DEngine;
-(function (Simple2DEngine) {
+var s2d;
+(function (s2d) {
     /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
     Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -3219,19 +3222,19 @@ var Simple2DEngine;
         Matrix2d.equals = function (a, b) {
             var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5];
             var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5];
-            return (Math.abs(a0 - b0) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-                Math.abs(a3 - b3) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-                Math.abs(a4 - b4) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-                Math.abs(a5 - b5) <= Simple2DEngine.SMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)));
+            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
+                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
+                Math.abs(a2 - b2) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
+                Math.abs(a3 - b3) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
+                Math.abs(a4 - b4) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
+                Math.abs(a5 - b5) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)));
         };
         return Matrix2d;
     }(Float32Array));
-    Simple2DEngine.Matrix2d = Matrix2d;
-})(Simple2DEngine || (Simple2DEngine = {}));
-var Simple2DEngine;
-(function (Simple2DEngine) {
+    s2d.Matrix2d = Matrix2d;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var SMath = (function () {
         function SMath() {
         }
@@ -3256,7 +3259,7 @@ var Simple2DEngine;
         };
         return SMath;
     }());
-    Simple2DEngine.SMath = SMath;
-})(Simple2DEngine || (Simple2DEngine = {}));
+    s2d.SMath = SMath;
+})(s2d || (s2d = {}));
 
 //# sourceMappingURL=main.js.map

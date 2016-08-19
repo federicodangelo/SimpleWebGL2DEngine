@@ -1,6 +1,6 @@
 /// <reference path="RenderShader.ts" />
 
-module Simple2DEngine {
+module s2d {
     export class RenderProgram {
 
         private gl: WebGLRenderingContext;

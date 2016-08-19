@@ -1,6 +1,6 @@
 /// <reference path="Component.ts" />
 
-module Simple2DEngine {
+module s2d {
 
     export class Transform extends Component {
 
@@ -10,7 +10,7 @@ module Simple2DEngine {
         private _position: Vector2 = Vector2.create();
         private _rotation: number = 0;
         private _scale: Vector2 = Vector2.fromValues(1, 1);
-        private _size: Vector2 = Vector2.fromValues(32, 32);
+        private _halfSize: Vector2 = Vector2.fromValues(16, 16);
 
         //Linked list of children
         private _firstChild: Transform = null;
@@ -20,8 +20,8 @@ module Simple2DEngine {
         private _prevSibling: Transform = null;
         private _nextSibling: Transform = null;
 
-        private _localMatrix : Matrix3 = Matrix3.create();
-        private _localMatrixDirty = true;
+        private _localMatrix : Matrix2d = Matrix2d.create();
+        private _localMatrixDirty : boolean = true;
 
         public get parent() {
             return this._parent;
@@ -117,62 +117,62 @@ module Simple2DEngine {
             this._localMatrixDirty = true;
         }
 
-        public get size() {
-            return this._size;
+        public get halfSize() {
+            return this._halfSize;
         }
 
-        public set size(s: Vector2) {
-            Vector2.copy(this._size, s);
+        public set halfSize(s: Vector2) {
+            Vector2.copy(this._halfSize, s);
             this._localMatrixDirty = true;
         }
 
-        public get sizeX() {
-            return this._size[0];
+        public get halfSizeX() {
+            return this._halfSize[0];
         }
 
-        public set sizeX(v: number) {
-            this._size[0] = v;
+        public set halfSizeX(v: number) {
+            this._halfSize[0] = v;
             this._localMatrixDirty = true;
         }
 
-        public get sizeY() {
-            return this._size[1];
+        public get halfSizeY() {
+            return this._halfSize[1];
         }
 
-        public set sizeY(v: number) {
-            this._size[1] = v;
+        public set halfSizeY(v: number) {
+            this._halfSize[1] = v;
             this._localMatrixDirty = true;
         }
 
-        private getLocalMatrix(): Matrix3 {
+        private getLocalMatrix(): Matrix2d {
 
             var localMatrix = this._localMatrix;
 
             if (this._localMatrixDirty) {
-                Matrix3.fromTranslation(localMatrix, this._position);
-                Matrix3.scale(localMatrix,localMatrix, this._scale);
-                Matrix3.rotate(localMatrix, localMatrix, this._rotation);
+                Matrix2d.fromTranslation(localMatrix, this._position);
+                Matrix2d.scale(localMatrix,localMatrix, this._scale);
+                Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
                 this._localMatrixDirty = false;
             }
 
             return localMatrix;
         }
 
-        public getLocalToGlobalMatrix(out: Matrix3): Matrix3 {
+        public getLocalToGlobalMatrix(out: Matrix2d): Matrix2d {
             var localMatrix = this.getLocalMatrix();
 
             if (this._parent !== null) {
                 this._parent.getLocalToGlobalMatrix(out);
-                Matrix3.mul(out, out, localMatrix);
+                Matrix2d.mul(out, out, localMatrix);
             } else {
-                Matrix3.copy(out, localMatrix);
+                Matrix2d.copy(out, localMatrix);
             }
             return out;
         }
 
-        public getGlobalToLocalMatrix(out: Matrix3): Matrix3 {
+        public getGlobalToLocalMatrix(out: Matrix2d): Matrix2d {
             this.getLocalToGlobalMatrix(out);
-            Matrix3.invert(out, out);
+            Matrix2d.invert(out, out);
             return out;
         }
 

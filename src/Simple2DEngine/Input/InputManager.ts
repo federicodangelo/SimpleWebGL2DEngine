@@ -1,7 +1,7 @@
 /// <reference path="InputMouse.ts" />
 /// <reference path="InputTouch.ts" />
 
-module Simple2DEngine {
+module s2d {
 
     export class InputManager {
 

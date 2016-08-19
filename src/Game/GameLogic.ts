@@ -1,26 +1,26 @@
 /// <reference path="../Simple2DEngine/Component/Behavior.ts" />
 
-class GameLogic extends Simple2DEngine.Behavior {
+class GameLogic extends s2d.Behavior {
 
-    private cam : Simple2DEngine.Camera;
-    private entities : Array<Simple2DEngine.Entity> = new Array<Simple2DEngine.Entity>();
+    private cam : s2d.Camera;
+    private entities : Array<s2d.Entity> = new Array<s2d.Entity>();
 
     static TEST_NESTING = true;
     static TEST_MOVING = true;
 
     public onInit() : void {
 
-        this.cam = Simple2DEngine.EntityFactory.buildCamera();
+        this.cam = s2d.EntityFactory.buildCamera();
 
-        let sWidth = Simple2DEngine.engine.renderer.screenWidth;
-        let sHeight = Simple2DEngine.engine.renderer.screenHeight;
+        let sWidth = s2d.engine.renderer.screenWidth;
+        let sHeight = s2d.engine.renderer.screenHeight;
 
         for (let i = 0; i < 8192; i++) {
-            let e = Simple2DEngine.EntityFactory.buildDrawer().entity;
+            let e = s2d.EntityFactory.buildDrawer().entity;
 
             e.name = "Entity " + i;
-            e.transform.localX = Simple2DEngine.SMath.randomInRangeFloat(100, sWidth - 200);
-            e.transform.localY = Simple2DEngine.SMath.randomInRangeFloat(100, sHeight - 200);
+            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
+            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 200);
 
             if (GameLogic.TEST_NESTING) {
                 if (i > 0 && i % 3 == 0)
@@ -42,10 +42,10 @@ class GameLogic extends Simple2DEngine.Behavior {
         if (GameLogic.TEST_MOVING) {
             var entities = this.entities;
             for (let i = 0; i < entities.length; i++)
-                entities[i].transform.localRotationDegrees += 360 * Simple2DEngine.Time.deltaTime; 
+                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime; 
         }
 
-        if (Simple2DEngine.engine.input.pointerDown)
+        if (s2d.input.pointerDown)
             this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
         else
             this.cam.clearColor.rgbaHex = 0x000000FF; //black

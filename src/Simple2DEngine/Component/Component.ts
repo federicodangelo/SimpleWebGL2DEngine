@@ -1,4 +1,4 @@
-module Simple2DEngine {
+module s2d {
     
     export class Component {
 
@@ -21,7 +21,7 @@ module Simple2DEngine {
         }
 
         public getComponent<T extends Component>(clazz : {new() : T}) : T {
-            if (this._entity != null)
+            if (this._entity !== null)
                 return this._entity.getComponent(clazz);
             return null;
         }

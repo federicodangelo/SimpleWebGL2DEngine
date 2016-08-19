@@ -1,6 +1,6 @@
 /// <reference path="Component.ts" />
 
-module Simple2DEngine {
+module s2d {
 
     export class Camera extends Component {
         public clearDepthBuffer : boolean = false;

@@ -1,7 +1,7 @@
 /// <reference path="RenderBuffer.ts" />
 /// <reference path="RenderProgram.ts" />
 
-module Simple2DEngine {
+module s2d {
     export class RenderCommands {
 
         private static vertexShader = `
@@ -98,7 +98,7 @@ module Simple2DEngine {
             this.colorsOffset = 0;
         }
 
-        public drawRect(mat: Matrix3, size : Vector2) : void {
+        public drawRect(mat: Matrix2d, halfSize : Vector2) : void {
 
             if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES) {
                 this.end();
@@ -114,28 +114,28 @@ module Simple2DEngine {
             var colors = this.colors;
             var colorsOffset = this.colorsOffset;
 
-            var halfSizeX = size[0] * 0.5;
-            var halfSizeY = size[1] * 0.5;
+            var halfSizeX = halfSize[0];
+            var halfSizeY = halfSize[1];
 
             //Top left
             tmpV1[0] = -halfSizeX;
             tmpV1[1] = -halfSizeY;
-            Vector2.transformMat3(tmpV1, tmpV1, mat);
+            Vector2.transformMat2d(tmpV1, tmpV1, mat);
 
             //Top right
             tmpV2[0] = halfSizeX;
             tmpV2[1] = -halfSizeY;
-            Vector2.transformMat3(tmpV2, tmpV2, mat);
+            Vector2.transformMat2d(tmpV2, tmpV2, mat);
 
             //Bottom right
             tmpV3[0] = halfSizeX;
             tmpV3[1] = halfSizeY;
-            Vector2.transformMat3(tmpV3, tmpV3, mat);
+            Vector2.transformMat2d(tmpV3, tmpV3, mat);
 
             //Bottom left
             tmpV4[0] = -halfSizeX;
             tmpV4[1] = halfSizeY;
-            Vector2.transformMat3(tmpV4, tmpV4, mat);
+            Vector2.transformMat2d(tmpV4, tmpV4, mat);
 
             var red = 0xFF0000FF; //ABGR
             var green = 0xFF00FF00; //ABGR

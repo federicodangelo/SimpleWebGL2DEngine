@@ -1,4 +1,4 @@
-module Simple2DEngine.Input {
+module s2d.Input {
 
     export class Touch {
         public id : number;

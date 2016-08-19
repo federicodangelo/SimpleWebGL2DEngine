@@ -1,4 +1,4 @@
-module Simple2DEngine {
+module s2d {
     export class Color {
         public rgbaHex : number;
 

@@ -2,7 +2,7 @@
 /// <reference path="../Component/Transform.ts" />
 /// <reference path="../Component/Drawer.ts" />
 
-module Simple2DEngine {
+module s2d {
     
     export class Entity {
 

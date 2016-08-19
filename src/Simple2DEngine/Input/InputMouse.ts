@@ -1,4 +1,4 @@
-module Simple2DEngine.Input {
+module s2d.Input {
 
     export class InputMouse {
 

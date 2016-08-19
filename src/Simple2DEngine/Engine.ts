@@ -3,10 +3,8 @@
 /// <reference path="Entity/EntityManager.ts" />
 /// <reference path="Util/Time.ts" />
 
-module Simple2DEngine {
+module s2d {
 
-    export var engine : Engine;
-    
     export class Engine {
 
         private _input : InputManager;
@@ -25,13 +23,8 @@ module Simple2DEngine {
             return this._entities;
         }
 
-        constructor() {
-            engine = this;
-        }
-
-        private e1 : Entity;
-
         public init() : void {
+
             Drawer.initStatic();
             Time.initStatic();
             
@@ -39,6 +32,10 @@ module Simple2DEngine {
             this._input = new InputManager();
             this._entities = new EntityManager();
 
+            //Global vars initialization
+            input = this._input;
+            renderer = this._renderer;
+            entities = this._entities;
         }
 
         private lastUpdateTime : number = 0;
@@ -69,4 +66,9 @@ module Simple2DEngine {
             this._renderer.draw();
         }
     }
+
+    export const engine : Engine = new Engine();
+    export var input : InputManager;
+    export var renderer : RenderManager;
+    export var entities : EntityManager;
 }

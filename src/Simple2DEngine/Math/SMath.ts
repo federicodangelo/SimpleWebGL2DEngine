@@ -1,4 +1,4 @@
-module Simple2DEngine {
+module s2d {
     export class SMath {
         public static deg2rad = Math.PI / 180;
         public static rad2deg = 180 / Math.PI;

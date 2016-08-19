@@ -1,5 +1,5 @@
 //Port of glMatrix, taken from: https://github.com/toji/gl-matrix
-module Simple2DEngine {
+module s2d {
 
     /* Copyright (c) 2015, Brandon Jones, Colin MacKenzie IV.
 
