@@ -32,6 +32,7 @@ module Simple2DEngine {
 
         public init() : void {
             Drawer.initStatic();
+            Transform.initStatic();
             Time.initStatic();
             
             this._renderer = new RenderManager();
@@ -51,6 +52,10 @@ module Simple2DEngine {
 
             e2.transform.localY = 100;
             e2.transform.localX = 100;
+
+            e2.transform.parent = null;
+
+            e2.transform.parent = e1.transform;
 
             this.e1 = e1;
         }

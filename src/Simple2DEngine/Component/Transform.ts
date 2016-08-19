@@ -4,6 +4,8 @@ module Simple2DEngine {
     
     export class Transform extends Component {
 
+        private static MAX_NESTING : number = 128;
+
         private _parent : Transform;
         private _position : Vector2;
         private _rotation : number;
@@ -27,11 +29,17 @@ module Simple2DEngine {
         }
 
         public set parent(p:Transform) {
-            //No need to check for null, all Transform have a parent (except root, but it can't be reparented)
-            this._parent.removeChild(this);
+            if (this._parent == null)
+                engine.entities.root.removeChild(this);
+            else
+                this._parent.removeChild(this);
 
-            //addChild() updates this._parent
-            p.addChild(this); 
+            this._parent = p;
+
+            if (this._parent == null)
+                engine.entities.root.addChild(this);
+            else
+                this._parent.addChild(this);
         }
 
         public get localPosition() {
@@ -137,15 +145,23 @@ module Simple2DEngine {
             return out;
         }
 
-        static tmp : Matrix3;
+        static initStatic() {
+            Transform.tmpMatsIndex = 0;
+            Transform.tmpMats = new Array<Matrix3>(Transform.MAX_NESTING);
+            for (let i = 0; i < Transform.MAX_NESTING; i++)
+                Transform.tmpMats[i] = Matrix3.create();
+        }
+
+        static tmpMatsIndex : number;
+        static tmpMats : Array<Matrix3>;
 
         public getLocalToGlobalMatrix(out:Matrix3) : Matrix3 {
             this.getLocalMatrix(out);
             if (this._parent != null) {
-                if (Transform.tmp == null)
-                    Transform.tmp = Matrix3.create();
-                this._parent.getLocalToGlobalMatrix(Transform.tmp);
-                Matrix3.mul(out, Transform.tmp, out);
+                var tmp = Transform.tmpMats[Transform.tmpMatsIndex++];
+                this._parent.getLocalToGlobalMatrix(tmp);
+                Matrix3.mul(out, tmp, out);
+                Transform.tmpMatsIndex--;
             }
             return out;
         }
@@ -156,7 +172,6 @@ module Simple2DEngine {
             return out;
         }
 
-
         private addChild(p:Transform) {
             if (this._firstChild == null) {
                 this._firstChild = this._lastChild = p;
@@ -165,7 +180,6 @@ module Simple2DEngine {
                 p._prevSibling = this._lastChild;
                 this._lastChild = p;
             }
-            p._parent = this;
         }
 
         private removeChild(p:Transform) {
@@ -183,7 +197,6 @@ module Simple2DEngine {
 
             p._nextSibling = null;
             p._prevSibling = null;
-            p._parent = null;
         }
 
         public getFirstChild() : Transform {

@@ -513,10 +513,15 @@ var Simple2DEngine;
                 return this._parent;
             },
             set: function (p) {
-                //No need to check for null, all Transform have a parent (except root, but it can't be reparented)
-                this._parent.removeChild(this);
-                //addChild() updates this._parent
-                p.addChild(this);
+                if (this._parent == null)
+                    Simple2DEngine.engine.entities.root.removeChild(this);
+                else
+                    this._parent.removeChild(this);
+                this._parent = p;
+                if (this._parent == null)
+                    Simple2DEngine.engine.entities.root.addChild(this);
+                else
+                    this._parent.addChild(this);
             },
             enumerable: true,
             configurable: true
@@ -640,13 +645,19 @@ var Simple2DEngine;
             Simple2DEngine.Matrix3.rotate(out, out, this._rotation);
             return out;
         };
+        Transform.initStatic = function () {
+            Transform.tmpMatsIndex = 0;
+            Transform.tmpMats = new Array(Transform.MAX_NESTING);
+            for (var i = 0; i < Transform.MAX_NESTING; i++)
+                Transform.tmpMats[i] = Simple2DEngine.Matrix3.create();
+        };
         Transform.prototype.getLocalToGlobalMatrix = function (out) {
             this.getLocalMatrix(out);
             if (this._parent != null) {
-                if (Transform.tmp == null)
-                    Transform.tmp = Simple2DEngine.Matrix3.create();
-                this._parent.getLocalToGlobalMatrix(Transform.tmp);
-                Simple2DEngine.Matrix3.mul(out, Transform.tmp, out);
+                var tmp = Transform.tmpMats[Transform.tmpMatsIndex++];
+                this._parent.getLocalToGlobalMatrix(tmp);
+                Simple2DEngine.Matrix3.mul(out, tmp, out);
+                Transform.tmpMatsIndex--;
             }
             return out;
         };
@@ -664,7 +675,6 @@ var Simple2DEngine;
                 p._prevSibling = this._lastChild;
                 this._lastChild = p;
             }
-            p._parent = this;
         };
         Transform.prototype.removeChild = function (p) {
             if (p._nextSibling != null)
@@ -677,7 +687,6 @@ var Simple2DEngine;
                 this._lastChild = p._prevSibling;
             p._nextSibling = null;
             p._prevSibling = null;
-            p._parent = null;
         };
         Transform.prototype.getFirstChild = function () {
             return this._firstChild;
@@ -703,6 +712,7 @@ var Simple2DEngine;
                 child = child._nextSibling;
             }
         };
+        Transform.MAX_NESTING = 128;
         return Transform;
     }(Simple2DEngine.Component));
     Simple2DEngine.Transform = Transform;
@@ -846,6 +856,7 @@ var Simple2DEngine;
         });
         Engine.prototype.init = function () {
             Simple2DEngine.Drawer.initStatic();
+            Simple2DEngine.Transform.initStatic();
             Simple2DEngine.Time.initStatic();
             this._renderer = new Simple2DEngine.RenderManager();
             this._input = new Simple2DEngine.InputManager();
@@ -859,6 +870,8 @@ var Simple2DEngine;
             e2.transform.parent = e1.transform;
             e2.transform.localY = 100;
             e2.transform.localX = 100;
+            e2.transform.parent = null;
+            e2.transform.parent = e1.transform;
             this.e1 = e1;
         };
         Engine.prototype.update = function () {
