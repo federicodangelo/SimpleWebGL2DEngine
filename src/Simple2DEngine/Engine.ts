@@ -7,13 +7,10 @@ module s2d {
 
     export class Engine {
 
-        private static LOG_PERFORMANCE = false;
-
         private _input : InputManager;
         private _renderer : RenderManager;
         private _entities : EntityManager;
-
-        private _stats : WGLUStats;
+        private _stats : Stats;
 
         public get renderer() {
             return this._renderer;
@@ -35,22 +32,16 @@ module s2d {
             this._renderer = new RenderManager();
             this._input = new InputManager();
             this._entities = new EntityManager();
-            this._stats = new WGLUStats(this._renderer.gl);
+            this._stats = new Stats();
+            this._stats.init();
 
             //Global vars initialization
             input = this._input;
             renderer = this._renderer;
             entities = this._entities;
-
-
-            this.lastFpsTime = Date.now() / 1000;
         }
 
         private lastUpdateTime : number = 0;
-        private lastFpsTime = 0;
-        private fpsCounter = 0;
-
-        private accumulatedUpdateTime = 0;
 
         public update() : void {
             
@@ -68,9 +59,9 @@ module s2d {
                 return; 
             }
 
-            this._stats.begin();
+            this._stats.startFrame();
 
-            var startTime = performance.now(); // Date.now();
+            this._stats.startUpdate();
 
             //Update input
             this._input.update();
@@ -81,28 +72,9 @@ module s2d {
             //Render
             this._renderer.draw();
 
-            this._stats.renderOrtho();
+            this._stats.endUpdate();
 
-            var endTime = performance.now();// Date.now();
-
-            this.accumulatedUpdateTime += endTime - startTime;
-
-            this.fpsCounter++;
-
-            if (now - this.lastFpsTime > 1) {
-                var delta = now - this.lastFpsTime;
-                var fps = this.fpsCounter / delta;
-                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
-
-                this.lastFpsTime = now;
-                this.fpsCounter = 0;
-                this.accumulatedUpdateTime = 0;
-
-                if (Engine.LOG_PERFORMANCE)
-                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
-            }
-
-            this._stats.end();
+            this._stats.endFrame();
         }
     }
 

@@ -2247,9 +2247,6 @@ var s2d;
     var Engine = (function () {
         function Engine() {
             this.lastUpdateTime = 0;
-            this.lastFpsTime = 0;
-            this.fpsCounter = 0;
-            this.accumulatedUpdateTime = 0;
         }
         Object.defineProperty(Engine.prototype, "renderer", {
             get: function () {
@@ -2278,12 +2275,12 @@ var s2d;
             this._renderer = new s2d.RenderManager();
             this._input = new s2d.InputManager();
             this._entities = new s2d.EntityManager();
-            this._stats = new WGLUStats(this._renderer.gl);
+            this._stats = new s2d.Stats();
+            this._stats.init();
             //Global vars initialization
             s2d.input = this._input;
             s2d.renderer = this._renderer;
             s2d.entities = this._entities;
-            this.lastFpsTime = Date.now() / 1000;
         };
         Engine.prototype.update = function () {
             var now = Date.now() / 1000;
@@ -2296,31 +2293,17 @@ var s2d;
                 //Context lost, don't do anything else
                 return;
             }
-            this._stats.begin();
-            var startTime = performance.now(); // Date.now();
+            this._stats.startFrame();
+            this._stats.startUpdate();
             //Update input
             this._input.update();
             //Call update() on all Behaviors
             this._entities.update();
             //Render
             this._renderer.draw();
-            this._stats.renderOrtho();
-            var endTime = performance.now(); // Date.now();
-            this.accumulatedUpdateTime += endTime - startTime;
-            this.fpsCounter++;
-            if (now - this.lastFpsTime > 1) {
-                var delta = now - this.lastFpsTime;
-                var fps = this.fpsCounter / delta;
-                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
-                this.lastFpsTime = now;
-                this.fpsCounter = 0;
-                this.accumulatedUpdateTime = 0;
-                if (Engine.LOG_PERFORMANCE)
-                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
-            }
-            this._stats.end();
+            this._stats.endUpdate();
+            this._stats.endFrame();
         };
-        Engine.LOG_PERFORMANCE = false;
         return Engine;
     }());
     s2d.Engine = Engine;
@@ -3351,6 +3334,48 @@ var s2d;
         return SMath;
     }());
     s2d.SMath = SMath;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var Stats = (function () {
+        function Stats() {
+            this.logPerformance = true;
+            this.lastFpsTime = 0;
+            this.fpsCounter = 0;
+            this.accumulatedUpdateTime = 0;
+        }
+        Stats.prototype.init = function () {
+            this._wglu = new WGLUStats(s2d.engine.renderer.gl);
+            this.lastFpsTime = performance.now();
+        };
+        Stats.prototype.startFrame = function () {
+            this._wglu.begin();
+        };
+        Stats.prototype.endFrame = function () {
+            this._wglu.end();
+            this._wglu.renderOrtho();
+        };
+        Stats.prototype.startUpdate = function () {
+            this.updateStartTime = performance.now();
+        };
+        Stats.prototype.endUpdate = function () {
+            var endTime = performance.now();
+            this.accumulatedUpdateTime += endTime - this.updateStartTime;
+            this.fpsCounter++;
+            if (this.updateStartTime - this.lastFpsTime > 1000) {
+                var delta = this.updateStartTime - this.lastFpsTime;
+                var fps = this.fpsCounter / (delta / 1000);
+                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
+                this.lastFpsTime = this.updateStartTime;
+                this.fpsCounter = 0;
+                this.accumulatedUpdateTime = 0;
+                if (this.logPerformance)
+                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
+            }
+        };
+        return Stats;
+    }());
+    s2d.Stats = Stats;
 })(s2d || (s2d = {}));
 
 //# sourceMappingURL=main.js.map
