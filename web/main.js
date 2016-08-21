@@ -356,7 +356,7 @@ var s2d;
             this.renderBuffers = new Array();
             for (var i = 0; i < 16; i++)
                 this.renderBuffers.push(new s2d.RenderBuffer(gl));
-            this.renderTexture = new s2d.RenderTexture(gl, "");
+            this.renderTexture = new s2d.RenderTexture(gl, "assets/test.png");
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
@@ -420,20 +420,21 @@ var s2d;
             var red = 0xFF0000FF; //ABGR
             var green = 0xFF00FF00; //ABGR
             var blue = 0xFFFF0000; //ABGR
+            var white = 0xFFFFFFFF;
             //First triangle (1 -> 2 -> 3)
             triangles[trianglesOffset + 0] = tmpV1[0];
             triangles[trianglesOffset + 1] = tmpV1[1];
-            colors[colorsOffset + 2] = red;
+            colors[colorsOffset + 2] = white;
             uvs[uvsOffset + 6] = tmpUV1[0];
             uvs[uvsOffset + 7] = tmpUV1[1];
             triangles[trianglesOffset + 4] = tmpV2[0];
             triangles[trianglesOffset + 5] = tmpV2[1];
-            colors[colorsOffset + 6] = red;
+            colors[colorsOffset + 6] = white;
             uvs[uvsOffset + 14] = tmpUV2[0];
             uvs[uvsOffset + 15] = tmpUV2[1];
             triangles[trianglesOffset + 8] = tmpV3[0];
             triangles[trianglesOffset + 9] = tmpV3[1];
-            colors[colorsOffset + 10] = red;
+            colors[colorsOffset + 10] = white;
             uvs[uvsOffset + 22] = tmpUV3[0];
             uvs[uvsOffset + 23] = tmpUV3[1];
             trianglesOffset += 12;
@@ -442,17 +443,17 @@ var s2d;
             //Second triangle (3 -> 4 -> 1)
             triangles[trianglesOffset + 0] = tmpV3[0];
             triangles[trianglesOffset + 1] = tmpV3[1];
-            colors[colorsOffset + 2] = blue;
+            colors[colorsOffset + 2] = white;
             uvs[uvsOffset + 6] = tmpUV3[0];
             uvs[uvsOffset + 7] = tmpUV3[1];
             triangles[trianglesOffset + 4] = tmpV4[0];
             triangles[trianglesOffset + 5] = tmpV4[1];
-            colors[colorsOffset + 6] = blue;
+            colors[colorsOffset + 6] = white;
             uvs[uvsOffset + 14] = tmpUV4[0];
             uvs[uvsOffset + 15] = tmpUV4[1];
             triangles[trianglesOffset + 8] = tmpV1[0];
             triangles[trianglesOffset + 9] = tmpV1[1];
-            colors[colorsOffset + 10] = blue;
+            colors[colorsOffset + 10] = white;
             uvs[uvsOffset + 22] = tmpUV1[0];
             uvs[uvsOffset + 23] = tmpUV1[1];
             trianglesOffset += 12;
@@ -468,6 +469,7 @@ var s2d;
                 return;
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
+            this.renderTexture.useTexture();
             var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
             renderBuffer.setData(this.backingArray, false);
             this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
@@ -3376,6 +3378,7 @@ var s2d;
 (function (s2d) {
     var RenderTexture = (function () {
         function RenderTexture(gl, imageSrc) {
+            var _this = this;
             this.gl = gl;
             this._texture = gl.createTexture();
             var texture = this._texture;
@@ -3383,16 +3386,10 @@ var s2d;
             // Fill the texture with a 1x1 white pixel.
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
             // Asynchronously load an image
-            /*
-            var image = new Image();
-            image.src = imageSrc;
-            image.addEventListener('load', function() {
-                // Now that the image has loaded make copy it to the texture.
-                gl.bindTexture(gl.TEXTURE_2D, texture);
-                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
-                gl.generateMipmap(gl.TEXTURE_2D);
-            });
-            */
+            this._image = new Image();
+            this._image.setAttribute('crossOrigin', 'anonymous');
+            this._image.src = imageSrc;
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
         }
         Object.defineProperty(RenderTexture.prototype, "texture", {
             get: function () {
@@ -3401,6 +3398,20 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        RenderTexture.prototype.onImageLoadComplete = function () {
+            var gl = this.gl;
+            var texture = this._texture;
+            var image = this._image;
+            // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            this._image = null;
+        };
         RenderTexture.prototype.clear = function () {
             if (this._texture != null) {
                 this.gl.deleteTexture(this._texture);

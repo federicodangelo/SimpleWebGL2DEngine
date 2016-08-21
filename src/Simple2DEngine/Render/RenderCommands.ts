@@ -93,7 +93,7 @@ module s2d {
             for (let i = 0; i < 16; i++)
                 this.renderBuffers.push(new RenderBuffer(gl));
 
-            this.renderTexture = new RenderTexture(gl, "");
+            this.renderTexture = new RenderTexture(gl, "assets/test.png");
 
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
@@ -186,23 +186,24 @@ module s2d {
             var red = 0xFF0000FF; //ABGR
             var green = 0xFF00FF00; //ABGR
             var blue = 0xFFFF0000; //ABGR
+            var white = 0xFFFFFFFF;
 
             //First triangle (1 -> 2 -> 3)
             triangles[trianglesOffset + 0] = tmpV1[0];
             triangles[trianglesOffset + 1] = tmpV1[1];
-            colors[colorsOffset + 2] = red;
+            colors[colorsOffset + 2] = white;
             uvs[uvsOffset + 6] = tmpUV1[0];
             uvs[uvsOffset + 7] = tmpUV1[1];
 
             triangles[trianglesOffset + 4] = tmpV2[0];
             triangles[trianglesOffset + 5] = tmpV2[1];
-            colors[colorsOffset + 6] = red;
+            colors[colorsOffset + 6] = white;
             uvs[uvsOffset + 14] = tmpUV2[0];
             uvs[uvsOffset + 15] = tmpUV2[1];
 
             triangles[trianglesOffset + 8] = tmpV3[0];
             triangles[trianglesOffset + 9] = tmpV3[1];
-            colors[colorsOffset + 10] = red;
+            colors[colorsOffset + 10] = white;
             uvs[uvsOffset + 22] = tmpUV3[0];
             uvs[uvsOffset + 23] = tmpUV3[1];
 
@@ -213,19 +214,19 @@ module s2d {
             //Second triangle (3 -> 4 -> 1)
             triangles[trianglesOffset + 0] = tmpV3[0];
             triangles[trianglesOffset + 1] = tmpV3[1];
-            colors[colorsOffset + 2] = blue;
+            colors[colorsOffset + 2] = white;
             uvs[uvsOffset + 6] = tmpUV3[0];
             uvs[uvsOffset + 7] = tmpUV3[1];
 
             triangles[trianglesOffset + 4] = tmpV4[0];
             triangles[trianglesOffset + 5] = tmpV4[1];
-            colors[colorsOffset + 6] = blue;
+            colors[colorsOffset + 6] = white;
             uvs[uvsOffset + 14] = tmpUV4[0];
             uvs[uvsOffset + 15] = tmpUV4[1];
             
             triangles[trianglesOffset + 8] = tmpV1[0];
             triangles[trianglesOffset + 9] = tmpV1[1];
-            colors[colorsOffset + 10] = blue;
+            colors[colorsOffset + 10] = white;
             uvs[uvsOffset + 22] = tmpUV1[0];
             uvs[uvsOffset + 23] = tmpUV1[1];
 
@@ -245,6 +246,8 @@ module s2d {
 
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
+
+            this.renderTexture.useTexture();
 
             var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
 
