@@ -347,14 +347,20 @@ var s2d;
             this.tmpV2 = s2d.Vector2.create();
             this.tmpV3 = s2d.Vector2.create();
             this.tmpV4 = s2d.Vector2.create();
+            this.tmpUV1 = s2d.Vector2.create();
+            this.tmpUV2 = s2d.Vector2.create();
+            this.tmpUV3 = s2d.Vector2.create();
+            this.tmpUV4 = s2d.Vector2.create();
             this.gl = gl;
             this.renderProgram = new s2d.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderBuffers = new Array();
             for (var i = 0; i < 16; i++)
                 this.renderBuffers.push(new s2d.RenderBuffer(gl));
+            this.renderTexture = new s2d.RenderTexture(gl, "");
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
+            this.uvs = new Uint16Array(this.backingArray);
         }
         RenderCommands.prototype.startFrame = function () {
         };
@@ -364,6 +370,7 @@ var s2d;
             this.trianglesCount = 0;
             this.trianglesOffset = 0;
             this.colorsOffset = 0;
+            this.uvsOffset = 0;
         };
         RenderCommands.prototype.drawRect = function (mat, halfSize) {
             if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES) {
@@ -374,28 +381,42 @@ var s2d;
             var tmpV2 = this.tmpV2;
             var tmpV3 = this.tmpV3;
             var tmpV4 = this.tmpV4;
+            var tmpUV1 = this.tmpUV1;
+            var tmpUV2 = this.tmpUV2;
+            var tmpUV3 = this.tmpUV3;
+            var tmpUV4 = this.tmpUV4;
             var triangles = this.triangles;
             var trianglesOffset = this.trianglesOffset;
             var colors = this.colors;
             var colorsOffset = this.colorsOffset;
+            var uvs = this.uvs;
+            var uvsOffset = this.uvsOffset;
             var halfSizeX = halfSize[0];
             var halfSizeY = halfSize[1];
             //Top left
             tmpV1[0] = -halfSizeX;
             tmpV1[1] = -halfSizeY;
             s2d.Vector2.transformMat2d(tmpV1, tmpV1, mat);
+            tmpUV1[0] = 0;
+            tmpUV1[1] = 0;
             //Top right
             tmpV2[0] = halfSizeX;
             tmpV2[1] = -halfSizeY;
             s2d.Vector2.transformMat2d(tmpV2, tmpV2, mat);
+            tmpUV2[0] = 65535;
+            tmpUV2[1] = 0;
             //Bottom right
             tmpV3[0] = halfSizeX;
             tmpV3[1] = halfSizeY;
             s2d.Vector2.transformMat2d(tmpV3, tmpV3, mat);
+            tmpUV3[0] = 65535;
+            tmpUV3[1] = 65535;
             //Bottom left
             tmpV4[0] = -halfSizeX;
             tmpV4[1] = halfSizeY;
             s2d.Vector2.transformMat2d(tmpV4, tmpV4, mat);
+            tmpUV4[0] = 0;
+            tmpUV4[1] = 65535;
             var red = 0xFF0000FF; //ABGR
             var green = 0xFF00FF00; //ABGR
             var blue = 0xFFFF0000; //ABGR
@@ -403,28 +424,43 @@ var s2d;
             triangles[trianglesOffset + 0] = tmpV1[0];
             triangles[trianglesOffset + 1] = tmpV1[1];
             colors[colorsOffset + 2] = red;
-            triangles[trianglesOffset + 3] = tmpV2[0];
-            triangles[trianglesOffset + 4] = tmpV2[1];
-            colors[colorsOffset + 5] = red;
-            triangles[trianglesOffset + 6] = tmpV3[0];
-            triangles[trianglesOffset + 7] = tmpV3[1];
-            colors[colorsOffset + 8] = red;
-            trianglesOffset += 9;
-            colorsOffset += 9;
+            uvs[uvsOffset + 6] = tmpUV1[0];
+            uvs[uvsOffset + 7] = tmpUV1[1];
+            triangles[trianglesOffset + 4] = tmpV2[0];
+            triangles[trianglesOffset + 5] = tmpV2[1];
+            colors[colorsOffset + 6] = red;
+            uvs[uvsOffset + 14] = tmpUV2[0];
+            uvs[uvsOffset + 15] = tmpUV2[1];
+            triangles[trianglesOffset + 8] = tmpV3[0];
+            triangles[trianglesOffset + 9] = tmpV3[1];
+            colors[colorsOffset + 10] = red;
+            uvs[uvsOffset + 22] = tmpUV3[0];
+            uvs[uvsOffset + 23] = tmpUV3[1];
+            trianglesOffset += 12;
+            colorsOffset += 12;
+            uvsOffset += 24;
             //Second triangle (3 -> 4 -> 1)
             triangles[trianglesOffset + 0] = tmpV3[0];
             triangles[trianglesOffset + 1] = tmpV3[1];
             colors[colorsOffset + 2] = blue;
-            triangles[trianglesOffset + 3] = tmpV4[0];
-            triangles[trianglesOffset + 4] = tmpV4[1];
-            colors[colorsOffset + 5] = blue;
-            triangles[trianglesOffset + 6] = tmpV1[0];
-            triangles[trianglesOffset + 7] = tmpV1[1];
-            colors[colorsOffset + 8] = blue;
-            trianglesOffset += 9;
-            colorsOffset += 9;
+            uvs[uvsOffset + 6] = tmpUV3[0];
+            uvs[uvsOffset + 7] = tmpUV3[1];
+            triangles[trianglesOffset + 4] = tmpV4[0];
+            triangles[trianglesOffset + 5] = tmpV4[1];
+            colors[colorsOffset + 6] = blue;
+            uvs[uvsOffset + 14] = tmpUV4[0];
+            uvs[uvsOffset + 15] = tmpUV4[1];
+            triangles[trianglesOffset + 8] = tmpV1[0];
+            triangles[trianglesOffset + 9] = tmpV1[1];
+            colors[colorsOffset + 10] = blue;
+            uvs[uvsOffset + 22] = tmpUV1[0];
+            uvs[uvsOffset + 23] = tmpUV1[1];
+            trianglesOffset += 12;
+            colorsOffset += 12;
+            uvsOffset += 24;
             this.trianglesOffset = trianglesOffset;
             this.colorsOffset = colorsOffset;
+            this.uvsOffset = uvsOffset;
             this.trianglesCount += 2;
         };
         RenderCommands.prototype.end = function () {
@@ -436,13 +472,14 @@ var s2d;
             renderBuffer.setData(this.backingArray, false);
             this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
             this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
+            this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, this.gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
             if (this.trianglesCount > 0)
                 this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
             this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
         };
-        RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n            }\n        ";
-        RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            void main() {\n                gl_FragColor = v_color;\n            }\n        ";
-        RenderCommands.ELEMENT_SIZE = 2 * 4 + 4 * 1; //(2 floats [X,Y] + 4 byte [R,G,B,A] )
+        RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n            attribute vec2 a_texcoord;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // texture used in vertex shader\n            varying vec2 v_texcoord;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n\n                v_texcoord = a_texcoord;\n            }\n        ";
+        RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            //texture uv received from vertex shader\n            varying vec2 v_texcoord;\n\n            // Main texture.\n            uniform sampler2D u_texture;\n\n            void main() {\n\n                gl_FragColor = texture2D(u_texture, v_texcoord) * v_color;\n\n                //gl_FragColor = v_color;\n            }\n        ";
+        RenderCommands.ELEMENT_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [R,G,B,A] + 2 byte (U,V) )
         RenderCommands.MAX_TRIANGLES = 4096;
         RenderCommands.MAX_ELEMENTS = RenderCommands.MAX_TRIANGLES * 3; //3 elements per triangle
         return RenderCommands;
@@ -2342,8 +2379,8 @@ var GameLogic = (function (_super) {
     }
     GameLogic.prototype.onInit = function () {
         this.cam = s2d.EntityFactory.buildCamera();
-        this.initTestComplex();
-        //this.initTestSimple();
+        //this.initTestComplex();
+        this.initTestSimple();
     };
     GameLogic.prototype.initTestSimple = function () {
         var e1 = s2d.EntityFactory.buildDrawer().entity;
@@ -2390,7 +2427,7 @@ var GameLogic = (function (_super) {
             this.cam.clearColor.rgbaHex = 0x000000FF; //black
     };
     GameLogic.TEST_NESTING = true;
-    GameLogic.TEST_MOVING = true;
+    GameLogic.TEST_MOVING = false;
     return GameLogic;
 }(s2d.Behavior));
 /// <reference path="Component.ts" />
@@ -3334,6 +3371,49 @@ var s2d;
         return SMath;
     }());
     s2d.SMath = SMath;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var RenderTexture = (function () {
+        function RenderTexture(gl, imageSrc) {
+            this.gl = gl;
+            this._texture = gl.createTexture();
+            var texture = this._texture;
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            // Fill the texture with a 1x1 white pixel.
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+            // Asynchronously load an image
+            /*
+            var image = new Image();
+            image.src = imageSrc;
+            image.addEventListener('load', function() {
+                // Now that the image has loaded make copy it to the texture.
+                gl.bindTexture(gl.TEXTURE_2D, texture);
+                gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA,gl.UNSIGNED_BYTE, image);
+                gl.generateMipmap(gl.TEXTURE_2D);
+            });
+            */
+        }
+        Object.defineProperty(RenderTexture.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderTexture.prototype.clear = function () {
+            if (this._texture != null) {
+                this.gl.deleteTexture(this._texture);
+                this._texture = null;
+            }
+        };
+        RenderTexture.prototype.useTexture = function () {
+            var gl = this.gl;
+            gl.bindTexture(gl.TEXTURE_2D, this._texture);
+        };
+        return RenderTexture;
+    }());
+    s2d.RenderTexture = RenderTexture;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {

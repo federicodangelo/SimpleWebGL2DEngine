@@ -6,14 +6,14 @@ class GameLogic extends s2d.Behavior {
     private entities : Array<s2d.Entity> = new Array<s2d.Entity>();
 
     static TEST_NESTING = true;
-    static TEST_MOVING = true;
+    static TEST_MOVING = false;
 
     public onInit() : void {
 
         this.cam = s2d.EntityFactory.buildCamera();
 
-        this.initTestComplex();
-        //this.initTestSimple();
+        //this.initTestComplex();
+        this.initTestSimple();
     }
 
     private initTestSimple() {
