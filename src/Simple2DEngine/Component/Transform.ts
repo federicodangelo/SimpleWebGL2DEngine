@@ -87,9 +87,9 @@ module s2d {
             this._rotation = rad;
             //this._localMatrixDirty = true;
 
-            var ss = this._scale;
-            var s = Math.sin(rad);
-            var c = Math.cos(rad);
+            let ss = this._scale;
+            let s = Math.sin(rad);
+            let c = Math.cos(rad);
 
             this._localMatrix[0] = ss[0] * c;
             this._localMatrix[1] = ss[1] * s;
@@ -113,8 +113,8 @@ module s2d {
             Vector2.copy(this._scale, ss);
             //this._localMatrixDirty = true;
 
-            var s = Math.sin(this._rotation);
-            var c = Math.cos(this._rotation);
+            let s = Math.sin(this._rotation);
+            let c = Math.cos(this._rotation);
 
             this._localMatrix[0] = ss[0] * c;
             this._localMatrix[1] = ss[1] * s;
@@ -130,9 +130,9 @@ module s2d {
             this._scale[0] = v;
             //this._localMatrixDirty = true;
 
-            var ss = this._scale;
-            var s = Math.sin(this._rotation);
-            var c = Math.cos(this._rotation);
+            let ss = this._scale;
+            let s = Math.sin(this._rotation);
+            let c = Math.cos(this._rotation);
 
             this._localMatrix[0] = ss[0] * c;
             this._localMatrix[2] = ss[0] * -s;
@@ -146,9 +146,9 @@ module s2d {
             this._scale[1] = v;
             //this._localMatrixDirty = true;
 
-            var ss = this._scale;
-            var s = Math.sin(this._rotation);
-            var c = Math.cos(this._rotation);
+            let ss = this._scale;
+            let s = Math.sin(this._rotation);
+            let c = Math.cos(this._rotation);
 
             this._localMatrix[1] = ss[1] * s;
             this._localMatrix[3] = ss[1] * c;
@@ -180,7 +180,7 @@ module s2d {
 
         /*
         private getLocalMatrix(): Matrix2d {
-            var localMatrix = this._localMatrix;
+            let localMatrix = this._localMatrix;
 
             if (this._localMatrixDirty) {
 
@@ -188,11 +188,11 @@ module s2d {
                 //Matrix2d.scale(localMatrix,localMatrix, this._scale);
                 //Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
 
-                var pp = this._position;
-                var ss = this._scale;
+                let pp = this._position;
+                let ss = this._scale;
 
-                var s = Math.sin(this._rotation);
-                var c = Math.cos(this._rotation);
+                let s = Math.sin(this._rotation);
+                let c = Math.cos(this._rotation);
 
                 localMatrix[0] = ss[0] * c;
                 localMatrix[1] = ss[1] * s;
@@ -210,9 +210,8 @@ module s2d {
 
         public getLocalToGlobalMatrix(out: Matrix2d): Matrix2d {
 
-            var p = this._parent;
             Matrix2d.copy(out, this._localMatrix);
-
+            let p = this._parent;
             while (p !== null) {
                 Matrix2d.mul(out, p._localMatrix, out);
                 p = p._parent;
@@ -263,19 +262,55 @@ module s2d {
         }
 
         public getComponentInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>): number {
+
+            if (clazz === <any> Behavior)
+                return this.getBehaviorInChildrenInternal(<any> toReturn, 0);
+            else if (clazz === <any> Drawer)
+                return this.getDrawerInChildrenInternal(<any> toReturn, 0);
+
             return this.getComponentInChildrenInternal(clazz, toReturn, 0);
         }
 
         private getComponentInChildrenInternal<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, index : number): number {
 
-            var comp = this.getComponent(clazz);
+            let comp = this.getComponent(clazz);
             if (comp !== null)
                 toReturn[index++] = comp;
 
-            var child = this._firstChild;
+            let child = this._firstChild;
 
             while (child !== null) {
                 index = child.getComponentInChildrenInternal(clazz, toReturn, index);
+                child = child._nextSibling;
+            }
+
+            return index;
+        }
+
+        private getBehaviorInChildrenInternal(toReturn: Array<Behavior>, index : number): number {
+
+            if (this.entity !== null && this.entity.firstBehavior !== null)
+                toReturn[index++] = this.entity.firstBehavior;
+
+            let child = this._firstChild;
+
+            while (child !== null) {
+                index = child.getBehaviorInChildrenInternal(toReturn, index);
+                child = child._nextSibling;
+            }
+
+            return index;
+        }
+
+        private getDrawerInChildrenInternal(toReturn: Array<Drawer>, index : number): number {
+
+            if (this.entity !== null && this.entity.firstDrawer !== null)
+                toReturn[index++] = this.entity.firstDrawer;
+
+            let child = this._firstChild;
+
+            while (child !== null) {
+                index = child.getDrawerInChildrenInternal(toReturn, index);
                 child = child._nextSibling;
             }
 

@@ -34,7 +34,7 @@ module s2d {
          * @returns {Vector2} a new 2D vector
          */
         public static create() : Vector2 {
-            var a : any = new Float32Array(2);
+            let a : any = new Float32Array(2);
             a[0] = 0;
             a[1] = 0;
             return a;
@@ -47,7 +47,7 @@ module s2d {
          * @returns {Vector2} a new 2D vector
          */
         public static clone(a:Vector2) : Vector2 {
-            var out = Vector2.create();
+            let out = Vector2.create();
             out[0] = a[0];
             out[1] = a[1];
             return out;
@@ -61,7 +61,7 @@ module s2d {
          * @returns {Vector2} a new 2D vector
          */
         public static fromValues(x: number, y: number) {
-            var out = Vector2.create();
+            let out = Vector2.create();
             out[0] = x;
             out[1] = y;
             return out;
@@ -255,7 +255,7 @@ module s2d {
          * @returns {Number} distance between a and b
          */
         public static dist = function (a: Vector2, b: Vector2): number {
-            var x = b[0] - a[0],
+            let x = b[0] - a[0],
                 y = b[1] - a[1];
             return Math.sqrt(x * x + y * y);
         }
@@ -268,7 +268,7 @@ module s2d {
          * @returns {Number} squared distance between a and b
          */
         public static sqrDist = function (a: Vector2, b: Vector2): number {
-            var x = b[0] - a[0],
+            let x = b[0] - a[0],
                 y = b[1] - a[1];
             return x * x + y * y;
         }
@@ -280,7 +280,7 @@ module s2d {
          * @returns {Number} length of a
          */
         public static len(a: Vector2): number {
-            var x = a[0],
+            let x = a[0],
                 y = a[1];
             return Math.sqrt(x * x + y * y);
         }
@@ -292,7 +292,7 @@ module s2d {
          * @returns {Number} squared length of a
          */
         public static sqrLen(a: Vector2): number {
-            var x = a[0],
+            let x = a[0],
                 y = a[1];
             return x * x + y * y;
         }
@@ -331,9 +331,9 @@ module s2d {
          * @returns {Vector2} out
          */
         public static normalize(out: Vector2, a: Vector2): Vector2 {
-            var x = a[0],
+            let x = a[0],
                 y = a[1];
-            var len = x * x + y * y;
+            let len = x * x + y * y;
             if (len > 0) {
                 //TODO: evaluate use of glm_invsqrt here?
                 len = 1 / Math.sqrt(len);
@@ -365,7 +365,7 @@ module s2d {
          */
         /*
         Vector2.cross = function(out, a, b) {
-            var z = a[0] * b[1] - a[1] * b[0];
+            let z = a[0] * b[1] - a[1] * b[0];
             out[0] = out[1] = 0;
             out[2] = z;
             return out;
@@ -382,7 +382,7 @@ module s2d {
          * @returns {Vector2} out
          */
         public static lerp(out: Vector2, a: Vector2, b: Vector2, t: number): Vector2 {
-            var ax = a[0],
+            let ax = a[0],
                 ay = a[1];
             out[0] = ax + t * (b[0] - ax);
             out[1] = ay + t * (b[1] - ay);
@@ -397,7 +397,7 @@ module s2d {
          * @returns {Vector2} out
          */
         public static random(out: Vector2, scale: number): Vector2 {
-            var r = Math.random() * 2.0 * Math.PI;
+            let r = Math.random() * 2.0 * Math.PI;
             out[0] = Math.cos(r) * scale;
             out[1] = Math.sin(r) * scale;
             return out;
@@ -412,7 +412,7 @@ module s2d {
          * @returns {Vector2} out
          */
         public static transformMat2(out: Vector2, a: Vector2, m: Matrix2): Vector2 {
-            var x = a[0],
+            let x = a[0],
                 y = a[1];
             out[0] = m[0] * x + m[2] * y;
             out[1] = m[1] * x + m[3] * y;
@@ -428,7 +428,7 @@ module s2d {
          * @returns {Vector2} out
          */
         public static transformMat2d(out: Vector2, a: Vector2, m: Matrix2d): Vector2 {
-            var x = a[0],
+            let x = a[0],
                 y = a[1];
             out[0] = m[0] * x + m[2] * y + m[4];
             out[1] = m[1] * x + m[3] * y + m[5];
@@ -445,7 +445,7 @@ module s2d {
          * @returns {Vector2} out
          */
         public static transformMat3 = function (out: Vector2, a: Vector2, m: Matrix3): Vector2 {
-            var x = a[0],
+            let x = a[0],
                 y = a[1];
             out[0] = m[0] * x + m[3] * y + m[6];
             out[1] = m[1] * x + m[4] * y + m[7];
@@ -464,7 +464,7 @@ module s2d {
          */
         /*
         Vector2.transformMat4 = function(out, a, m) {
-            var x = a[0], 
+            let x = a[0], 
                 y = a[1];
             out[0] = m[0] * x + m[4] * y + m[12];
             out[1] = m[1] * x + m[5] * y + m[13];
@@ -486,10 +486,10 @@ module s2d {
          */
         /*
         Vector2.forEach = (function() {
-            var vec = Vector2.create();
+            let vec = Vector2.create();
 
             return function(a, stride, offset, count, fn, arg) {
-                var i, l;
+                let i, l;
                 if(!stride) {
                     stride = 2;
                 }
@@ -544,8 +544,8 @@ module s2d {
          * @returns {Boolean} True if the vectors are equal, false otherwise.
          */
         public static equals(a: Vector2, b: Vector2): boolean {
-            var a0 = a[0], a1 = a[1];
-            var b0 = b[0], b1 = b[1];
+            let a0 = a[0], a1 = a[1];
+            let b0 = b[0], b1 = b[1];
             return (Math.abs(a0 - b0) <= SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
                 Math.abs(a1 - b1) <= SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)));
         }

@@ -31,9 +31,9 @@ module s2d {
         }
 
         private onImageLoadComplete() {
-            var gl = this.gl;
-            var texture = this._texture;
-            var image = this._image;
+            let gl = this.gl;
+            let texture = this._texture;
+            let image = this._image;
 
             // Now that the image has loaded make copy it to the texture.
             gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -58,7 +58,7 @@ module s2d {
         }
 
         public useTexture() {
-            var gl = this.gl;
+            let gl = this.gl;
             gl.bindTexture(gl.TEXTURE_2D, this._texture);
         }
     }

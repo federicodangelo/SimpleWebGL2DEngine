@@ -5,7 +5,7 @@ module s2d {
         private _entity : Entity = null;
 
         //Linked list of components that belong to the same entity
-        public __internal_nextComponent : Component;
+        public __internal_nextComponent : Component = null;
 
         public init(entity : Entity) : void {
             this._entity = entity;

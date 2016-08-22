@@ -8,6 +8,8 @@ module s2d {
 
         private _name : String = "Entity";
         private _transform : Transform = null;
+        private _firstDrawer : Drawer = null;
+        private _firstBehavior : Behavior = null;
 
         //First component in the entity
         private _firstComponent : Component = null;
@@ -24,17 +26,31 @@ module s2d {
             return this._transform;
         }
 
+        public get firstBehavior() {
+            return this._firstBehavior;
+        }
+
+        public get firstDrawer() {
+            return this._firstDrawer;
+        }
+
         constructor(name:String = "Entity") {
             this._name = name;
             this._transform = this.addComponent(Transform);
         }
 
         public addComponent<T extends Component>(clazz : {new() : T}) : T {
-            var comp = new clazz();
+            let comp = new clazz();
             
-            var tmp = this._firstComponent;
+            let tmp = this._firstComponent;
             this._firstComponent = comp;
             comp.__internal_nextComponent = tmp;
+
+            if (comp instanceof Drawer)
+                this._firstDrawer = <any> comp;
+
+            if (comp instanceof Behavior)
+                this._firstBehavior = <any> comp;
 
             comp.init(this);
             return comp;
@@ -42,7 +58,7 @@ module s2d {
 
         public getComponent<T extends Component>(clazz : {new() : T}) : T {
 
-            var comp = this._firstComponent;
+            let comp = this._firstComponent;
 
             while (comp !== null) {
                 if (comp instanceof clazz)

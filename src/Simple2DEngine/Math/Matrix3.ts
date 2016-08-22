@@ -33,7 +33,7 @@ module s2d {
          * @returns {Matrix3} a new 3x3 matrix
          */
         public static create() : Matrix3 {
-            var a : any = new Float32Array(9);
+            let a : any = new Float32Array(9);
             a[0] = 1;
             a[1] = 0;
             a[2] = 0;
@@ -75,7 +75,7 @@ module s2d {
          * @returns {Matrix3} a new 3x3 matrix
          */
         public static clone(a : Matrix3): Matrix3 {
-            var out = Matrix3.create();
+            let out = Matrix3.create();
             out[0] = a[0];
             out[1] = a[1];
             out[2] = a[2];
@@ -123,7 +123,7 @@ module s2d {
          * @returns {Matrix3} A new Matrix3
          */
         public static fromValues(m00: number, m01: number, m02: number, m10: number, m11: number, m12: number, m20: number, m21: number, m22: number): Matrix3 {
-            var out = Matrix3.create();
+            let out = Matrix3.create();
             out[0] = m00;
             out[1] = m01;
             out[2] = m02;
@@ -193,7 +193,7 @@ module s2d {
         public static transpose(out: Matrix3, a: Matrix3): Matrix3 {
             // If we are transposing ourselves we can skip a few steps but have to cache some values
             if (out === a) {
-                var a01 = a[1], a02 = a[2], a12 = a[5];
+                let a01 = a[1], a02 = a[2], a12 = a[5];
                 out[1] = a[3];
                 out[2] = a[6];
                 out[3] = a01;
@@ -223,7 +223,7 @@ module s2d {
          * @returns {Matrix3} out
          */
         public static invert(out: Matrix3, a: Matrix3): Matrix3 {
-            var a00 = a[0], a01 = a[1], a02 = a[2],
+            let a00 = a[0], a01 = a[1], a02 = a[2],
                 a10 = a[3], a11 = a[4], a12 = a[5],
                 a20 = a[6], a21 = a[7], a22 = a[8],
 
@@ -259,7 +259,7 @@ module s2d {
          * @returns {Matrix3} out
          */
         public static adjoint(out: Matrix3, a: Matrix3): Matrix3 {
-            var a00 = a[0], a01 = a[1], a02 = a[2],
+            let a00 = a[0], a01 = a[1], a02 = a[2],
                 a10 = a[3], a11 = a[4], a12 = a[5],
                 a20 = a[6], a21 = a[7], a22 = a[8];
 
@@ -282,7 +282,7 @@ module s2d {
          * @returns {Number} determinant of a
          */
         public static determinant(a: Matrix3): number {
-            var a00 = a[0], a01 = a[1], a02 = a[2],
+            let a00 = a[0], a01 = a[1], a02 = a[2],
                 a10 = a[3], a11 = a[4], a12 = a[5],
                 a20 = a[6], a21 = a[7], a22 = a[8];
 
@@ -298,7 +298,7 @@ module s2d {
          * @returns {Matrix3} out
          */
         public static mul(out: Matrix3, a: Matrix3, b: Matrix3): Matrix3 {
-            var a00 = a[0], a01 = a[1], a02 = a[2],
+            let a00 = a[0], a01 = a[1], a02 = a[2],
                 a10 = a[3], a11 = a[4], a12 = a[5],
                 a20 = a[6], a21 = a[7], a22 = a[8],
 
@@ -329,7 +329,7 @@ module s2d {
          * @returns {Matrix3} out
          */
         public static translate(out: Matrix3, a: Matrix3, v: Vector2): Matrix3 {
-            var a00 = a[0], a01 = a[1], a02 = a[2],
+            let a00 = a[0], a01 = a[1], a02 = a[2],
                 a10 = a[3], a11 = a[4], a12 = a[5],
                 a20 = a[6], a21 = a[7], a22 = a[8],
                 x = v[0], y = v[1];
@@ -357,7 +357,7 @@ module s2d {
          * @returns {Matrix3} out
          */
         public static rotate(out: Matrix3, a: Matrix3, rad: number): Matrix3 {
-            var a00 = a[0], a01 = a[1], a02 = a[2],
+            let a00 = a[0], a01 = a[1], a02 = a[2],
                 a10 = a[3], a11 = a[4], a12 = a[5],
                 a20 = a[6], a21 = a[7], a22 = a[8],
 
@@ -387,7 +387,7 @@ module s2d {
          * @returns {Matrix3} out
          **/
         public static scale(out: Matrix3, a: Matrix3, v: Vector2): Matrix3 {
-            var x = v[0], y = v[1];
+            let x = v[0], y = v[1];
 
             out[0] = x * a[0];
             out[1] = x * a[1];
@@ -439,7 +439,7 @@ module s2d {
          * @returns {Matrix3} out
          */
         public static fromRotation(out: Matrix3, rad: number): Matrix3 {
-            var s = Math.sin(rad), c = Math.cos(rad);
+            let s = Math.sin(rad), c = Math.cos(rad);
 
             out[0] = c;
             out[1] = s;
@@ -513,7 +513,7 @@ module s2d {
         */
         /*
         Matrix3.fromQuat = function (out, q) {
-            var x = q[0], y = q[1], z = q[2], w = q[3],
+            let x = q[0], y = q[1], z = q[2], w = q[3],
                 x2 = x + x,
                 y2 = y + y,
                 z2 = z + z,
@@ -554,7 +554,7 @@ module s2d {
         */
         /*
         Matrix3.normalFromMat4 = function (out, a) {
-            var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+            let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
                 a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
                 a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
                 a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15],
@@ -724,8 +724,8 @@ module s2d {
          * @returns {Boolean} True if the matrices are equal, false otherwise.
          */
         public static equals(a: Matrix3, b: Matrix3): boolean {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
-            var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5], b6 = a[6], b7 = b[7], b8 = b[8];
+            let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
+            let b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5], b6 = a[6], b7 = b[7], b8 = b[8];
             return (Math.abs(a0 - b0) <= SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
                 Math.abs(a1 - b1) <= SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
                 Math.abs(a2 - b2) <= SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&

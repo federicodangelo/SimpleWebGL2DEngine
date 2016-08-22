@@ -79,7 +79,7 @@ module s2d {
             if (!this._gl)
                 return;
 
-            var gl = this._gl;
+            let gl = this._gl;
 
             //Default clear color
             gl.clearColor(0, 0, 0, 1);
@@ -101,7 +101,7 @@ module s2d {
             //Taken from phaser source code!!
             //https://github.com/photonstorm/phaser/blob/master/src/system/Device.js
 
-            var fs = [
+            let fs = [
                 'requestFullscreen',
                 'requestFullScreen',
                 'webkitRequestFullscreen',
@@ -112,9 +112,9 @@ module s2d {
                 'mozRequestFullscreen'
             ];
 
-            var element: any = this.mainCanvas;
+            let element: any = this.mainCanvas;
 
-            for (var i = 0; i < fs.length; i++) {
+            for (let i = 0; i < fs.length; i++) {
                 if (element[fs[i]]) {
                     element[fs[i]]();
                     break;
@@ -126,7 +126,7 @@ module s2d {
             //Taken from phaser source code!!
             //https://github.com/photonstorm/phaser/blob/master/src/system/Device.js
 
-            var cfs = [
+            let cfs = [
                 'cancelFullScreen',
                 'exitFullscreen',
                 'webkitCancelFullScreen',
@@ -137,9 +137,9 @@ module s2d {
                 'mozExitFullscreen'
             ];
 
-            var doc: any = document;
+            let doc: any = document;
 
-            for (var i = 0; i < cfs.length; i++) {
+            for (let i = 0; i < cfs.length; i++) {
                 if (doc[cfs[i]]) {
                     doc[cfs[i]]();
                     break;
@@ -152,11 +152,11 @@ module s2d {
 
         public draw(): void {
 
-            var cameras = this.tmpCameras;
-            var camerasLen = engine.entities.getComponentInChildren(Camera, cameras);
+            let cameras = this.tmpCameras;
+            let camerasLen = engine.entities.getComponentInChildren(Camera, cameras);
 
-            var drawers = this.tmpDrawers;
-            var drawersLen = engine.entities.getComponentInChildren(Drawer, drawers);
+            let drawers = this.tmpDrawers;
+            let drawersLen = engine.entities.getComponentInChildren(Drawer, drawers);
 
             if (camerasLen === 0)
                 console.warn("No cameras to draw!!");
@@ -174,12 +174,12 @@ module s2d {
 
         private renderCamera(camera: Camera, drawers: Array<Drawer>, drawersLen: number) {
 
-            var commands = this._commands;
+            let commands = this._commands;
 
             if (RenderManager.RENDER_ENABLED) {
-                var gl = this.gl;
+                let gl = this.gl;
 
-                var clearFlags = 0;
+                let clearFlags = 0;
 
                 if (camera.clearColorBuffer) {
                     clearFlags |= gl.COLOR_BUFFER_BIT;

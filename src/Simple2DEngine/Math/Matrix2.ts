@@ -32,7 +32,7 @@ module s2d {
          * @returns {Matrix2} a new 2x2 matrix
          */
         public static create(): Matrix2 {
-            var a: any = new Float32Array(4);
+            let a: any = new Float32Array(4);
             a[0] = 1;
             a[1] = 0;
             a[2] = 0;
@@ -47,7 +47,7 @@ module s2d {
          * @returns {Matrix2} a new 2x2 matrix
          */
         public static clone(a: Matrix2): Matrix2 {
-            var out = Matrix2.create();
+            let out = Matrix2.create();
             out[0] = a[0];
             out[1] = a[1];
             out[2] = a[2];
@@ -94,7 +94,7 @@ module s2d {
          * @returns {Matrix2} out A new 2x2 matrix
          */
         public static fromValues(m00: number, m01: number, m10: number, m11: number): Matrix2 {
-            var out = Matrix2.create();
+            let out = Matrix2.create();
             out[0] = m00;
             out[1] = m01;
             out[2] = m10;
@@ -131,7 +131,7 @@ module s2d {
         public static transpose = function (out: Matrix2, a: Matrix2): Matrix2 {
             // If we are transposing ourselves we can skip a few steps but have to cache some values
             if (out === a) {
-                var a1 = a[1];
+                let a1 = a[1];
                 out[1] = a[2];
                 out[2] = a1;
             } else {
@@ -152,7 +152,7 @@ module s2d {
          * @returns {Matrix2} out
          */
         public static invert(out: Matrix2, a: Matrix2): Matrix2 {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
+            let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
 
                 // Calculate the determinant
                 det = a0 * a3 - a2 * a1;
@@ -179,7 +179,7 @@ module s2d {
          */
         public static adjoint(out: Matrix2, a: Matrix2): Matrix2 {
             // Caching this value is nessecary if out == a
-            var a0 = a[0];
+            let a0 = a[0];
             out[0] = a[3];
             out[1] = -a[1];
             out[2] = -a[2];
@@ -207,8 +207,8 @@ module s2d {
          * @returns {Matrix2} out
          */
         public static mul(out: Matrix2, a: Matrix2, b: Matrix2): Matrix2 {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
-            var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+            let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+            let b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
             out[0] = a0 * b0 + a2 * b1;
             out[1] = a1 * b0 + a3 * b1;
             out[2] = a0 * b2 + a2 * b3;
@@ -225,7 +225,7 @@ module s2d {
          * @returns {Matrix2} out
          */
         public static rotate(out: Matrix2, a: Matrix2, rad: number): Matrix2 {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
+            let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
                 s = Math.sin(rad),
                 c = Math.cos(rad);
             out[0] = a0 * c + a2 * s;
@@ -244,7 +244,7 @@ module s2d {
          * @returns {Matrix2} out
          **/
         public static scale(out: Matrix2, a: Matrix2, v: Vector2): Matrix2 {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
+            let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3],
                 v0 = v[0], v1 = v[1];
             out[0] = a0 * v0;
             out[1] = a1 * v0;
@@ -265,7 +265,7 @@ module s2d {
          * @returns {Matrix2} out
          */
         public static fromRotation = function (out: Matrix2, rad: number): Matrix2 {
-            var s = Math.sin(rad),
+            let s = Math.sin(rad),
                 c = Math.cos(rad);
             out[0] = c;
             out[1] = s;
@@ -380,8 +380,8 @@ module s2d {
          * @returns {Boolean} True if the matrices are equal, false otherwise.
          */
         public static equals(a: Matrix2, b: Matrix2): boolean {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
-            var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
+            let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
+            let b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
             return (Math.abs(a0 - b0) <= SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
                 Math.abs(a1 - b1) <= SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
                 Math.abs(a2 - b2) <= SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&

@@ -6,14 +6,15 @@ class GameLogic extends s2d.Behavior {
     private entities : Array<s2d.Entity> = new Array<s2d.Entity>();
 
     static TEST_NESTING = true;
-    static TEST_MOVING = false;
+    static TEST_MOVING = true;
+    static RECTS_COUNT = 8192;
 
     public onInit() : void {
 
         this.cam = s2d.EntityFactory.buildCamera();
 
-        //this.initTestComplex();
-        this.initTestSimple();
+        this.initTestComplex();
+        //this.initTestSimple();
     }
 
     private initTestSimple() {
@@ -40,7 +41,7 @@ class GameLogic extends s2d.Behavior {
         let sWidth = s2d.engine.renderer.screenWidth;
         let sHeight = s2d.engine.renderer.screenHeight;
 
-        for (let i = 0; i < 8192; i++) {
+        for (let i = 0; i < GameLogic.RECTS_COUNT; i++) {
             let e = s2d.EntityFactory.buildDrawer().entity;
 
             e.name = "Entity " + i;

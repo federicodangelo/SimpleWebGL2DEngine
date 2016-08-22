@@ -19,7 +19,7 @@ module s2d {
         }
 
         static fromRgba(r:number, g:number, b:number, a:number=255) { 
-            var c = new Color();
+            let c = new Color();
             r = SMath.clamp(r, 0, 255);
             g = SMath.clamp(g, 0, 255);
             b = SMath.clamp(b, 0, 255);
@@ -29,7 +29,7 @@ module s2d {
         }
 
         static fromHex(rgbaHex : number) { 
-            var c = new Color();
+            let c = new Color();
             c.rgbaHex = rgbaHex;
             return c;
         }

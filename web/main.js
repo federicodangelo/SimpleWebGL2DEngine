@@ -654,6 +654,8 @@ var s2d;
     var Component = (function () {
         function Component() {
             this._entity = null;
+            //Linked list of components that belong to the same entity
+            this.__internal_nextComponent = null;
         }
         Component.prototype.init = function (entity) {
             this._entity = entity;
@@ -865,7 +867,7 @@ var s2d;
         });
         /*
         private getLocalMatrix(): Matrix2d {
-            var localMatrix = this._localMatrix;
+            let localMatrix = this._localMatrix;
 
             if (this._localMatrixDirty) {
 
@@ -873,11 +875,11 @@ var s2d;
                 //Matrix2d.scale(localMatrix,localMatrix, this._scale);
                 //Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
 
-                var pp = this._position;
-                var ss = this._scale;
+                let pp = this._position;
+                let ss = this._scale;
 
-                var s = Math.sin(this._rotation);
-                var c = Math.cos(this._rotation);
+                let s = Math.sin(this._rotation);
+                let c = Math.cos(this._rotation);
 
                 localMatrix[0] = ss[0] * c;
                 localMatrix[1] = ss[1] * s;
@@ -893,8 +895,8 @@ var s2d;
         }
         */
         Transform.prototype.getLocalToGlobalMatrix = function (out) {
-            var p = this._parent;
             s2d.Matrix2d.copy(out, this._localMatrix);
+            var p = this._parent;
             while (p !== null) {
                 s2d.Matrix2d.mul(out, p._localMatrix, out);
                 p = p._parent;
@@ -935,6 +937,10 @@ var s2d;
             return prevChild._nextSibling;
         };
         Transform.prototype.getComponentInChildren = function (clazz, toReturn) {
+            if (clazz === s2d.Behavior)
+                return this.getBehaviorInChildrenInternal(toReturn, 0);
+            else if (clazz === s2d.Drawer)
+                return this.getDrawerInChildrenInternal(toReturn, 0);
             return this.getComponentInChildrenInternal(clazz, toReturn, 0);
         };
         Transform.prototype.getComponentInChildrenInternal = function (clazz, toReturn, index) {
@@ -944,6 +950,26 @@ var s2d;
             var child = this._firstChild;
             while (child !== null) {
                 index = child.getComponentInChildrenInternal(clazz, toReturn, index);
+                child = child._nextSibling;
+            }
+            return index;
+        };
+        Transform.prototype.getBehaviorInChildrenInternal = function (toReturn, index) {
+            if (this.entity !== null && this.entity.firstBehavior !== null)
+                toReturn[index++] = this.entity.firstBehavior;
+            var child = this._firstChild;
+            while (child !== null) {
+                index = child.getBehaviorInChildrenInternal(toReturn, index);
+                child = child._nextSibling;
+            }
+            return index;
+        };
+        Transform.prototype.getDrawerInChildrenInternal = function (toReturn, index) {
+            if (this.entity !== null && this.entity.firstDrawer !== null)
+                toReturn[index++] = this.entity.firstDrawer;
+            var child = this._firstChild;
+            while (child !== null) {
+                index = child.getDrawerInChildrenInternal(toReturn, index);
                 child = child._nextSibling;
             }
             return index;
@@ -1418,7 +1444,7 @@ var s2d;
         */
         /*
         Matrix3.fromQuat = function (out, q) {
-            var x = q[0], y = q[1], z = q[2], w = q[3],
+            let x = q[0], y = q[1], z = q[2], w = q[3],
                 x2 = x + x,
                 y2 = y + y,
                 z2 = z + z,
@@ -1458,7 +1484,7 @@ var s2d;
         */
         /*
         Matrix3.normalFromMat4 = function (out, a) {
-            var a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
+            let a00 = a[0], a01 = a[1], a02 = a[2], a03 = a[3],
                 a10 = a[4], a11 = a[5], a12 = a[6], a13 = a[7],
                 a20 = a[8], a21 = a[9], a22 = a[10], a23 = a[11],
                 a30 = a[12], a31 = a[13], a32 = a[14], a33 = a[15],
@@ -1908,7 +1934,7 @@ var s2d;
          */
         /*
         Vector2.cross = function(out, a, b) {
-            var z = a[0] * b[1] - a[1] * b[0];
+            let z = a[0] * b[1] - a[1] * b[0];
             out[0] = out[1] = 0;
             out[2] = z;
             return out;
@@ -1982,7 +2008,7 @@ var s2d;
          */
         /*
         Vector2.transformMat4 = function(out, a, m) {
-            var x = a[0],
+            let x = a[0],
                 y = a[1];
             out[0] = m[0] * x + m[4] * y + m[12];
             out[1] = m[1] * x + m[5] * y + m[13];
@@ -2003,10 +2029,10 @@ var s2d;
          */
         /*
         Vector2.forEach = (function() {
-            var vec = Vector2.create();
+            let vec = Vector2.create();
 
             return function(a, stride, offset, count, fn, arg) {
-                var i, l;
+                let i, l;
                 if(!stride) {
                     stride = 2;
                 }
@@ -2189,6 +2215,8 @@ var s2d;
             if (name === void 0) { name = "Entity"; }
             this._name = "Entity";
             this._transform = null;
+            this._firstDrawer = null;
+            this._firstBehavior = null;
             //First component in the entity
             this._firstComponent = null;
             this._name = name;
@@ -2211,11 +2239,29 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Entity.prototype, "firstBehavior", {
+            get: function () {
+                return this._firstBehavior;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Entity.prototype, "firstDrawer", {
+            get: function () {
+                return this._firstDrawer;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Entity.prototype.addComponent = function (clazz) {
             var comp = new clazz();
             var tmp = this._firstComponent;
             this._firstComponent = comp;
             comp.__internal_nextComponent = tmp;
+            if (comp instanceof s2d.Drawer)
+                this._firstDrawer = comp;
+            if (comp instanceof s2d.Behavior)
+                this._firstBehavior = comp;
             comp.init(this);
             return comp;
         };
@@ -2381,8 +2427,8 @@ var GameLogic = (function (_super) {
     }
     GameLogic.prototype.onInit = function () {
         this.cam = s2d.EntityFactory.buildCamera();
-        //this.initTestComplex();
-        this.initTestSimple();
+        this.initTestComplex();
+        //this.initTestSimple();
     };
     GameLogic.prototype.initTestSimple = function () {
         var e1 = s2d.EntityFactory.buildDrawer().entity;
@@ -2401,7 +2447,7 @@ var GameLogic = (function (_super) {
     GameLogic.prototype.initTestComplex = function () {
         var sWidth = s2d.engine.renderer.screenWidth;
         var sHeight = s2d.engine.renderer.screenHeight;
-        for (var i = 0; i < 8192; i++) {
+        for (var i = 0; i < GameLogic.RECTS_COUNT; i++) {
             var e = s2d.EntityFactory.buildDrawer().entity;
             e.name = "Entity " + i;
             e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
@@ -2429,7 +2475,8 @@ var GameLogic = (function (_super) {
             this.cam.clearColor.rgbaHex = 0x000000FF; //black
     };
     GameLogic.TEST_NESTING = true;
-    GameLogic.TEST_MOVING = false;
+    GameLogic.TEST_MOVING = true;
+    GameLogic.RECTS_COUNT = 8192;
     return GameLogic;
 }(s2d.Behavior));
 /// <reference path="Component.ts" />

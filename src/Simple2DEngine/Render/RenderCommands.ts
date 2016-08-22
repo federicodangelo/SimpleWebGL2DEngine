@@ -133,27 +133,27 @@ module s2d {
                 this.start();
             }
 
-            var tmpV1 = this.tmpV1;
-            var tmpV2 = this.tmpV2;
-            var tmpV3 = this.tmpV3;
-            var tmpV4 = this.tmpV4;
+            let tmpV1 = this.tmpV1;
+            let tmpV2 = this.tmpV2;
+            let tmpV3 = this.tmpV3;
+            let tmpV4 = this.tmpV4;
 
-            var tmpUV1 = this.tmpUV1;
-            var tmpUV2 = this.tmpUV2;
-            var tmpUV3 = this.tmpUV3;
-            var tmpUV4 = this.tmpUV4;
+            let tmpUV1 = this.tmpUV1;
+            let tmpUV2 = this.tmpUV2;
+            let tmpUV3 = this.tmpUV3;
+            let tmpUV4 = this.tmpUV4;
 
-            var triangles = this.triangles;
-            var trianglesOffset = this.trianglesOffset;
+            let triangles = this.triangles;
+            let trianglesOffset = this.trianglesOffset;
 
-            var colors = this.colors;
-            var colorsOffset = this.colorsOffset;
+            let colors = this.colors;
+            let colorsOffset = this.colorsOffset;
 
-            var uvs = this.uvs;
-            var uvsOffset = this.uvsOffset;
+            let uvs = this.uvs;
+            let uvsOffset = this.uvsOffset;
 
-            var halfSizeX = halfSize[0];
-            var halfSizeY = halfSize[1];
+            let halfSizeX = halfSize[0];
+            let halfSizeY = halfSize[1];
 
             //Top left
             tmpV1[0] = -halfSizeX;
@@ -183,10 +183,10 @@ module s2d {
             tmpUV4[0] = 0;
             tmpUV4[1] = 65535;
 
-            var red = 0xFF0000FF; //ABGR
-            var green = 0xFF00FF00; //ABGR
-            var blue = 0xFFFF0000; //ABGR
-            var white = 0xFFFFFFFF;
+            let red = 0xFF0000FF; //ABGR
+            let green = 0xFF00FF00; //ABGR
+            let blue = 0xFFFF0000; //ABGR
+            let white = 0xFFFFFFFF;
 
             //First triangle (1 -> 2 -> 3)
             triangles[trianglesOffset + 0] = tmpV1[0];
@@ -249,7 +249,7 @@ module s2d {
 
             this.renderTexture.useTexture();
 
-            var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
+            let renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
 
             renderBuffer.setData(this.backingArray, false);
 
