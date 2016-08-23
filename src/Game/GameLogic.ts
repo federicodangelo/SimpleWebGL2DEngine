@@ -9,10 +9,14 @@ class GameLogic extends s2d.Behavior {
     static TEST_MOVING = true;
     static RECTS_COUNT = 8192;
 
+    private texture : s2d.RenderTexture;
+
     public onInit() : void {
 
-        this.cam = s2d.EntityFactory.buildCamera();
+        this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png");
 
+        this.cam = s2d.EntityFactory.buildCamera();
+        
         this.initTestComplex();
         //this.initTestSimple();
     }
@@ -22,6 +26,10 @@ class GameLogic extends s2d.Behavior {
         let e1 = s2d.EntityFactory.buildDrawer().entity;
         let e2 = s2d.EntityFactory.buildDrawer().entity;
         let e3 = s2d.EntityFactory.buildDrawer().entity;
+
+        e1.firstDrawer.texture = this.texture;
+        e2.firstDrawer.texture = this.texture;
+        e3.firstDrawer.texture = this.texture;
 
         e1.transform.localX = 300;
         e1.transform.localY = 300;
@@ -43,6 +51,8 @@ class GameLogic extends s2d.Behavior {
 
         for (let i = 0; i < GameLogic.RECTS_COUNT; i++) {
             let e = s2d.EntityFactory.buildDrawer().entity;
+
+            e.firstDrawer.texture = this.texture;
 
             e.name = "Entity " + i;
             e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);

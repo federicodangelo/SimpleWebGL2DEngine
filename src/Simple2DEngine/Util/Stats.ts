@@ -1,7 +1,7 @@
-module s2d {
-    export class Stats {
+/// <reference path="EngineConfiguration.ts" />
 
-        public logPerformance : boolean = true;
+module s2d {
+    export class Stats {       
 
         private _wglu : WGLUStats;
 
@@ -50,7 +50,7 @@ module s2d {
                 this.fpsCounter = 0;
                 this.accumulatedUpdateTime = 0;
 
-                if (this.logPerformance)
+                if (EngineConfiguration.LOG_PERFORMANCE)
                     console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
             }
         }

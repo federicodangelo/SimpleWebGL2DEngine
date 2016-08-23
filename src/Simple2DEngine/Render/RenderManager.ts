@@ -4,8 +4,6 @@ module s2d {
 
     export class RenderManager {
 
-        public static RENDER_ENABLED = true;
-
         private mainCanvas: HTMLCanvasElement;
         private _gl: WebGLRenderingContext;
 
@@ -176,7 +174,7 @@ module s2d {
 
             let commands = this._commands;
 
-            if (RenderManager.RENDER_ENABLED) {
+            if (EngineConfiguration.RENDER_ENABLED) {
                 let gl = this.gl;
 
                 let clearFlags = 0;

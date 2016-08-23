@@ -356,7 +356,6 @@ var s2d;
             this.renderBuffers = new Array();
             for (var i = 0; i < 16; i++)
                 this.renderBuffers.push(new s2d.RenderBuffer(gl));
-            this.renderTexture = new s2d.RenderTexture(gl, "assets/test.png");
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
             this.colors = new Uint32Array(this.backingArray);
@@ -372,10 +371,11 @@ var s2d;
             this.colorsOffset = 0;
             this.uvsOffset = 0;
         };
-        RenderCommands.prototype.drawRect = function (mat, halfSize) {
-            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES) {
+        RenderCommands.prototype.drawRect = function (mat, halfSize, texture, uvTopLeft, uvBottomRight, color) {
+            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES || texture !== this.currentTexture) {
                 this.end();
                 this.start();
+                this.currentTexture = texture;
             }
             var tmpV1 = this.tmpV1;
             var tmpV2 = this.tmpV2;
@@ -397,44 +397,41 @@ var s2d;
             tmpV1[0] = -halfSizeX;
             tmpV1[1] = -halfSizeY;
             s2d.Vector2.transformMat2d(tmpV1, tmpV1, mat);
-            tmpUV1[0] = 0;
-            tmpUV1[1] = 0;
+            tmpUV1[0] = uvTopLeft[0] * 65535;
+            tmpUV1[1] = uvTopLeft[1] * 65535;
             //Top right
             tmpV2[0] = halfSizeX;
             tmpV2[1] = -halfSizeY;
             s2d.Vector2.transformMat2d(tmpV2, tmpV2, mat);
-            tmpUV2[0] = 65535;
-            tmpUV2[1] = 0;
+            tmpUV2[0] = uvBottomRight[1] * 65535;
+            tmpUV2[1] = uvTopLeft[0] * 65535;
             //Bottom right
             tmpV3[0] = halfSizeX;
             tmpV3[1] = halfSizeY;
             s2d.Vector2.transformMat2d(tmpV3, tmpV3, mat);
-            tmpUV3[0] = 65535;
-            tmpUV3[1] = 65535;
+            tmpUV3[0] = uvBottomRight[0] * 65535;
+            tmpUV3[1] = uvBottomRight[1] * 65535;
             //Bottom left
             tmpV4[0] = -halfSizeX;
             tmpV4[1] = halfSizeY;
             s2d.Vector2.transformMat2d(tmpV4, tmpV4, mat);
-            tmpUV4[0] = 0;
-            tmpUV4[1] = 65535;
-            var red = 0xFF0000FF; //ABGR
-            var green = 0xFF00FF00; //ABGR
-            var blue = 0xFFFF0000; //ABGR
-            var white = 0xFFFFFFFF;
+            tmpUV4[0] = uvTopLeft[0] * 65535;
+            tmpUV4[1] = uvBottomRight[1] * 65535;
+            var colorNumber = color.rgbaHex;
             //First triangle (1 -> 2 -> 3)
             triangles[trianglesOffset + 0] = tmpV1[0];
             triangles[trianglesOffset + 1] = tmpV1[1];
-            colors[colorsOffset + 2] = white;
+            colors[colorsOffset + 2] = colorNumber;
             uvs[uvsOffset + 6] = tmpUV1[0];
             uvs[uvsOffset + 7] = tmpUV1[1];
             triangles[trianglesOffset + 4] = tmpV2[0];
             triangles[trianglesOffset + 5] = tmpV2[1];
-            colors[colorsOffset + 6] = white;
+            colors[colorsOffset + 6] = colorNumber;
             uvs[uvsOffset + 14] = tmpUV2[0];
             uvs[uvsOffset + 15] = tmpUV2[1];
             triangles[trianglesOffset + 8] = tmpV3[0];
             triangles[trianglesOffset + 9] = tmpV3[1];
-            colors[colorsOffset + 10] = white;
+            colors[colorsOffset + 10] = colorNumber;
             uvs[uvsOffset + 22] = tmpUV3[0];
             uvs[uvsOffset + 23] = tmpUV3[1];
             trianglesOffset += 12;
@@ -443,17 +440,17 @@ var s2d;
             //Second triangle (3 -> 4 -> 1)
             triangles[trianglesOffset + 0] = tmpV3[0];
             triangles[trianglesOffset + 1] = tmpV3[1];
-            colors[colorsOffset + 2] = white;
+            colors[colorsOffset + 2] = colorNumber;
             uvs[uvsOffset + 6] = tmpUV3[0];
             uvs[uvsOffset + 7] = tmpUV3[1];
             triangles[trianglesOffset + 4] = tmpV4[0];
             triangles[trianglesOffset + 5] = tmpV4[1];
-            colors[colorsOffset + 6] = white;
+            colors[colorsOffset + 6] = colorNumber;
             uvs[uvsOffset + 14] = tmpUV4[0];
             uvs[uvsOffset + 15] = tmpUV4[1];
             triangles[trianglesOffset + 8] = tmpV1[0];
             triangles[trianglesOffset + 9] = tmpV1[1];
-            colors[colorsOffset + 10] = white;
+            colors[colorsOffset + 10] = colorNumber;
             uvs[uvsOffset + 22] = tmpUV1[0];
             uvs[uvsOffset + 23] = tmpUV1[1];
             trianglesOffset += 12;
@@ -465,19 +462,21 @@ var s2d;
             this.trianglesCount += 2;
         };
         RenderCommands.prototype.end = function () {
-            if (!s2d.RenderManager.RENDER_ENABLED)
+            if (!s2d.EngineConfiguration.RENDER_ENABLED)
+                return;
+            if (this.trianglesCount === 0)
                 return;
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
-            this.renderTexture.useTexture();
+            this.currentTexture.useTexture();
             var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
             renderBuffer.setData(this.backingArray, false);
             this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
             this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
             this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, this.gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
-            if (this.trianglesCount > 0)
-                this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
+            this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
             this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
+            this.currentTexture = null;
         };
         RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n            attribute vec2 a_texcoord;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // texture used in vertex shader\n            varying vec2 v_texcoord;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n\n                v_texcoord = a_texcoord;\n            }\n        ";
         RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            //texture uv received from vertex shader\n            varying vec2 v_texcoord;\n\n            // Main texture.\n            uniform sampler2D u_texture;\n\n            void main() {\n\n                gl_FragColor = texture2D(u_texture, v_texcoord) * v_color;\n\n                //gl_FragColor = v_color;\n            }\n        ";
@@ -627,7 +626,7 @@ var s2d;
         };
         RenderManager.prototype.renderCamera = function (camera, drawers, drawersLen) {
             var commands = this._commands;
-            if (RenderManager.RENDER_ENABLED) {
+            if (s2d.EngineConfiguration.RENDER_ENABLED) {
                 var gl = this.gl;
                 var clearFlags = 0;
                 if (camera.clearColorBuffer) {
@@ -644,7 +643,6 @@ var s2d;
                 drawers[i].draw(commands);
             commands.end();
         };
-        RenderManager.RENDER_ENABLED = true;
         return RenderManager;
     }());
     s2d.RenderManager = RenderManager;
@@ -2191,6 +2189,9 @@ var s2d;
         __extends(Drawer, _super);
         function Drawer() {
             _super.apply(this, arguments);
+            this.uvTopLeft = s2d.Vector2.fromValues(0, 0);
+            this.uvBottomRight = s2d.Vector2.fromValues(1, 1);
+            this.color = s2d.Color.fromRgba(255, 255, 255, 255);
         }
         Drawer.initStatic = function () {
             Drawer.tmpMatrix = s2d.Matrix3.create();
@@ -2199,7 +2200,7 @@ var s2d;
         Drawer.prototype.draw = function (commands) {
             var trans = this.entity.transform;
             trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
-            commands.drawRect(Drawer.tmpMatrix, trans.halfSize);
+            commands.drawRect(Drawer.tmpMatrix, trans.halfSize, this.texture, this.uvTopLeft, this.uvBottomRight, this.color);
         };
         return Drawer;
     }(s2d.Component));
@@ -2426,6 +2427,7 @@ var GameLogic = (function (_super) {
         this.entities = new Array();
     }
     GameLogic.prototype.onInit = function () {
+        this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png");
         this.cam = s2d.EntityFactory.buildCamera();
         this.initTestComplex();
         //this.initTestSimple();
@@ -2434,6 +2436,9 @@ var GameLogic = (function (_super) {
         var e1 = s2d.EntityFactory.buildDrawer().entity;
         var e2 = s2d.EntityFactory.buildDrawer().entity;
         var e3 = s2d.EntityFactory.buildDrawer().entity;
+        e1.firstDrawer.texture = this.texture;
+        e2.firstDrawer.texture = this.texture;
+        e3.firstDrawer.texture = this.texture;
         e1.transform.localX = 300;
         e1.transform.localY = 300;
         e2.transform.parent = e1.transform;
@@ -2449,6 +2454,7 @@ var GameLogic = (function (_super) {
         var sHeight = s2d.engine.renderer.screenHeight;
         for (var i = 0; i < GameLogic.RECTS_COUNT; i++) {
             var e = s2d.EntityFactory.buildDrawer().entity;
+            e.firstDrawer.texture = this.texture;
             e.name = "Entity " + i;
             e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
             e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 200);
@@ -2479,21 +2485,6 @@ var GameLogic = (function (_super) {
     GameLogic.RECTS_COUNT = 8192;
     return GameLogic;
 }(s2d.Behavior));
-/// <reference path="Component.ts" />
-var s2d;
-(function (s2d) {
-    var Camera = (function (_super) {
-        __extends(Camera, _super);
-        function Camera() {
-            _super.apply(this, arguments);
-            this.clearDepthBuffer = false;
-            this.clearColorBuffer = true;
-            this.clearColor = s2d.Color.fromRgba(0, 0, 0, 255);
-        }
-        return Camera;
-    }(s2d.Component));
-    s2d.Camera = Camera;
-})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     var EntityFactory = (function () {
@@ -2508,6 +2499,21 @@ var s2d;
         return EntityFactory;
     }());
     s2d.EntityFactory = EntityFactory;
+})(s2d || (s2d = {}));
+/// <reference path="Component.ts" />
+var s2d;
+(function (s2d) {
+    var Camera = (function (_super) {
+        __extends(Camera, _super);
+        function Camera() {
+            _super.apply(this, arguments);
+            this.clearDepthBuffer = false;
+            this.clearColorBuffer = true;
+            this.clearColor = s2d.Color.fromRgba(0, 0, 0, 255);
+        }
+        return Camera;
+    }(s2d.Component));
+    s2d.Camera = Camera;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -3475,9 +3481,20 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
+    var EngineConfiguration = (function () {
+        function EngineConfiguration() {
+        }
+        EngineConfiguration.RENDER_ENABLED = true;
+        EngineConfiguration.LOG_PERFORMANCE = false;
+        return EngineConfiguration;
+    }());
+    s2d.EngineConfiguration = EngineConfiguration;
+})(s2d || (s2d = {}));
+/// <reference path="EngineConfiguration.ts" />
+var s2d;
+(function (s2d) {
     var Stats = (function () {
         function Stats() {
-            this.logPerformance = true;
             this.lastFpsTime = 0;
             this.fpsCounter = 0;
             this.accumulatedUpdateTime = 0;
@@ -3507,7 +3524,7 @@ var s2d;
                 this.lastFpsTime = this.updateStartTime;
                 this.fpsCounter = 0;
                 this.accumulatedUpdateTime = 0;
-                if (this.logPerformance)
+                if (s2d.EngineConfiguration.LOG_PERFORMANCE)
                     console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
             }
         };

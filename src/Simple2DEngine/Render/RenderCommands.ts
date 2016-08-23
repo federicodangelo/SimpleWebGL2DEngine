@@ -68,7 +68,7 @@ module s2d {
         private renderBuffers : Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
         private currentRenderBufferIndex = 0;
 
-        private renderTexture : RenderTexture;
+        private currentTexture : RenderTexture;
 
         private backingArray : ArrayBuffer;
         private triangles : Float32Array;
@@ -92,8 +92,6 @@ module s2d {
             this.renderBuffers = new Array<RenderBuffer>();
             for (let i = 0; i < 16; i++)
                 this.renderBuffers.push(new RenderBuffer(gl));
-
-            this.renderTexture = new RenderTexture(gl, "assets/test.png");
 
             this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
             this.triangles = new Float32Array(this.backingArray);
@@ -126,11 +124,12 @@ module s2d {
             this.uvsOffset = 0;
         }
 
-        public drawRect(mat: Matrix2d, halfSize : Vector2) : void {
+        public drawRect(mat: Matrix2d, halfSize : Vector2, texture : RenderTexture, uvTopLeft : Vector2, uvBottomRight : Vector2, color : Color ) : void {
 
-            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES) {
+            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES || texture !== this.currentTexture) {
                 this.end();
                 this.start();
+                this.currentTexture = texture;
             }
 
             let tmpV1 = this.tmpV1;
@@ -159,51 +158,48 @@ module s2d {
             tmpV1[0] = -halfSizeX;
             tmpV1[1] = -halfSizeY;
             Vector2.transformMat2d(tmpV1, tmpV1, mat);
-            tmpUV1[0] = 0;
-            tmpUV1[1] = 0;
+            tmpUV1[0] = uvTopLeft[0] * 65535;
+            tmpUV1[1] = uvTopLeft[1] * 65535;
 
             //Top right
             tmpV2[0] = halfSizeX;
             tmpV2[1] = -halfSizeY;
             Vector2.transformMat2d(tmpV2, tmpV2, mat);
-            tmpUV2[0] = 65535;
-            tmpUV2[1] = 0;
+            tmpUV2[0] = uvBottomRight[1] * 65535;
+            tmpUV2[1] = uvTopLeft[0] * 65535;
 
             //Bottom right
             tmpV3[0] = halfSizeX;
             tmpV3[1] = halfSizeY;
             Vector2.transformMat2d(tmpV3, tmpV3, mat);
-            tmpUV3[0] = 65535;
-            tmpUV3[1] = 65535;
+            tmpUV3[0] = uvBottomRight[0] * 65535;
+            tmpUV3[1] = uvBottomRight[1] * 65535;
 
             //Bottom left
             tmpV4[0] = -halfSizeX;
             tmpV4[1] = halfSizeY;
             Vector2.transformMat2d(tmpV4, tmpV4, mat);
-            tmpUV4[0] = 0;
-            tmpUV4[1] = 65535;
+            tmpUV4[0] = uvTopLeft[0] * 65535;
+            tmpUV4[1] = uvBottomRight[1] * 65535;
 
-            let red = 0xFF0000FF; //ABGR
-            let green = 0xFF00FF00; //ABGR
-            let blue = 0xFFFF0000; //ABGR
-            let white = 0xFFFFFFFF;
+            let colorNumber = color.rgbaHex;
 
             //First triangle (1 -> 2 -> 3)
             triangles[trianglesOffset + 0] = tmpV1[0];
             triangles[trianglesOffset + 1] = tmpV1[1];
-            colors[colorsOffset + 2] = white;
+            colors[colorsOffset + 2] = colorNumber;
             uvs[uvsOffset + 6] = tmpUV1[0];
             uvs[uvsOffset + 7] = tmpUV1[1];
 
             triangles[trianglesOffset + 4] = tmpV2[0];
             triangles[trianglesOffset + 5] = tmpV2[1];
-            colors[colorsOffset + 6] = white;
+            colors[colorsOffset + 6] = colorNumber;
             uvs[uvsOffset + 14] = tmpUV2[0];
             uvs[uvsOffset + 15] = tmpUV2[1];
 
             triangles[trianglesOffset + 8] = tmpV3[0];
             triangles[trianglesOffset + 9] = tmpV3[1];
-            colors[colorsOffset + 10] = white;
+            colors[colorsOffset + 10] = colorNumber;
             uvs[uvsOffset + 22] = tmpUV3[0];
             uvs[uvsOffset + 23] = tmpUV3[1];
 
@@ -214,19 +210,19 @@ module s2d {
             //Second triangle (3 -> 4 -> 1)
             triangles[trianglesOffset + 0] = tmpV3[0];
             triangles[trianglesOffset + 1] = tmpV3[1];
-            colors[colorsOffset + 2] = white;
+            colors[colorsOffset + 2] = colorNumber;
             uvs[uvsOffset + 6] = tmpUV3[0];
             uvs[uvsOffset + 7] = tmpUV3[1];
 
             triangles[trianglesOffset + 4] = tmpV4[0];
             triangles[trianglesOffset + 5] = tmpV4[1];
-            colors[colorsOffset + 6] = white;
+            colors[colorsOffset + 6] = colorNumber;
             uvs[uvsOffset + 14] = tmpUV4[0];
             uvs[uvsOffset + 15] = tmpUV4[1];
             
             triangles[trianglesOffset + 8] = tmpV1[0];
             triangles[trianglesOffset + 9] = tmpV1[1];
-            colors[colorsOffset + 10] = white;
+            colors[colorsOffset + 10] = colorNumber;
             uvs[uvsOffset + 22] = tmpUV1[0];
             uvs[uvsOffset + 23] = tmpUV1[1];
 
@@ -241,13 +237,16 @@ module s2d {
         }
 
         public end() {
-            if (!RenderManager.RENDER_ENABLED)
+            if (!EngineConfiguration.RENDER_ENABLED)
+                return;
+
+            if (this.trianglesCount === 0)
                 return;
 
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
 
-            this.renderTexture.useTexture();
+            this.currentTexture.useTexture();
 
             let renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
 
@@ -257,10 +256,10 @@ module s2d {
             this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
             this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, this.gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
 
-            if (this.trianglesCount > 0)
-                this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
-
+            this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
             this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
+
+            this.currentTexture = null;
         }
     }
 }
