@@ -165,8 +165,8 @@ module s2d {
             tmpV2[0] = halfSizeX;
             tmpV2[1] = -halfSizeY;
             Vector2.transformMat2d(tmpV2, tmpV2, mat);
-            tmpUV2[0] = uvBottomRight[1] * 65535;
-            tmpUV2[1] = uvTopLeft[0] * 65535;
+            tmpUV2[0] = uvBottomRight[0] * 65535;
+            tmpUV2[1] = uvTopLeft[1] * 65535;
 
             //Bottom right
             tmpV3[0] = halfSizeX;
@@ -243,8 +243,10 @@ module s2d {
             if (this.trianglesCount === 0)
                 return;
 
+            let gl = this.gl;
+
             this.renderProgram.useProgram();
-            this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
+            this.renderProgram.setUniform2f("u_resolution", gl.canvas.width, gl.canvas.height);
 
             this.currentTexture.useTexture();
 
@@ -252,11 +254,14 @@ module s2d {
 
             renderBuffer.setData(this.backingArray, false);
 
-            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
-            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
-            this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, this.gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
+            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
+            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
+            this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
 
-            this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+            gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
             this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
 
             this.currentTexture = null;

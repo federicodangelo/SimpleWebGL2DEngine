@@ -5,8 +5,16 @@ module s2d {
             return new Entity("Camera").addComponent(Camera);
         }
 
-        public static buildDrawer() : Drawer {
-            return new Entity("Drawer").addComponent(Drawer);
+        public static buildTextureDrawer(texture:RenderTexture) : TextureDrawer {
+            var textureDrawer = new Entity("Texture").addComponent(TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer
+        }
+
+        public static buildTextDrawer(font:RenderFont) : TextDrawer {
+            var textDrawer = new Entity("Text").addComponent(TextDrawer);
+            textDrawer.font = font;
+            return textDrawer;
         }
     }
 }

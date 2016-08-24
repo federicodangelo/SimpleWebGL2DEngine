@@ -24,9 +24,14 @@ module s2d {
             return this._entities;
         }
 
+        public get stats() {
+            return this._stats;
+        }
+
         public init() : void {
 
             Drawer.initStatic();
+            TextDrawer.initStatic();
             Time.initStatic();
             
             this._renderer = new RenderManager();

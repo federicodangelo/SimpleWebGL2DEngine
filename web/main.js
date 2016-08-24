@@ -403,8 +403,8 @@ var s2d;
             tmpV2[0] = halfSizeX;
             tmpV2[1] = -halfSizeY;
             s2d.Vector2.transformMat2d(tmpV2, tmpV2, mat);
-            tmpUV2[0] = uvBottomRight[1] * 65535;
-            tmpUV2[1] = uvTopLeft[0] * 65535;
+            tmpUV2[0] = uvBottomRight[0] * 65535;
+            tmpUV2[1] = uvTopLeft[1] * 65535;
             //Bottom right
             tmpV3[0] = halfSizeX;
             tmpV3[1] = halfSizeY;
@@ -466,15 +466,18 @@ var s2d;
                 return;
             if (this.trianglesCount === 0)
                 return;
+            var gl = this.gl;
             this.renderProgram.useProgram();
-            this.renderProgram.setUniform2f("u_resolution", this.gl.canvas.width, this.gl.canvas.height);
+            this.renderProgram.setUniform2f("u_resolution", gl.canvas.width, gl.canvas.height);
             this.currentTexture.useTexture();
             var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
             renderBuffer.setData(this.backingArray, false);
-            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, this.gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
-            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, this.gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
-            this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, this.gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
-            this.gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
+            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
+            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
+            this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
+            gl.enable(gl.BLEND);
+            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
             this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
             this.currentTexture = null;
         };
@@ -2189,18 +2192,12 @@ var s2d;
         __extends(Drawer, _super);
         function Drawer() {
             _super.apply(this, arguments);
-            this.uvTopLeft = s2d.Vector2.fromValues(0, 0);
-            this.uvBottomRight = s2d.Vector2.fromValues(1, 1);
-            this.color = s2d.Color.fromRgba(255, 255, 255, 255);
         }
         Drawer.initStatic = function () {
             Drawer.tmpMatrix = s2d.Matrix3.create();
             Drawer.tmpVector = s2d.Vector2.create();
         };
         Drawer.prototype.draw = function (commands) {
-            var trans = this.entity.transform;
-            trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
-            commands.drawRect(Drawer.tmpMatrix, trans.halfSize, this.texture, this.uvTopLeft, this.uvBottomRight, this.color);
         };
         return Drawer;
     }(s2d.Component));
@@ -2355,8 +2352,16 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Engine.prototype, "stats", {
+            get: function () {
+                return this._stats;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Engine.prototype.init = function () {
             s2d.Drawer.initStatic();
+            s2d.TextDrawer.initStatic();
             s2d.Time.initStatic();
             this._renderer = new s2d.RenderManager();
             this._input = new s2d.InputManager();
@@ -2428,17 +2433,18 @@ var GameLogic = (function (_super) {
     }
     GameLogic.prototype.onInit = function () {
         this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png");
+        this.font = new s2d.RenderFont(s2d.renderer.gl, "assets/font.fnt");
         this.cam = s2d.EntityFactory.buildCamera();
         this.initTestComplex();
         //this.initTestSimple();
+        this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
+        this.textFPS.entity.transform.localX = 8;
+        this.textFPS.entity.transform.localY = 0;
     };
     GameLogic.prototype.initTestSimple = function () {
-        var e1 = s2d.EntityFactory.buildDrawer().entity;
-        var e2 = s2d.EntityFactory.buildDrawer().entity;
-        var e3 = s2d.EntityFactory.buildDrawer().entity;
-        e1.firstDrawer.texture = this.texture;
-        e2.firstDrawer.texture = this.texture;
-        e3.firstDrawer.texture = this.texture;
+        var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        var e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        var e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
         e1.transform.localX = 300;
         e1.transform.localY = 300;
         e2.transform.parent = e1.transform;
@@ -2453,8 +2459,7 @@ var GameLogic = (function (_super) {
         var sWidth = s2d.engine.renderer.screenWidth;
         var sHeight = s2d.engine.renderer.screenHeight;
         for (var i = 0; i < GameLogic.RECTS_COUNT; i++) {
-            var e = s2d.EntityFactory.buildDrawer().entity;
-            e.firstDrawer.texture = this.texture;
+            var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
             e.name = "Entity " + i;
             e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
             e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 200);
@@ -2479,27 +2484,18 @@ var GameLogic = (function (_super) {
             this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
         else
             this.cam.clearColor.rgbaHex = 0x000000FF; //black
+        var stats = s2d.engine.stats;
+        if (stats.lastFps !== this.lastFps || stats.lastUpdateTime !== this.lastUpdateTime) {
+            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + " updateTime: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms";
+            this.lastFps = stats.lastFps;
+            this.lastUpdateTime = stats.lastUpdateTime;
+        }
     };
     GameLogic.TEST_NESTING = true;
     GameLogic.TEST_MOVING = true;
     GameLogic.RECTS_COUNT = 8192;
     return GameLogic;
 }(s2d.Behavior));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildDrawer = function () {
-            return new s2d.Entity("Drawer").addComponent(s2d.Drawer);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
-})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
 (function (s2d) {
@@ -2514,6 +2510,116 @@ var s2d;
         return Camera;
     }(s2d.Component));
     s2d.Camera = Camera;
+})(s2d || (s2d = {}));
+/// <reference path="Component.ts" />
+/// <reference path="../Math/Matrix3.ts" />
+/// <reference path="../Math/Vector2.ts" />
+var s2d;
+(function (s2d) {
+    var TextDrawer = (function (_super) {
+        __extends(TextDrawer, _super);
+        function TextDrawer() {
+            _super.apply(this, arguments);
+            this.color = s2d.Color.fromRgba(255, 255, 255, 255);
+            this.text = "Nice FPS drawing!!";
+        }
+        TextDrawer.initStatic = function () {
+            TextDrawer.tmpUVTopLeft = s2d.Vector2.create();
+            TextDrawer.tmpUVBottomRight = s2d.Vector2.create();
+            TextDrawer.tmpTranslate = s2d.Vector2.create();
+            TextDrawer.tmpSize = s2d.Vector2.create();
+        };
+        TextDrawer.prototype.draw = function (commands) {
+            var font = this.font;
+            var color = this.color;
+            var text = this.text;
+            if (font.texture === null)
+                return; //Texture not loaded yet
+            var texture = font.texture;
+            var textureWidth = font.textureWidth;
+            var textureHeight = font.textureHeight;
+            var uvTopLeft = TextDrawer.tmpUVTopLeft;
+            var uvBottomRight = TextDrawer.tmpUVBottomRight;
+            var translate = TextDrawer.tmpTranslate;
+            var size = TextDrawer.tmpSize;
+            var trans = this.entity.transform;
+            var matrix = s2d.Drawer.tmpMatrix;
+            var oldX = 0;
+            var oldY = 0;
+            trans.getLocalToGlobalMatrix(matrix);
+            for (var i = 0; i < text.length; i++) {
+                var charCode = text.charCodeAt(i);
+                var charData = font.chars[charCode];
+                if (charData !== null) {
+                    size[0] = charData.width * 0.5;
+                    size[1] = charData.height * 0.5;
+                    uvTopLeft[0] = charData.x / textureWidth;
+                    uvTopLeft[1] = charData.y / textureHeight;
+                    uvBottomRight[0] = (charData.x + charData.width) / textureWidth;
+                    uvBottomRight[1] = (charData.y + charData.height) / textureHeight;
+                    //offset half-size (save last positions to restore later)
+                    oldX = matrix[4];
+                    oldY = matrix[5];
+                    s2d.Matrix2d.translate(matrix, matrix, size);
+                    //draw char
+                    commands.drawRect(matrix, size, texture, uvTopLeft, uvBottomRight, color);
+                    //un-offset half-size
+                    matrix[4] = oldX;
+                    matrix[5] = oldY;
+                    //offset char xadvance
+                    translate[0] = charData.xadvance;
+                    translate[1] = 0;
+                    s2d.Matrix2d.translate(matrix, matrix, translate);
+                }
+            }
+        };
+        return TextDrawer;
+    }(s2d.Drawer));
+    s2d.TextDrawer = TextDrawer;
+})(s2d || (s2d = {}));
+/// <reference path="Component.ts" />
+/// <reference path="../Math/Matrix3.ts" />
+/// <reference path="../Math/Vector2.ts" />
+var s2d;
+(function (s2d) {
+    var TextureDrawer = (function (_super) {
+        __extends(TextureDrawer, _super);
+        function TextureDrawer() {
+            _super.apply(this, arguments);
+            this.uvTopLeft = s2d.Vector2.fromValues(0, 0);
+            this.uvBottomRight = s2d.Vector2.fromValues(1, 1);
+            this.color = s2d.Color.fromRgba(255, 255, 255, 255);
+        }
+        TextureDrawer.prototype.draw = function (commands) {
+            var trans = this.entity.transform;
+            trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
+            commands.drawRect(s2d.Drawer.tmpMatrix, trans.halfSize, this.texture, this.uvTopLeft, this.uvBottomRight, this.color);
+        };
+        return TextureDrawer;
+    }(s2d.Drawer));
+    s2d.TextureDrawer = TextureDrawer;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EntityFactory = (function () {
+        function EntityFactory() {
+        }
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function (font) {
+            var textDrawer = new s2d.Entity("Text").addComponent(s2d.TextDrawer);
+            textDrawer.font = font;
+            return textDrawer;
+        };
+        return EntityFactory;
+    }());
+    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -3427,6 +3533,115 @@ var s2d;
     }());
     s2d.SMath = SMath;
 })(s2d || (s2d = {}));
+/// <reference path="../Util/JXON.d.ts" />
+var s2d;
+(function (s2d) {
+    var RenderFontCharData = (function () {
+        function RenderFontCharData() {
+            this.id = 0;
+            this.width = 0;
+            this.height = 0;
+            this.x = 0;
+            this.y = 0;
+            this.xadvance = 0;
+            this.xoffset = 0;
+            this.yoffset = 0;
+        }
+        return RenderFontCharData;
+    }());
+    s2d.RenderFontCharData = RenderFontCharData;
+    var RenderFont = (function () {
+        function RenderFont(gl, fontXmlSrc) {
+            var _this = this;
+            this.gl = null;
+            this._xhttp = null;
+            this._texture = null;
+            this._fontData = null;
+            this._textureWidth = 0;
+            this._textureHeight = 0;
+            this._lineHeight = 0;
+            this._chars = new Array();
+            this.gl = gl;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", fontXmlSrc, true);
+            this._xhttp.send(null);
+        }
+        Object.defineProperty(RenderFont.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "fontData", {
+            get: function () {
+                return this._fontData;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureWidth", {
+            get: function () {
+                return this._textureWidth;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureHeight", {
+            get: function () {
+                return this._textureHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "lineHeight", {
+            get: function () {
+                return this._lineHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "chars", {
+            get: function () {
+                return this._chars;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderFont.prototype.onXMLLoadComplete = function () {
+            this._fontData = JXON.stringToJs(this._xhttp.responseText);
+            this._textureWidth = parseInt(this._fontData.font.common.$scaleW);
+            this._textureHeight = parseInt(this._fontData.font.common.$scaleH);
+            this._lineHeight = parseInt(this._fontData.font.common.$lineHeight);
+            var charsJson = this._fontData.font.chars.char;
+            for (var i = 0; i < charsJson.length; i++) {
+                var charJson = charsJson[i];
+                var char = new RenderFontCharData();
+                char.id = parseInt(charJson.$id);
+                char.width = parseInt(charJson.$width);
+                char.height = parseInt(charJson.$height);
+                char.x = parseInt(charJson.$x);
+                char.y = parseInt(charJson.$y);
+                char.xadvance = parseInt(charJson.$xadvance);
+                char.xoffset = parseInt(charJson.$xoffset);
+                char.yoffset = parseInt(charJson.$yoffset);
+                this._chars[char.id] = char;
+            }
+            this._texture = new s2d.RenderTexture(this.gl, "assets/" + this._fontData.font.pages.page.$file);
+            this._xhttp = null;
+        };
+        RenderFont.prototype.clear = function () {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+            this._fontData = null;
+        };
+        return RenderFont;
+    }());
+    s2d.RenderFont = RenderFont;
+})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     var RenderTexture = (function () {
@@ -3441,8 +3656,8 @@ var s2d;
             // Asynchronously load an image
             this._image = new Image();
             this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.src = imageSrc;
             this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = imageSrc;
         }
         Object.defineProperty(RenderTexture.prototype, "texture", {
             get: function () {
@@ -3462,6 +3677,8 @@ var s2d;
             //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.generateMipmap(gl.TEXTURE_2D);
             this._image = null;
         };
@@ -3498,17 +3715,29 @@ var s2d;
             this.lastFpsTime = 0;
             this.fpsCounter = 0;
             this.accumulatedUpdateTime = 0;
+            this._lastFps = 0;
+            this._lastUpdateTime = 0;
         }
+        Object.defineProperty(Stats.prototype, "lastFps", {
+            get: function () {
+                return this._lastFps;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Stats.prototype, "lastUpdateTime", {
+            get: function () {
+                return this._lastUpdateTime;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Stats.prototype.init = function () {
-            this._wglu = new WGLUStats(s2d.engine.renderer.gl);
             this.lastFpsTime = performance.now();
         };
         Stats.prototype.startFrame = function () {
-            this._wglu.begin();
         };
         Stats.prototype.endFrame = function () {
-            this._wglu.end();
-            this._wglu.renderOrtho();
         };
         Stats.prototype.startUpdate = function () {
             this.updateStartTime = performance.now();
@@ -3524,6 +3753,8 @@ var s2d;
                 this.lastFpsTime = this.updateStartTime;
                 this.fpsCounter = 0;
                 this.accumulatedUpdateTime = 0;
+                this._lastFps = fps;
+                this._lastUpdateTime = updateTime;
                 if (s2d.EngineConfiguration.LOG_PERFORMANCE)
                     console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
             }

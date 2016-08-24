@@ -10,26 +10,33 @@ class GameLogic extends s2d.Behavior {
     static RECTS_COUNT = 8192;
 
     private texture : s2d.RenderTexture;
+    private font : s2d.RenderFont;
+
+    private textFPS : s2d.TextDrawer;
+    private lastFps : number;
+    private lastUpdateTime : number;
 
     public onInit() : void {
 
         this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png");
-
+        this.font = new s2d.RenderFont(s2d.renderer.gl, "assets/font.fnt");
         this.cam = s2d.EntityFactory.buildCamera();
         
         this.initTestComplex();
         //this.initTestSimple();
+
+        this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
+
+        this.textFPS.entity.transform.localX = 8;
+        this.textFPS.entity.transform.localY = 0;
+        
     }
 
     private initTestSimple() {
 
-        let e1 = s2d.EntityFactory.buildDrawer().entity;
-        let e2 = s2d.EntityFactory.buildDrawer().entity;
-        let e3 = s2d.EntityFactory.buildDrawer().entity;
-
-        e1.firstDrawer.texture = this.texture;
-        e2.firstDrawer.texture = this.texture;
-        e3.firstDrawer.texture = this.texture;
+        let e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        let e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        let e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
 
         e1.transform.localX = 300;
         e1.transform.localY = 300;
@@ -50,9 +57,7 @@ class GameLogic extends s2d.Behavior {
         let sHeight = s2d.engine.renderer.screenHeight;
 
         for (let i = 0; i < GameLogic.RECTS_COUNT; i++) {
-            let e = s2d.EntityFactory.buildDrawer().entity;
-
-            e.firstDrawer.texture = this.texture;
+            let e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
 
             e.name = "Entity " + i;
             e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
@@ -86,5 +91,12 @@ class GameLogic extends s2d.Behavior {
         else
             this.cam.clearColor.rgbaHex = 0x000000FF; //black
 
+        var stats = s2d.engine.stats;
+
+        if (stats.lastFps !== this.lastFps || stats.lastUpdateTime !== this.lastUpdateTime) {
+            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + " updateTime: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms"
+            this.lastFps = stats.lastFps;
+            this.lastUpdateTime = stats.lastUpdateTime;
+        }
     }
 }

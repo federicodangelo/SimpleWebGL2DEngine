@@ -26,8 +26,8 @@ module s2d {
             // Asynchronously load an image
             this._image = new Image();
             this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.src = imageSrc;
             this._image.addEventListener('load', () => this.onImageLoadComplete());
+            this._image.src = imageSrc;
         }
 
         private onImageLoadComplete() {
@@ -44,6 +44,9 @@ module s2d {
  
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
             gl.generateMipmap(gl.TEXTURE_2D);
 

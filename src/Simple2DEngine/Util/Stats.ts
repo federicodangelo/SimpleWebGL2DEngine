@@ -3,27 +3,29 @@
 module s2d {
     export class Stats {       
 
-        private _wglu : WGLUStats;
-
         private lastFpsTime = 0;
         private fpsCounter = 0;
 
         private accumulatedUpdateTime = 0;
-        
-        public init() : void {
-            this._wglu = new WGLUStats(engine.renderer.gl);
+        private _lastFps = 0;
+        private _lastUpdateTime = 0;
 
+        public get lastFps() {
+            return this._lastFps;
+        }
+        
+        public get lastUpdateTime() {
+            return this._lastUpdateTime;
+        }
+
+        public init() : void {
             this.lastFpsTime = performance.now();
         }
 
         public startFrame() : void {
-            this._wglu.begin();
         }
 
         public endFrame() : void {
-            this._wglu.end();
-
-            this._wglu.renderOrtho();
         }
 
         private updateStartTime : number;
@@ -49,6 +51,9 @@ module s2d {
                 this.lastFpsTime = this.updateStartTime;
                 this.fpsCounter = 0;
                 this.accumulatedUpdateTime = 0;
+
+                this._lastFps = fps;
+                this._lastUpdateTime = updateTime;
 
                 if (EngineConfiguration.LOG_PERFORMANCE)
                     console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
