@@ -99,15 +99,10 @@ module s2d {
             this.uvs = new Uint16Array(this.backingArray);
         }
 
-        private tmpV1 : Vector2 = Vector2.create();
-        private tmpV2 : Vector2 = Vector2.create(); 
-        private tmpV3 : Vector2 = Vector2.create(); 
-        private tmpV4 : Vector2 = Vector2.create();  
-
-        private tmpUV1 : Vector2 = Vector2.create(); 
-        private tmpUV2 : Vector2 = Vector2.create();
-        private tmpUV3 : Vector2 = Vector2.create(); 
-        private tmpUV4 : Vector2 = Vector2.create();
+        private tmpV1 : RenderVertex = new RenderVertex();
+        private tmpV2 : RenderVertex = new RenderVertex(); 
+        private tmpV3 : RenderVertex = new RenderVertex(); 
+        private tmpV4 : RenderVertex = new RenderVertex();  
 
         public startFrame() {
             
@@ -124,23 +119,58 @@ module s2d {
             this.uvsOffset = 0;
         }
 
-        public drawRect(mat: Matrix2d, halfSize : Vector2, texture : RenderTexture, uvTopLeft : Vector2, uvBottomRight : Vector2, color : Color ) : void {
-
-            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES || texture !== this.currentTexture) {
-                this.end();
-                this.start();
-                this.currentTexture = texture;
-            }
+        public drawRectSimple(mat: Matrix2d, halfSize : Vector2, texture : RenderTexture, uvTopLeft : Vector2, uvBottomRight : Vector2, color : Color ) : void {
 
             let tmpV1 = this.tmpV1;
             let tmpV2 = this.tmpV2;
             let tmpV3 = this.tmpV3;
             let tmpV4 = this.tmpV4;
 
-            let tmpUV1 = this.tmpUV1;
-            let tmpUV2 = this.tmpUV2;
-            let tmpUV3 = this.tmpUV3;
-            let tmpUV4 = this.tmpUV4;
+            let halfSizeX = halfSize[0];
+            let halfSizeY = halfSize[1];
+
+            //Top left
+            tmpV1.x = -halfSizeX;
+            tmpV1.y = -halfSizeY;
+            tmpV1.transformMat2d(mat);
+            tmpV1.color = color.abgrHex;
+            tmpV1.u = uvTopLeft[0] * 65535;
+            tmpV1.v = uvTopLeft[1] * 65535;
+
+            //Top right
+            tmpV2.x = halfSizeX;
+            tmpV2.y = -halfSizeY;
+            tmpV2.transformMat2d(mat);
+            tmpV2.color = color.abgrHex;
+            tmpV2.u = uvBottomRight[0] * 65535;
+            tmpV2.v = uvTopLeft[1] * 65535;
+
+            //Bottom right
+            tmpV3.x = halfSizeX;
+            tmpV3.y = halfSizeY;
+            tmpV3.transformMat2d(mat);
+            tmpV3.color = color.abgrHex;
+            tmpV3.u = uvBottomRight[0] * 65535;
+            tmpV3.v = uvBottomRight[1] * 65535;
+
+            //Bottom left
+            tmpV4.x = -halfSizeX;
+            tmpV4.y = halfSizeY;
+            tmpV4.transformMat2d(mat);
+            tmpV4.color = color.abgrHex;
+            tmpV4.u = uvTopLeft[0] * 65535;
+            tmpV4.v = uvBottomRight[1] * 65535;
+
+            this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
+        }
+
+        public drawRect(tmpV1 : RenderVertex, tmpV2 : RenderVertex, tmpV3 : RenderVertex, tmpV4 : RenderVertex, texture : RenderTexture) : void {
+
+            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES || texture !== this.currentTexture) {
+                this.end();
+                this.start();
+                this.currentTexture = texture;
+            }
 
             let triangles = this.triangles;
             let trianglesOffset = this.trianglesOffset;
@@ -151,80 +181,47 @@ module s2d {
             let uvs = this.uvs;
             let uvsOffset = this.uvsOffset;
 
-            let halfSizeX = halfSize[0];
-            let halfSizeY = halfSize[1];
-
-            //Top left
-            tmpV1[0] = -halfSizeX;
-            tmpV1[1] = -halfSizeY;
-            Vector2.transformMat2d(tmpV1, tmpV1, mat);
-            tmpUV1[0] = uvTopLeft[0] * 65535;
-            tmpUV1[1] = uvTopLeft[1] * 65535;
-
-            //Top right
-            tmpV2[0] = halfSizeX;
-            tmpV2[1] = -halfSizeY;
-            Vector2.transformMat2d(tmpV2, tmpV2, mat);
-            tmpUV2[0] = uvBottomRight[0] * 65535;
-            tmpUV2[1] = uvTopLeft[1] * 65535;
-
-            //Bottom right
-            tmpV3[0] = halfSizeX;
-            tmpV3[1] = halfSizeY;
-            Vector2.transformMat2d(tmpV3, tmpV3, mat);
-            tmpUV3[0] = uvBottomRight[0] * 65535;
-            tmpUV3[1] = uvBottomRight[1] * 65535;
-
-            //Bottom left
-            tmpV4[0] = -halfSizeX;
-            tmpV4[1] = halfSizeY;
-            Vector2.transformMat2d(tmpV4, tmpV4, mat);
-            tmpUV4[0] = uvTopLeft[0] * 65535;
-            tmpUV4[1] = uvBottomRight[1] * 65535;
-
-            let colorNumber = color.rgbaHex;
-
             //First triangle (1 -> 2 -> 3)
-            triangles[trianglesOffset + 0] = tmpV1[0];
-            triangles[trianglesOffset + 1] = tmpV1[1];
-            colors[colorsOffset + 2] = colorNumber;
-            uvs[uvsOffset + 6] = tmpUV1[0];
-            uvs[uvsOffset + 7] = tmpUV1[1];
+            triangles[trianglesOffset + 0] = tmpV1.x;
+            triangles[trianglesOffset + 1] = tmpV1.y;
+            colors[colorsOffset + 2] = tmpV1.color;
+            uvs[uvsOffset + 6] = tmpV1.u;
+            uvs[uvsOffset + 7] = tmpV1.v;
 
-            triangles[trianglesOffset + 4] = tmpV2[0];
-            triangles[trianglesOffset + 5] = tmpV2[1];
-            colors[colorsOffset + 6] = colorNumber;
-            uvs[uvsOffset + 14] = tmpUV2[0];
-            uvs[uvsOffset + 15] = tmpUV2[1];
+            triangles[trianglesOffset + 4] = tmpV2.x;
+            triangles[trianglesOffset + 5] = tmpV2.y;
+            colors[colorsOffset + 6] = tmpV2.color;
+            uvs[uvsOffset + 14] = tmpV2.u;
+            uvs[uvsOffset + 15] = tmpV2.v;
 
-            triangles[trianglesOffset + 8] = tmpV3[0];
-            triangles[trianglesOffset + 9] = tmpV3[1];
-            colors[colorsOffset + 10] = colorNumber;
-            uvs[uvsOffset + 22] = tmpUV3[0];
-            uvs[uvsOffset + 23] = tmpUV3[1];
+            triangles[trianglesOffset + 8] = tmpV3.x;
+            triangles[trianglesOffset + 9] = tmpV3.y;
+            colors[colorsOffset + 10] = tmpV3.color;
+            uvs[uvsOffset + 22] = tmpV3.u;
+            uvs[uvsOffset + 23] = tmpV3.v;
 
             trianglesOffset += 12;
             colorsOffset += 12;
             uvsOffset += 24;
 
             //Second triangle (3 -> 4 -> 1)
-            triangles[trianglesOffset + 0] = tmpV3[0];
-            triangles[trianglesOffset + 1] = tmpV3[1];
-            colors[colorsOffset + 2] = colorNumber;
-            uvs[uvsOffset + 6] = tmpUV3[0];
-            uvs[uvsOffset + 7] = tmpUV3[1];
+            triangles[trianglesOffset + 0] = tmpV3.x;
+            triangles[trianglesOffset + 1] = tmpV3.y;
+            colors[colorsOffset + 2] = tmpV3.color;
+            uvs[uvsOffset + 6] = tmpV3.u;
+            uvs[uvsOffset + 7] = tmpV3.v;
 
-            triangles[trianglesOffset + 4] = tmpV4[0];
-            triangles[trianglesOffset + 5] = tmpV4[1];
-            colors[colorsOffset + 6] = colorNumber;
-            uvs[uvsOffset + 14] = tmpUV4[0];
-            uvs[uvsOffset + 15] = tmpUV4[1];
+            triangles[trianglesOffset + 4] = tmpV4.x;
+            triangles[trianglesOffset + 5] = tmpV4.y;
+            colors[colorsOffset + 6] = tmpV4.color;
+            uvs[uvsOffset + 14] = tmpV4.u;
+            uvs[uvsOffset + 15] = tmpV4.v;
             
-            triangles[trianglesOffset + 8] = tmpV1[0];
-            triangles[trianglesOffset + 9] = tmpV1[1];
-            colors[colorsOffset + 10] = colorNumber;
-            uvs[uvsOffset + 22] = tmpUV1[0];
-            uvs[uvsOffset + 23] = tmpUV1[1];
+            triangles[trianglesOffset + 8] = tmpV1.x;
+            triangles[trianglesOffset + 9] = tmpV1.y;
+            colors[colorsOffset + 10] = tmpV1.color;
+            uvs[uvsOffset + 22] = tmpV1.u;
+            uvs[uvsOffset + 23] = tmpV1.v;
 
             trianglesOffset += 12;
             colorsOffset += 12;

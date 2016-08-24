@@ -69,7 +69,7 @@ module s2d {
                     Matrix2d.translate(matrix, matrix, size);
 
                     //draw char
-                    commands.drawRect(matrix, size, texture, uvTopLeft, uvBottomRight, color);
+                    commands.drawRectSimple(matrix, size, texture, uvTopLeft, uvBottomRight, color);
 
                     //un-offset half-size
                     matrix[4] = oldX;

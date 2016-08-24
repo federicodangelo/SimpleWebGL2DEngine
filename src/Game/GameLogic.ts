@@ -26,6 +26,7 @@ class GameLogic extends s2d.Behavior {
         //this.initTestSimple();
 
         this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
+        this.textFPS.color.setFromRgba(0, 255, 0);
 
         this.textFPS.entity.transform.localX = 8;
         this.textFPS.entity.transform.localY = 0;

@@ -343,14 +343,10 @@ var s2d;
     var RenderCommands = (function () {
         function RenderCommands(gl) {
             this.currentRenderBufferIndex = 0;
-            this.tmpV1 = s2d.Vector2.create();
-            this.tmpV2 = s2d.Vector2.create();
-            this.tmpV3 = s2d.Vector2.create();
-            this.tmpV4 = s2d.Vector2.create();
-            this.tmpUV1 = s2d.Vector2.create();
-            this.tmpUV2 = s2d.Vector2.create();
-            this.tmpUV3 = s2d.Vector2.create();
-            this.tmpUV4 = s2d.Vector2.create();
+            this.tmpV1 = new s2d.RenderVertex();
+            this.tmpV2 = new s2d.RenderVertex();
+            this.tmpV3 = new s2d.RenderVertex();
+            this.tmpV4 = new s2d.RenderVertex();
             this.gl = gl;
             this.renderProgram = new s2d.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderBuffers = new Array();
@@ -371,88 +367,90 @@ var s2d;
             this.colorsOffset = 0;
             this.uvsOffset = 0;
         };
-        RenderCommands.prototype.drawRect = function (mat, halfSize, texture, uvTopLeft, uvBottomRight, color) {
+        RenderCommands.prototype.drawRectSimple = function (mat, halfSize, texture, uvTopLeft, uvBottomRight, color) {
+            var tmpV1 = this.tmpV1;
+            var tmpV2 = this.tmpV2;
+            var tmpV3 = this.tmpV3;
+            var tmpV4 = this.tmpV4;
+            var halfSizeX = halfSize[0];
+            var halfSizeY = halfSize[1];
+            //Top left
+            tmpV1.x = -halfSizeX;
+            tmpV1.y = -halfSizeY;
+            tmpV1.transformMat2d(mat);
+            tmpV1.color = color.abgrHex;
+            tmpV1.u = uvTopLeft[0] * 65535;
+            tmpV1.v = uvTopLeft[1] * 65535;
+            //Top right
+            tmpV2.x = halfSizeX;
+            tmpV2.y = -halfSizeY;
+            tmpV2.transformMat2d(mat);
+            tmpV2.color = color.abgrHex;
+            tmpV2.u = uvBottomRight[0] * 65535;
+            tmpV2.v = uvTopLeft[1] * 65535;
+            //Bottom right
+            tmpV3.x = halfSizeX;
+            tmpV3.y = halfSizeY;
+            tmpV3.transformMat2d(mat);
+            tmpV3.color = color.abgrHex;
+            tmpV3.u = uvBottomRight[0] * 65535;
+            tmpV3.v = uvBottomRight[1] * 65535;
+            //Bottom left
+            tmpV4.x = -halfSizeX;
+            tmpV4.y = halfSizeY;
+            tmpV4.transformMat2d(mat);
+            tmpV4.color = color.abgrHex;
+            tmpV4.u = uvTopLeft[0] * 65535;
+            tmpV4.v = uvBottomRight[1] * 65535;
+            this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
+        };
+        RenderCommands.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4, texture) {
             if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES || texture !== this.currentTexture) {
                 this.end();
                 this.start();
                 this.currentTexture = texture;
             }
-            var tmpV1 = this.tmpV1;
-            var tmpV2 = this.tmpV2;
-            var tmpV3 = this.tmpV3;
-            var tmpV4 = this.tmpV4;
-            var tmpUV1 = this.tmpUV1;
-            var tmpUV2 = this.tmpUV2;
-            var tmpUV3 = this.tmpUV3;
-            var tmpUV4 = this.tmpUV4;
             var triangles = this.triangles;
             var trianglesOffset = this.trianglesOffset;
             var colors = this.colors;
             var colorsOffset = this.colorsOffset;
             var uvs = this.uvs;
             var uvsOffset = this.uvsOffset;
-            var halfSizeX = halfSize[0];
-            var halfSizeY = halfSize[1];
-            //Top left
-            tmpV1[0] = -halfSizeX;
-            tmpV1[1] = -halfSizeY;
-            s2d.Vector2.transformMat2d(tmpV1, tmpV1, mat);
-            tmpUV1[0] = uvTopLeft[0] * 65535;
-            tmpUV1[1] = uvTopLeft[1] * 65535;
-            //Top right
-            tmpV2[0] = halfSizeX;
-            tmpV2[1] = -halfSizeY;
-            s2d.Vector2.transformMat2d(tmpV2, tmpV2, mat);
-            tmpUV2[0] = uvBottomRight[0] * 65535;
-            tmpUV2[1] = uvTopLeft[1] * 65535;
-            //Bottom right
-            tmpV3[0] = halfSizeX;
-            tmpV3[1] = halfSizeY;
-            s2d.Vector2.transformMat2d(tmpV3, tmpV3, mat);
-            tmpUV3[0] = uvBottomRight[0] * 65535;
-            tmpUV3[1] = uvBottomRight[1] * 65535;
-            //Bottom left
-            tmpV4[0] = -halfSizeX;
-            tmpV4[1] = halfSizeY;
-            s2d.Vector2.transformMat2d(tmpV4, tmpV4, mat);
-            tmpUV4[0] = uvTopLeft[0] * 65535;
-            tmpUV4[1] = uvBottomRight[1] * 65535;
-            var colorNumber = color.rgbaHex;
             //First triangle (1 -> 2 -> 3)
-            triangles[trianglesOffset + 0] = tmpV1[0];
-            triangles[trianglesOffset + 1] = tmpV1[1];
-            colors[colorsOffset + 2] = colorNumber;
-            uvs[uvsOffset + 6] = tmpUV1[0];
-            uvs[uvsOffset + 7] = tmpUV1[1];
-            triangles[trianglesOffset + 4] = tmpV2[0];
-            triangles[trianglesOffset + 5] = tmpV2[1];
-            colors[colorsOffset + 6] = colorNumber;
-            uvs[uvsOffset + 14] = tmpUV2[0];
-            uvs[uvsOffset + 15] = tmpUV2[1];
-            triangles[trianglesOffset + 8] = tmpV3[0];
-            triangles[trianglesOffset + 9] = tmpV3[1];
-            colors[colorsOffset + 10] = colorNumber;
-            uvs[uvsOffset + 22] = tmpUV3[0];
-            uvs[uvsOffset + 23] = tmpUV3[1];
+            triangles[trianglesOffset + 0] = tmpV1.x;
+            triangles[trianglesOffset + 1] = tmpV1.y;
+            colors[colorsOffset + 2] = tmpV1.color;
+            uvs[uvsOffset + 6] = tmpV1.u;
+            uvs[uvsOffset + 7] = tmpV1.v;
+            triangles[trianglesOffset + 4] = tmpV2.x;
+            triangles[trianglesOffset + 5] = tmpV2.y;
+            colors[colorsOffset + 6] = tmpV2.color;
+            uvs[uvsOffset + 14] = tmpV2.u;
+            uvs[uvsOffset + 15] = tmpV2.v;
+            triangles[trianglesOffset + 8] = tmpV3.x;
+            triangles[trianglesOffset + 9] = tmpV3.y;
+            colors[colorsOffset + 10] = tmpV3.color;
+            uvs[uvsOffset + 22] = tmpV3.u;
+            uvs[uvsOffset + 23] = tmpV3.v;
             trianglesOffset += 12;
             colorsOffset += 12;
             uvsOffset += 24;
             //Second triangle (3 -> 4 -> 1)
-            triangles[trianglesOffset + 0] = tmpV3[0];
-            triangles[trianglesOffset + 1] = tmpV3[1];
-            colors[colorsOffset + 2] = colorNumber;
-            uvs[uvsOffset + 6] = tmpUV3[0];
-            uvs[uvsOffset + 7] = tmpUV3[1];
-            triangles[trianglesOffset + 4] = tmpV4[0];
-            triangles[trianglesOffset + 5] = tmpV4[1];
-            colors[colorsOffset + 6] = colorNumber;
-            uvs[uvsOffset + 14] = tmpUV4[0];
-            uvs[uvsOffset + 15] = tmpUV4[1];
-            triangles[trianglesOffset + 8] = tmpV1[0];
-            triangles[trianglesOffset + 9] = tmpV1[1];
-            colors[colorsOffset + 10] = colorNumber;
-            uvs[uvsOffset + 22] = tmpUV1[0];
-            uvs[uvsOffset + 23] = tmpUV1[1];
+            triangles[trianglesOffset + 0] = tmpV3.x;
+            triangles[trianglesOffset + 1] = tmpV3.y;
+            colors[colorsOffset + 2] = tmpV3.color;
+            uvs[uvsOffset + 6] = tmpV3.u;
+            uvs[uvsOffset + 7] = tmpV3.v;
+            triangles[trianglesOffset + 4] = tmpV4.x;
+            triangles[trianglesOffset + 5] = tmpV4.y;
+            colors[colorsOffset + 6] = tmpV4.color;
+            uvs[uvsOffset + 14] = tmpV4.u;
+            uvs[uvsOffset + 15] = tmpV4.v;
+            triangles[trianglesOffset + 8] = tmpV1.x;
+            triangles[trianglesOffset + 9] = tmpV1.y;
+            colors[colorsOffset + 10] = tmpV1.color;
+            uvs[uvsOffset + 22] = tmpV1.u;
+            uvs[uvsOffset + 23] = tmpV1.v;
             trianglesOffset += 12;
             colorsOffset += 12;
             uvsOffset += 24;
@@ -2443,6 +2441,7 @@ var GameLogic = (function (_super) {
         this.initTestComplex();
         //this.initTestSimple();
         this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
+        this.textFPS.color.setFromRgba(0, 255, 0);
         this.textFPS.entity.transform.localX = 8;
         this.textFPS.entity.transform.localY = 0;
     };
@@ -2567,7 +2566,7 @@ var s2d;
                     oldY = matrix[5];
                     s2d.Matrix2d.translate(matrix, matrix, size);
                     //draw char
-                    commands.drawRect(matrix, size, texture, uvTopLeft, uvBottomRight, color);
+                    commands.drawRectSimple(matrix, size, texture, uvTopLeft, uvBottomRight, color);
                     //un-offset half-size
                     matrix[4] = oldX;
                     matrix[5] = oldY;
@@ -2598,7 +2597,7 @@ var s2d;
         TextureDrawer.prototype.draw = function (commands) {
             var trans = this.entity.transform;
             trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
-            commands.drawRect(s2d.Drawer.tmpMatrix, trans.halfSize, this.texture, this.uvTopLeft, this.uvBottomRight, this.color);
+            commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.halfSize, this.texture, this.uvTopLeft, this.uvBottomRight, this.color);
         };
         return TextureDrawer;
     }(s2d.Drawer));
@@ -2633,45 +2632,49 @@ var s2d;
         }
         Object.defineProperty(Color.prototype, "r", {
             get: function () {
-                return (this.rgbaHex >> 24) & 0xFF;
+                return (this.abgrHex >> 0) & 0xFF;
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Color.prototype, "g", {
             get: function () {
-                return (this.rgbaHex >> 16) & 0xFF;
+                return (this.abgrHex >> 8) & 0xFF;
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Color.prototype, "b", {
             get: function () {
-                return (this.rgbaHex >> 8) & 0xFF;
+                return (this.abgrHex >> 16) & 0xFF;
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Color.prototype, "a", {
             get: function () {
-                return (this.rgbaHex >> 0) & 0xFF;
+                return (this.abgrHex >> 24) & 0xFF;
             },
             enumerable: true,
             configurable: true
         });
-        Color.fromRgba = function (r, g, b, a) {
+        Color.prototype.setFromRgba = function (r, g, b, a) {
             if (a === void 0) { a = 255; }
-            var c = new Color();
             r = s2d.SMath.clamp(r, 0, 255);
             g = s2d.SMath.clamp(g, 0, 255);
             b = s2d.SMath.clamp(b, 0, 255);
             a = s2d.SMath.clamp(a, 0, 255);
-            c.rgbaHex = (r << 24) | (g << 16) | (b << 8) | a;
+            this.abgrHex = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+        };
+        Color.fromRgba = function (r, g, b, a) {
+            if (a === void 0) { a = 255; }
+            var c = new Color();
+            c.setFromRgba(r, g, b, a);
             return c;
         };
-        Color.fromHex = function (rgbaHex) {
+        Color.fromHex = function (abgrHex) {
             var c = new Color();
-            c.rgbaHex = rgbaHex;
+            c.abgrHex = abgrHex;
             return c;
         };
         return Color;
@@ -3712,6 +3715,20 @@ var s2d;
         return RenderTexture;
     }());
     s2d.RenderTexture = RenderTexture;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var RenderVertex = (function () {
+        function RenderVertex() {
+        }
+        RenderVertex.prototype.transformMat2d = function (m) {
+            var x = this.x, y = this.y;
+            this.x = m[0] * x + m[2] * y + m[4];
+            this.y = m[1] * x + m[3] * y + m[5];
+        };
+        return RenderVertex;
+    }());
+    s2d.RenderVertex = RenderVertex;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {

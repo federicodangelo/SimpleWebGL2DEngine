@@ -1,36 +1,41 @@
 module s2d {
     export class Color {
-        public rgbaHex : number;
+        //public rgbaHex : number;
+        public abgrHex : number;
 
         public get r() {
-            return (this.rgbaHex >> 24) & 0xFF;
+            return (this.abgrHex >> 0) & 0xFF;
         }
         
         public get g() {
-            return (this.rgbaHex >> 16) & 0xFF;
+            return (this.abgrHex >> 8) & 0xFF;
         }
         
         public get b() {
-            return (this.rgbaHex >> 8) & 0xFF;
+            return (this.abgrHex >> 16) & 0xFF;
         }
 
         public get a() {
-            return (this.rgbaHex >> 0) & 0xFF;
+            return (this.abgrHex >> 24) & 0xFF;
         }
 
-        static fromRgba(r:number, g:number, b:number, a:number=255) { 
-            let c = new Color();
+        public setFromRgba(r:number, g:number, b:number, a:number=255) { 
             r = SMath.clamp(r, 0, 255);
             g = SMath.clamp(g, 0, 255);
             b = SMath.clamp(b, 0, 255);
             a = SMath.clamp(a, 0, 255);
-            c.rgbaHex = (r << 24) | (g << 16) | (b << 8) | a;
+            this.abgrHex = (r << 0) | (g << 8) | (b << 16) | (a << 24);
+        }
+
+        static fromRgba(r:number, g:number, b:number, a:number=255) { 
+            let c = new Color();
+            c.setFromRgba(r,g,b,a);
             return c;
         }
 
-        static fromHex(rgbaHex : number) { 
+        static fromHex(abgrHex : number) { 
             let c = new Color();
-            c.rgbaHex = rgbaHex;
+            c.abgrHex = abgrHex;
             return c;
         }
     }
