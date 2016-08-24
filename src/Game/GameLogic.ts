@@ -19,7 +19,7 @@ class GameLogic extends s2d.Behavior {
     public onInit() : void {
 
         this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png", false);
-        this.font = new s2d.RenderFont(s2d.renderer.gl, "assets/font.fnt");
+        this.font = new s2d.RenderFont(s2d.renderer.gl, "assets/font.xml");
         this.cam = s2d.EntityFactory.buildCamera();
         
         this.initTestComplex();
