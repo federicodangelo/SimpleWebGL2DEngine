@@ -258,8 +258,12 @@ module s2d {
             this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
             this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
 
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            if (this.currentTexture.hasAlpha) {
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            } else {
+                gl.disable(gl.BLEND);
+            }
 
             gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
             this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;

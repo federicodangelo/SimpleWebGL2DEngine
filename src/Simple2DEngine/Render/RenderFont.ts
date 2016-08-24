@@ -94,7 +94,7 @@ module s2d {
                 this._chars[char.id] = char;
             }
 
-            this._texture = new RenderTexture(this.gl, "assets/" + this._fontData.font.pages.page.$file);
+            this._texture = new RenderTexture(this.gl, "assets/" + this._fontData.font.pages.page.$file, true);
 
             this._xhttp = null;
         }

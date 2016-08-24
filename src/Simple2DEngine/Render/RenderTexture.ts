@@ -1,18 +1,23 @@
 module s2d {
     export class RenderTexture {
 
-        private gl: WebGLRenderingContext;
-        private _texture: WebGLTexture;
-        private _image: HTMLImageElement;
+        private gl: WebGLRenderingContext = null;
+        private _texture: WebGLTexture = null;
+        private _image: HTMLImageElement = null;
+        private _hasAlpha: boolean = false;
 
         public get texture() {
             return this._texture;
         }
 
-        public constructor(gl: WebGLRenderingContext, imageSrc: string) {
+        public get hasAlpha() {
+            return this._hasAlpha;
+        }
+
+        public constructor(gl: WebGLRenderingContext, imageSrc: string, hasAlpha: boolean) {
 
             this.gl = gl;
-
+            this._hasAlpha = hasAlpha;
             this._texture = gl.createTexture();
 
             let texture = this._texture;
@@ -41,7 +46,7 @@ module s2d {
 
             //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
- 
+
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
 

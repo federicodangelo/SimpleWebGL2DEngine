@@ -475,8 +475,13 @@ var s2d;
             this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
             this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
             this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
-            gl.enable(gl.BLEND);
-            gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            if (this.currentTexture.hasAlpha) {
+                gl.enable(gl.BLEND);
+                gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+            }
+            else {
+                gl.disable(gl.BLEND);
+            }
             gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
             this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
             this.currentTexture = null;
@@ -2432,7 +2437,7 @@ var GameLogic = (function (_super) {
         this.entities = new Array();
     }
     GameLogic.prototype.onInit = function () {
-        this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png");
+        this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png", false);
         this.font = new s2d.RenderFont(s2d.renderer.gl, "assets/font.fnt");
         this.cam = s2d.EntityFactory.buildCamera();
         this.initTestComplex();
@@ -3628,7 +3633,7 @@ var s2d;
                 char.yoffset = parseInt(charJson.$yoffset);
                 this._chars[char.id] = char;
             }
-            this._texture = new s2d.RenderTexture(this.gl, "assets/" + this._fontData.font.pages.page.$file);
+            this._texture = new s2d.RenderTexture(this.gl, "assets/" + this._fontData.font.pages.page.$file, true);
             this._xhttp = null;
         };
         RenderFont.prototype.clear = function () {
@@ -3645,9 +3650,14 @@ var s2d;
 var s2d;
 (function (s2d) {
     var RenderTexture = (function () {
-        function RenderTexture(gl, imageSrc) {
+        function RenderTexture(gl, imageSrc, hasAlpha) {
             var _this = this;
+            this.gl = null;
+            this._texture = null;
+            this._image = null;
+            this._hasAlpha = false;
             this.gl = gl;
+            this._hasAlpha = hasAlpha;
             this._texture = gl.createTexture();
             var texture = this._texture;
             gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -3662,6 +3672,13 @@ var s2d;
         Object.defineProperty(RenderTexture.prototype, "texture", {
             get: function () {
                 return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
+            get: function () {
+                return this._hasAlpha;
             },
             enumerable: true,
             configurable: true
