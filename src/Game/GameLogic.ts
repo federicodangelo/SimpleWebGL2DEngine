@@ -61,8 +61,8 @@ class GameLogic extends s2d.Behavior {
             let e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
 
             e.name = "Entity " + i;
-            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
-            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 200);
+            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
+            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
 
             if (GameLogic.TEST_NESTING) {
                 if (i > 0 && i % 3 == 0)

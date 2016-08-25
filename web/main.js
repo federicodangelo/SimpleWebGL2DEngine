@@ -2470,8 +2470,8 @@ var GameLogic = (function (_super) {
         for (var i = 0; i < GameLogic.RECTS_COUNT; i++) {
             var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
             e.name = "Entity " + i;
-            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 200);
-            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 200);
+            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
+            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
             if (GameLogic.TEST_NESTING) {
                 if (i > 0 && i % 3 == 0)
                     e.transform.parent = this.entities[i - 2].transform;
