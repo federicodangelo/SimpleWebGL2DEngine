@@ -234,8 +234,13 @@ var s2d;
 var s2d;
 (function (s2d) {
     var RenderBuffer = (function () {
-        function RenderBuffer(gl) {
+        /**
+         * bufferType: gl.ARRAY_BUFFER or gl.ELEMENT_ARRAY_BUFFER
+         */
+        function RenderBuffer(gl, bufferType) {
+            if (bufferType === void 0) { bufferType = WebGLRenderingContext.ARRAY_BUFFER; }
             this.gl = gl;
+            this._bufferType = bufferType;
             this._buffer = gl.createBuffer();
         }
         RenderBuffer.prototype.clear = function () {
@@ -246,10 +251,10 @@ var s2d;
         };
         RenderBuffer.prototype.setData = function (data, staticData) {
             this.bind();
-            this.gl.bufferData(this.gl.ARRAY_BUFFER, data, staticData ? this.gl.STATIC_DRAW : this.gl.DYNAMIC_DRAW);
+            this.gl.bufferData(this._bufferType, data, staticData ? this.gl.STATIC_DRAW : this.gl.DYNAMIC_DRAW);
         };
         RenderBuffer.prototype.bind = function () {
-            this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this._buffer);
+            this.gl.bindBuffer(this._bufferType, this._buffer);
         };
         return RenderBuffer;
     }());
@@ -342,30 +347,33 @@ var s2d;
 (function (s2d) {
     var RenderCommands = (function () {
         function RenderCommands(gl) {
-            this.currentRenderBufferIndex = 0;
+            this.currentBufferIndex = 0;
             this.tmpV1 = new s2d.RenderVertex();
             this.tmpV2 = new s2d.RenderVertex();
             this.tmpV3 = new s2d.RenderVertex();
             this.tmpV4 = new s2d.RenderVertex();
             this.gl = gl;
             this.renderProgram = new s2d.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
-            this.renderBuffers = new Array();
-            for (var i = 0; i < 16; i++)
-                this.renderBuffers.push(new s2d.RenderBuffer(gl));
-            this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
-            this.triangles = new Float32Array(this.backingArray);
-            this.colors = new Uint32Array(this.backingArray);
-            this.uvs = new Uint16Array(this.backingArray);
+            this.renderVertexBuffers = new Array();
+            this.renderIndexBuffers = new Array();
+            for (var i = 0; i < 16; i++) {
+                this.renderVertexBuffers.push(new s2d.RenderBuffer(gl, gl.ARRAY_BUFFER));
+                this.renderIndexBuffers.push(new s2d.RenderBuffer(gl, gl.ELEMENT_ARRAY_BUFFER));
+            }
+            this.backingVertexArray = new ArrayBuffer(RenderCommands.MAX_VERTEX * RenderCommands.VERTEX_SIZE);
+            this.positions = new Float32Array(this.backingVertexArray);
+            this.colors = new Uint32Array(this.backingVertexArray);
+            this.uvs = new Uint16Array(this.backingVertexArray);
+            this.backingIndexArray = new ArrayBuffer(RenderCommands.MAX_INDEXES * RenderCommands.INDEX_SIZE);
+            this.indexes = new Uint16Array(this.backingIndexArray);
         }
         RenderCommands.prototype.startFrame = function () {
         };
         RenderCommands.prototype.endFrame = function () {
         };
         RenderCommands.prototype.start = function () {
-            this.trianglesCount = 0;
-            this.trianglesOffset = 0;
-            this.colorsOffset = 0;
-            this.uvsOffset = 0;
+            this.vertexOffset = 0;
+            this.indexesOffset = 0;
         };
         RenderCommands.prototype.drawRectSimple = function (mat, halfSize, texture, uvTopLeft, uvBottomRight, color) {
             var tmpV1 = this.tmpV1;
@@ -377,102 +385,97 @@ var s2d;
             //Top left
             tmpV1.x = -halfSizeX;
             tmpV1.y = -halfSizeY;
-            tmpV1.transformMat2d(mat);
             tmpV1.color = color.abgrHex;
-            tmpV1.u = uvTopLeft[0] * 65535;
-            tmpV1.v = uvTopLeft[1] * 65535;
+            tmpV1.u = uvTopLeft[0];
+            tmpV1.v = uvTopLeft[1];
             //Top right
             tmpV2.x = halfSizeX;
             tmpV2.y = -halfSizeY;
-            tmpV2.transformMat2d(mat);
             tmpV2.color = color.abgrHex;
-            tmpV2.u = uvBottomRight[0] * 65535;
-            tmpV2.v = uvTopLeft[1] * 65535;
+            tmpV2.u = uvBottomRight[0];
+            tmpV2.v = uvTopLeft[1];
             //Bottom right
             tmpV3.x = halfSizeX;
             tmpV3.y = halfSizeY;
-            tmpV3.transformMat2d(mat);
             tmpV3.color = color.abgrHex;
-            tmpV3.u = uvBottomRight[0] * 65535;
-            tmpV3.v = uvBottomRight[1] * 65535;
+            tmpV3.u = uvBottomRight[0];
+            tmpV3.v = uvBottomRight[1];
             //Bottom left
             tmpV4.x = -halfSizeX;
             tmpV4.y = halfSizeY;
-            tmpV4.transformMat2d(mat);
             tmpV4.color = color.abgrHex;
-            tmpV4.u = uvTopLeft[0] * 65535;
-            tmpV4.v = uvBottomRight[1] * 65535;
+            tmpV4.u = uvTopLeft[0];
+            tmpV4.v = uvBottomRight[1];
+            tmpV1.transformMat2d(mat);
+            tmpV2.transformMat2d(mat);
+            tmpV3.transformMat2d(mat);
+            tmpV4.transformMat2d(mat);
             this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
         };
         RenderCommands.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4, texture) {
-            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES || texture !== this.currentTexture) {
+            if (this.vertexOffset + 4 >= RenderCommands.MAX_VERTEX || this.indexesOffset + 6 >= RenderCommands.MAX_INDEXES || texture !== this.currentTexture) {
                 this.end();
                 this.start();
                 this.currentTexture = texture;
             }
-            var triangles = this.triangles;
-            var trianglesOffset = this.trianglesOffset;
+            var vertexOffset = this.vertexOffset;
+            var indexesOffset = this.indexesOffset;
+            var positions = this.positions;
             var colors = this.colors;
-            var colorsOffset = this.colorsOffset;
             var uvs = this.uvs;
-            var uvsOffset = this.uvsOffset;
-            //First triangle (1 -> 2 -> 3)
-            triangles[trianglesOffset + 0] = tmpV1.x;
-            triangles[trianglesOffset + 1] = tmpV1.y;
+            var indexes = this.indexes;
+            var positionsOffset = vertexOffset * 4;
+            var colorsOffset = vertexOffset * 4;
+            var uvsOffset = vertexOffset * 8;
+            //Add 4 vertexes
+            positions[positionsOffset + 0] = tmpV1.x;
+            positions[positionsOffset + 1] = tmpV1.y;
             colors[colorsOffset + 2] = tmpV1.color;
-            uvs[uvsOffset + 6] = tmpV1.u;
-            uvs[uvsOffset + 7] = tmpV1.v;
-            triangles[trianglesOffset + 4] = tmpV2.x;
-            triangles[trianglesOffset + 5] = tmpV2.y;
+            uvs[uvsOffset + 6] = tmpV1.u * 65535;
+            uvs[uvsOffset + 7] = tmpV1.v * 65535;
+            positions[positionsOffset + 4] = tmpV2.x;
+            positions[positionsOffset + 5] = tmpV2.y;
             colors[colorsOffset + 6] = tmpV2.color;
-            uvs[uvsOffset + 14] = tmpV2.u;
-            uvs[uvsOffset + 15] = tmpV2.v;
-            triangles[trianglesOffset + 8] = tmpV3.x;
-            triangles[trianglesOffset + 9] = tmpV3.y;
+            uvs[uvsOffset + 14] = tmpV2.u * 65535;
+            uvs[uvsOffset + 15] = tmpV2.v * 65535;
+            positions[positionsOffset + 8] = tmpV3.x;
+            positions[positionsOffset + 9] = tmpV3.y;
             colors[colorsOffset + 10] = tmpV3.color;
-            uvs[uvsOffset + 22] = tmpV3.u;
-            uvs[uvsOffset + 23] = tmpV3.v;
-            trianglesOffset += 12;
-            colorsOffset += 12;
-            uvsOffset += 24;
-            //Second triangle (3 -> 4 -> 1)
-            triangles[trianglesOffset + 0] = tmpV3.x;
-            triangles[trianglesOffset + 1] = tmpV3.y;
-            colors[colorsOffset + 2] = tmpV3.color;
-            uvs[uvsOffset + 6] = tmpV3.u;
-            uvs[uvsOffset + 7] = tmpV3.v;
-            triangles[trianglesOffset + 4] = tmpV4.x;
-            triangles[trianglesOffset + 5] = tmpV4.y;
-            colors[colorsOffset + 6] = tmpV4.color;
-            uvs[uvsOffset + 14] = tmpV4.u;
-            uvs[uvsOffset + 15] = tmpV4.v;
-            triangles[trianglesOffset + 8] = tmpV1.x;
-            triangles[trianglesOffset + 9] = tmpV1.y;
-            colors[colorsOffset + 10] = tmpV1.color;
-            uvs[uvsOffset + 22] = tmpV1.u;
-            uvs[uvsOffset + 23] = tmpV1.v;
-            trianglesOffset += 12;
-            colorsOffset += 12;
-            uvsOffset += 24;
-            this.trianglesOffset = trianglesOffset;
-            this.colorsOffset = colorsOffset;
-            this.uvsOffset = uvsOffset;
-            this.trianglesCount += 2;
+            uvs[uvsOffset + 22] = tmpV3.u * 65535;
+            uvs[uvsOffset + 23] = tmpV3.v * 65535;
+            positions[positionsOffset + 12] = tmpV4.x;
+            positions[positionsOffset + 13] = tmpV4.y;
+            colors[colorsOffset + 14] = tmpV4.color;
+            uvs[uvsOffset + 30] = tmpV4.u * 65535;
+            uvs[uvsOffset + 31] = tmpV4.v * 65535;
+            //Add 2 triangles
+            //First triangle (0 -> 1 -> 2)
+            indexes[indexesOffset + 0] = vertexOffset + 0;
+            indexes[indexesOffset + 1] = vertexOffset + 1;
+            indexes[indexesOffset + 2] = vertexOffset + 2;
+            //Second triangle (2 -> 3 -> 0)
+            indexes[indexesOffset + 3] = vertexOffset + 2;
+            indexes[indexesOffset + 4] = vertexOffset + 3;
+            indexes[indexesOffset + 5] = vertexOffset + 0;
+            this.vertexOffset += 4;
+            this.indexesOffset += 6;
         };
         RenderCommands.prototype.end = function () {
             if (!s2d.EngineConfiguration.RENDER_ENABLED)
                 return;
-            if (this.trianglesCount === 0)
+            if (this.vertexOffset === 0)
                 return;
             var gl = this.gl;
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", gl.canvas.width, gl.canvas.height);
             this.currentTexture.useTexture();
-            var renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
-            renderBuffer.setData(this.backingArray, false);
-            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
-            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
-            this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
+            var vertexBuffer = this.renderVertexBuffers[this.currentBufferIndex];
+            var indexBuffer = this.renderIndexBuffers[this.currentBufferIndex];
+            vertexBuffer.setData(this.backingVertexArray, false);
+            indexBuffer.setData(this.backingIndexArray, false);
+            this.renderProgram.setVertexAttributePointer("a_position", vertexBuffer, 2, gl.FLOAT, false, RenderCommands.VERTEX_SIZE, 0);
+            this.renderProgram.setVertexAttributePointer("a_color", vertexBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.VERTEX_SIZE, 8);
+            this.renderProgram.setVertexAttributePointer("a_texcoord", vertexBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.VERTEX_SIZE, 12);
             if (this.currentTexture.hasAlpha) {
                 gl.enable(gl.BLEND);
                 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -480,15 +483,17 @@ var s2d;
             else {
                 gl.disable(gl.BLEND);
             }
-            gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
-            this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
+            gl.drawElements(this.gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
+            this.currentBufferIndex = (this.currentBufferIndex + 1) % this.renderVertexBuffers.length;
             this.currentTexture = null;
         };
         RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n            attribute vec2 a_texcoord;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // texture used in vertex shader\n            varying vec2 v_texcoord;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n\n                v_texcoord = a_texcoord;\n            }\n        ";
         RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            //texture uv received from vertex shader\n            varying vec2 v_texcoord;\n\n            // Main texture.\n            uniform sampler2D u_texture;\n\n            void main() {\n\n                gl_FragColor = texture2D(u_texture, v_texcoord) * v_color;\n\n                //gl_FragColor = v_color;\n            }\n        ";
-        RenderCommands.ELEMENT_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [R,G,B,A] + 2 byte (U,V) )
         RenderCommands.MAX_TRIANGLES = 4096;
-        RenderCommands.MAX_ELEMENTS = RenderCommands.MAX_TRIANGLES * 3; //3 elements per triangle
+        RenderCommands.VERTEX_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
+        RenderCommands.MAX_VERTEX = RenderCommands.MAX_TRIANGLES * 3; //3 vertex per triangle
+        RenderCommands.INDEX_SIZE = 2; //16 bits
+        RenderCommands.MAX_INDEXES = RenderCommands.MAX_TRIANGLES * 3; //3 index per triangle
         return RenderCommands;
     }());
     s2d.RenderCommands = RenderCommands;
@@ -2407,7 +2412,7 @@ var s2d;
 window.onload = function () {
     s2d.engine.init();
     //Creat main game logic entity
-    new s2d.Entity("GameLogic").addComponent(GameLogic);
+    s2d.EntityFactory.buildWithComponent(GameLogic, "GameLogic");
     requestAnimationFrame(update);
 };
 function update() {
@@ -2485,9 +2490,9 @@ var GameLogic = (function (_super) {
                 entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
         }
         if (s2d.input.pointerDown)
-            this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
+            this.cam.clearColor.setFromRgba(255, 0, 0); //red
         else
-            this.cam.clearColor.rgbaHex = 0x000000FF; //black
+            this.cam.clearColor.setFromRgba(0, 0, 0); //black
         var stats = s2d.engine.stats;
         if (stats.lastFps !== this.lastFps || stats.lastUpdateTime !== this.lastUpdateTime) {
             this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + " updateTime: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms";
@@ -2620,6 +2625,10 @@ var s2d;
             var textDrawer = new s2d.Entity("Text").addComponent(s2d.TextDrawer);
             textDrawer.font = font;
             return textDrawer;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
         };
         return EntityFactory;
     }());

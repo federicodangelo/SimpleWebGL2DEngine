@@ -88,9 +88,9 @@ class GameLogic extends s2d.Behavior {
         }
 
         if (s2d.input.pointerDown)
-            this.cam.clearColor.rgbaHex = 0xFF0000FF; //ref
+            this.cam.clearColor.setFromRgba(255, 0, 0); //red
         else
-            this.cam.clearColor.rgbaHex = 0x000000FF; //black
+            this.cam.clearColor.setFromRgba(0, 0, 0); //black
 
         var stats = s2d.engine.stats;
 

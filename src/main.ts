@@ -4,7 +4,7 @@ window.onload = () => {
     s2d.engine.init();
 
     //Creat main game logic entity
-    new s2d.Entity("GameLogic").addComponent(GameLogic);
+    s2d.EntityFactory.buildWithComponent(GameLogic, "GameLogic");
 
     requestAnimationFrame(update);
 };

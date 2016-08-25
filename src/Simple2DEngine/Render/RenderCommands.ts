@@ -62,64 +62,75 @@ module s2d {
             }
         `;
 
-        private gl : WebGLRenderingContext;
+        private gl: WebGLRenderingContext;
 
-        private renderProgram : RenderProgram; 
-        private renderBuffers : Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
-        private currentRenderBufferIndex = 0;
+        private renderProgram: RenderProgram;
 
-        private currentTexture : RenderTexture;
+        private renderVertexBuffers: Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
+        private renderIndexBuffers: Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
 
-        private backingArray : ArrayBuffer;
-        private triangles : Float32Array;
-        private colors : Uint32Array;
-        private uvs : Uint16Array;
+        private currentBufferIndex = 0;
 
-        private trianglesOffset : number;
-        private colorsOffset : number;
-        private uvsOffset : number;
+        private currentTexture: RenderTexture;
 
-        private trianglesCount : number;
+        private backingVertexArray: ArrayBuffer;
+        private positions: Float32Array;
+        private colors: Uint32Array;
+        private uvs: Uint16Array;
 
-        static ELEMENT_SIZE : number = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [R,G,B,A] + 2 byte (U,V) )
+        private backingIndexArray: ArrayBuffer;
+        private indexes: Uint16Array;
+
+        private indexesOffset: number;
+        private vertexOffset: number;
+
         static MAX_TRIANGLES = 4096;
-        static MAX_ELEMENTS: number = RenderCommands.MAX_TRIANGLES * 3; //3 elements per triangle
 
-        public constructor(gl : WebGLRenderingContext) {
+        static VERTEX_SIZE: number = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
+        static MAX_VERTEX: number = RenderCommands.MAX_TRIANGLES * 3; //3 vertex per triangle
+
+        static INDEX_SIZE: number = 2; //16 bits
+        static MAX_INDEXES: number = RenderCommands.MAX_TRIANGLES * 3; //3 index per triangle
+
+        public constructor(gl: WebGLRenderingContext) {
             this.gl = gl;
             this.renderProgram = new RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
 
-            this.renderBuffers = new Array<RenderBuffer>();
-            for (let i = 0; i < 16; i++)
-                this.renderBuffers.push(new RenderBuffer(gl));
+            this.renderVertexBuffers = new Array<RenderBuffer>();
+            this.renderIndexBuffers = new Array<RenderBuffer>();
+            for (let i = 0; i < 16; i++) {
+                this.renderVertexBuffers.push(new RenderBuffer(gl, gl.ARRAY_BUFFER));
+                this.renderIndexBuffers.push(new RenderBuffer(gl, gl.ELEMENT_ARRAY_BUFFER));
+            }
 
-            this.backingArray = new ArrayBuffer(RenderCommands.MAX_ELEMENTS * RenderCommands.ELEMENT_SIZE);
-            this.triangles = new Float32Array(this.backingArray);
-            this.colors = new Uint32Array(this.backingArray);
-            this.uvs = new Uint16Array(this.backingArray);
+            this.backingVertexArray = new ArrayBuffer(RenderCommands.MAX_VERTEX * RenderCommands.VERTEX_SIZE);
+            this.positions = new Float32Array(this.backingVertexArray);
+            this.colors = new Uint32Array(this.backingVertexArray);
+            this.uvs = new Uint16Array(this.backingVertexArray);
+
+            this.backingIndexArray = new ArrayBuffer(RenderCommands.MAX_INDEXES * RenderCommands.INDEX_SIZE);
+            this.indexes = new Uint16Array(this.backingIndexArray);
         }
 
-        private tmpV1 : RenderVertex = new RenderVertex();
-        private tmpV2 : RenderVertex = new RenderVertex(); 
-        private tmpV3 : RenderVertex = new RenderVertex(); 
-        private tmpV4 : RenderVertex = new RenderVertex();  
+        private tmpV1: RenderVertex = new RenderVertex();
+        private tmpV2: RenderVertex = new RenderVertex();
+        private tmpV3: RenderVertex = new RenderVertex();
+        private tmpV4: RenderVertex = new RenderVertex();
 
         public startFrame() {
-            
+
         }
 
         public endFrame() {
-            
+
         }
 
         public start() {
-            this.trianglesCount = 0;
-            this.trianglesOffset = 0;
-            this.colorsOffset = 0;
-            this.uvsOffset = 0;
+            this.vertexOffset = 0;
+            this.indexesOffset = 0;
         }
 
-        public drawRectSimple(mat: Matrix2d, halfSize : Vector2, texture : RenderTexture, uvTopLeft : Vector2, uvBottomRight : Vector2, color : Color ) : void {
+        public drawRectSimple(mat: Matrix2d, halfSize: Vector2, texture: RenderTexture, uvTopLeft: Vector2, uvBottomRight: Vector2, color: Color): void {
 
             let tmpV1 = this.tmpV1;
             let tmpV2 = this.tmpV2;
@@ -132,112 +143,105 @@ module s2d {
             //Top left
             tmpV1.x = -halfSizeX;
             tmpV1.y = -halfSizeY;
-            tmpV1.transformMat2d(mat);
             tmpV1.color = color.abgrHex;
-            tmpV1.u = uvTopLeft[0] * 65535;
-            tmpV1.v = uvTopLeft[1] * 65535;
+            tmpV1.u = uvTopLeft[0];
+            tmpV1.v = uvTopLeft[1];
 
             //Top right
             tmpV2.x = halfSizeX;
             tmpV2.y = -halfSizeY;
-            tmpV2.transformMat2d(mat);
             tmpV2.color = color.abgrHex;
-            tmpV2.u = uvBottomRight[0] * 65535;
-            tmpV2.v = uvTopLeft[1] * 65535;
+            tmpV2.u = uvBottomRight[0];
+            tmpV2.v = uvTopLeft[1];
 
             //Bottom right
             tmpV3.x = halfSizeX;
             tmpV3.y = halfSizeY;
-            tmpV3.transformMat2d(mat);
             tmpV3.color = color.abgrHex;
-            tmpV3.u = uvBottomRight[0] * 65535;
-            tmpV3.v = uvBottomRight[1] * 65535;
+            tmpV3.u = uvBottomRight[0];
+            tmpV3.v = uvBottomRight[1];
 
             //Bottom left
             tmpV4.x = -halfSizeX;
             tmpV4.y = halfSizeY;
-            tmpV4.transformMat2d(mat);
             tmpV4.color = color.abgrHex;
-            tmpV4.u = uvTopLeft[0] * 65535;
-            tmpV4.v = uvBottomRight[1] * 65535;
+            tmpV4.u = uvTopLeft[0];
+            tmpV4.v = uvBottomRight[1];
+
+            tmpV1.transformMat2d(mat);
+            tmpV2.transformMat2d(mat);
+            tmpV3.transformMat2d(mat);
+            tmpV4.transformMat2d(mat);
 
             this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
         }
 
-        public drawRect(tmpV1 : RenderVertex, tmpV2 : RenderVertex, tmpV3 : RenderVertex, tmpV4 : RenderVertex, texture : RenderTexture) : void {
+        public drawRect(tmpV1: RenderVertex, tmpV2: RenderVertex, tmpV3: RenderVertex, tmpV4: RenderVertex, texture: RenderTexture): void {
 
-            if (this.trianglesCount + 2 >= RenderCommands.MAX_TRIANGLES || texture !== this.currentTexture) {
+            if (this.vertexOffset + 4 >= RenderCommands.MAX_VERTEX || this.indexesOffset + 6 >= RenderCommands.MAX_INDEXES || texture !== this.currentTexture) {
                 this.end();
                 this.start();
                 this.currentTexture = texture;
             }
 
-            let triangles = this.triangles;
-            let trianglesOffset = this.trianglesOffset;
+            var vertexOffset = this.vertexOffset;
+            let indexesOffset = this.indexesOffset;
 
+            let positions = this.positions;
             let colors = this.colors;
-            let colorsOffset = this.colorsOffset;
-
             let uvs = this.uvs;
-            let uvsOffset = this.uvsOffset;
+            let indexes = this.indexes;
 
-            //First triangle (1 -> 2 -> 3)
-            triangles[trianglesOffset + 0] = tmpV1.x;
-            triangles[trianglesOffset + 1] = tmpV1.y;
+            let positionsOffset = vertexOffset * 4;
+            let colorsOffset = vertexOffset * 4;
+            let uvsOffset = vertexOffset * 8;
+
+            //Add 4 vertexes
+            positions[positionsOffset + 0] = tmpV1.x;
+            positions[positionsOffset + 1] = tmpV1.y;
             colors[colorsOffset + 2] = tmpV1.color;
-            uvs[uvsOffset + 6] = tmpV1.u;
-            uvs[uvsOffset + 7] = tmpV1.v;
+            uvs[uvsOffset + 6] = tmpV1.u * 65535;
+            uvs[uvsOffset + 7] = tmpV1.v * 65535;
 
-            triangles[trianglesOffset + 4] = tmpV2.x;
-            triangles[trianglesOffset + 5] = tmpV2.y;
+            positions[positionsOffset + 4] = tmpV2.x;
+            positions[positionsOffset + 5] = tmpV2.y;
             colors[colorsOffset + 6] = tmpV2.color;
-            uvs[uvsOffset + 14] = tmpV2.u;
-            uvs[uvsOffset + 15] = tmpV2.v;
+            uvs[uvsOffset + 14] = tmpV2.u * 65535;
+            uvs[uvsOffset + 15] = tmpV2.v * 65535;
 
-            triangles[trianglesOffset + 8] = tmpV3.x;
-            triangles[trianglesOffset + 9] = tmpV3.y;
+            positions[positionsOffset + 8] = tmpV3.x;
+            positions[positionsOffset + 9] = tmpV3.y;
             colors[colorsOffset + 10] = tmpV3.color;
-            uvs[uvsOffset + 22] = tmpV3.u;
-            uvs[uvsOffset + 23] = tmpV3.v;
+            uvs[uvsOffset + 22] = tmpV3.u * 65535;
+            uvs[uvsOffset + 23] = tmpV3.v * 65535;
 
-            trianglesOffset += 12;
-            colorsOffset += 12;
-            uvsOffset += 24;
+            positions[positionsOffset + 12] = tmpV4.x;
+            positions[positionsOffset + 13] = tmpV4.y;
+            colors[colorsOffset + 14] = tmpV4.color;
+            uvs[uvsOffset + 30] = tmpV4.u * 65535;
+            uvs[uvsOffset + 31] = tmpV4.v * 65535;
 
-            //Second triangle (3 -> 4 -> 1)
-            triangles[trianglesOffset + 0] = tmpV3.x;
-            triangles[trianglesOffset + 1] = tmpV3.y;
-            colors[colorsOffset + 2] = tmpV3.color;
-            uvs[uvsOffset + 6] = tmpV3.u;
-            uvs[uvsOffset + 7] = tmpV3.v;
+            //Add 2 triangles
 
-            triangles[trianglesOffset + 4] = tmpV4.x;
-            triangles[trianglesOffset + 5] = tmpV4.y;
-            colors[colorsOffset + 6] = tmpV4.color;
-            uvs[uvsOffset + 14] = tmpV4.u;
-            uvs[uvsOffset + 15] = tmpV4.v;
-            
-            triangles[trianglesOffset + 8] = tmpV1.x;
-            triangles[trianglesOffset + 9] = tmpV1.y;
-            colors[colorsOffset + 10] = tmpV1.color;
-            uvs[uvsOffset + 22] = tmpV1.u;
-            uvs[uvsOffset + 23] = tmpV1.v;
+            //First triangle (0 -> 1 -> 2)
+            indexes[indexesOffset + 0] = vertexOffset + 0;
+            indexes[indexesOffset + 1] = vertexOffset + 1;
+            indexes[indexesOffset + 2] = vertexOffset + 2;
 
-            trianglesOffset += 12;
-            colorsOffset += 12;
-            uvsOffset += 24;
-
-            this.trianglesOffset = trianglesOffset;
-            this.colorsOffset = colorsOffset;
-            this.uvsOffset = uvsOffset;
-            this.trianglesCount += 2;  
+            //Second triangle (2 -> 3 -> 0)
+            indexes[indexesOffset + 3] = vertexOffset + 2;
+            indexes[indexesOffset + 4] = vertexOffset + 3;
+            indexes[indexesOffset + 5] = vertexOffset + 0;
+ 
+            this.vertexOffset += 4;
+            this.indexesOffset += 6;
         }
 
         public end() {
             if (!EngineConfiguration.RENDER_ENABLED)
                 return;
 
-            if (this.trianglesCount === 0)
+            if (this.vertexOffset === 0)
                 return;
 
             let gl = this.gl;
@@ -247,13 +251,15 @@ module s2d {
 
             this.currentTexture.useTexture();
 
-            let renderBuffer = this.renderBuffers[this.currentRenderBufferIndex];
+            let vertexBuffer = this.renderVertexBuffers[this.currentBufferIndex];
+            let indexBuffer = this.renderIndexBuffers[this.currentBufferIndex];
 
-            renderBuffer.setData(this.backingArray, false);
+            vertexBuffer.setData(this.backingVertexArray, false);
+            indexBuffer.setData(this.backingIndexArray, false);
 
-            this.renderProgram.setVertexAttributePointer("a_position", renderBuffer, 2, gl.FLOAT, false, RenderCommands.ELEMENT_SIZE, 0);
-            this.renderProgram.setVertexAttributePointer("a_color", renderBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.ELEMENT_SIZE, 8);
-            this.renderProgram.setVertexAttributePointer("a_texcoord", renderBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.ELEMENT_SIZE, 12);
+            this.renderProgram.setVertexAttributePointer("a_position", vertexBuffer, 2, gl.FLOAT, false, RenderCommands.VERTEX_SIZE, 0);
+            this.renderProgram.setVertexAttributePointer("a_color", vertexBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.VERTEX_SIZE, 8);
+            this.renderProgram.setVertexAttributePointer("a_texcoord", vertexBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.VERTEX_SIZE, 12);
 
             if (this.currentTexture.hasAlpha) {
                 gl.enable(gl.BLEND);
@@ -262,8 +268,8 @@ module s2d {
                 gl.disable(gl.BLEND);
             }
 
-            gl.drawArrays(this.gl.TRIANGLES, 0, this.trianglesCount * 3);
-            this.currentRenderBufferIndex = (this.currentRenderBufferIndex + 1) % this.renderBuffers.length;
+            gl.drawElements(this.gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
+            this.currentBufferIndex = (this.currentBufferIndex + 1) % this.renderVertexBuffers.length;
 
             this.currentTexture = null;
         }
