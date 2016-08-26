@@ -95,7 +95,7 @@ class GameLogic extends s2d.Behavior {
         var stats = s2d.engine.stats;
 
         if (stats.lastFps !== this.lastFps || stats.lastUpdateTime !== this.lastUpdateTime) {
-            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + " updateTime: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms"
+            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms"
             this.lastFps = stats.lastFps;
             this.lastUpdateTime = stats.lastUpdateTime;
         }

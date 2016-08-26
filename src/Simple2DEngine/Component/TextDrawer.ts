@@ -40,6 +40,8 @@ module s2d {
             var texture = font.texture;
             var textureWidth = font.textureWidth;
             var textureHeight = font.textureHeight;
+            var lineHeight = font.lineHeight;
+
             var right = TextDrawer.tmpRight;
             var down = TextDrawer.tmpDown;
             var tmpV1 = TextDrawer.tmpV1;
@@ -63,40 +65,53 @@ module s2d {
             
             Vector2.set(topLeft, 0, 0);
             Vector2.transformMat2d(topLeft, topLeft, matrix);
-            
+
+            var startX = topLeft[0];
+            var startY = topLeft[1];
+            var lines = 0;
+                        
             for (let i = 0; i < text.length; i++) {
 
                 var charCode = text.charCodeAt(i);
-                var charData = font.chars[charCode];
 
-                if (charData !== null) {
-                    tmpV1.x = topLeft[0];
-                    tmpV1.y = topLeft[1];
-                    tmpV1.u = charData.x / textureWidth;
-                    tmpV1.v = charData.y / textureHeight;
+                if (charCode === 10) { //'\n'
 
-                    tmpV2.x = topLeft[0] + right[0] * charData.width;
-                    tmpV2.y = topLeft[1] + right[1] * charData.width;
-                    tmpV2.u = (charData.x + charData.width) / textureWidth;
-                    tmpV2.v = charData.y / textureHeight;
-                    
-                    tmpV3.x = topLeft[0] + right[0] * charData.width + down[0] * charData.height;
-                    tmpV3.y = topLeft[1] + right[1] * charData.width + down[1] * charData.height;
-                    tmpV3.u = (charData.x + charData.width) / textureWidth;
-                    tmpV3.v = (charData.y + charData.height) / textureHeight;
+                    lines++;
+                    topLeft[0] = startX + down[0] * lines * lineHeight;
+                    topLeft[1] = startY + down[1] * lines * lineHeight;
 
-                    tmpV4.x = topLeft[0] + down[0] * charData.height;
-                    tmpV4.y = topLeft[1] + down[1] * charData.height;
-                    tmpV4.u = charData.x / textureWidth;
-                    tmpV4.v = (charData.y + charData.height) / textureHeight;
+                } else {
+                    var charData = font.chars[charCode];
 
-                    //draw char
-                    commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
+                    if (charData) {
+                        tmpV1.x = topLeft[0];
+                        tmpV1.y = topLeft[1];
+                        tmpV1.u = charData.x / textureWidth;
+                        tmpV1.v = charData.y / textureHeight;
 
-                    //offset char xadvance
-                    topLeft[0] += right[0] * charData.xadvance;
-                    topLeft[1] += right[1] * charData.xadvance;
-                } 
+                        tmpV2.x = topLeft[0] + right[0] * charData.width;
+                        tmpV2.y = topLeft[1] + right[1] * charData.width;
+                        tmpV2.u = (charData.x + charData.width) / textureWidth;
+                        tmpV2.v = charData.y / textureHeight;
+                        
+                        tmpV3.x = topLeft[0] + right[0] * charData.width + down[0] * charData.height;
+                        tmpV3.y = topLeft[1] + right[1] * charData.width + down[1] * charData.height;
+                        tmpV3.u = (charData.x + charData.width) / textureWidth;
+                        tmpV3.v = (charData.y + charData.height) / textureHeight;
+
+                        tmpV4.x = topLeft[0] + down[0] * charData.height;
+                        tmpV4.y = topLeft[1] + down[1] * charData.height;
+                        tmpV4.u = charData.x / textureWidth;
+                        tmpV4.v = (charData.y + charData.height) / textureHeight;
+
+                        //draw char
+                        commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
+
+                        //offset char xadvance
+                        topLeft[0] += right[0] * charData.xadvance;
+                        topLeft[1] += right[1] * charData.xadvance;
+                    } 
+                }
             }
 
         }
