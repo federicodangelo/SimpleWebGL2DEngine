@@ -1,7 +1,6 @@
 module s2d {
     export class RenderShader {
 
-        private gl : WebGLRenderingContext;
         private _shader : WebGLShader;
         private _compilationOk : boolean;
 
@@ -9,9 +8,9 @@ module s2d {
             return this._shader;
         }
 
-        public constructor(gl:WebGLRenderingContext, shaderStr : string, type : number) {
+        public constructor(shaderStr : string, type : number) {
 
-            this.gl = gl;
+            let gl = renderer.gl;
 
             this._shader = gl.createShader(type);
             gl.shaderSource(this._shader, shaderStr);
@@ -27,8 +26,9 @@ module s2d {
         }
 
         public clear() {
+            let gl = renderer.gl;
             if (this._shader != null) {
-                this.gl.deleteShader(this._shader);
+                gl.deleteShader(this._shader);
                 this._shader = null;
             }
         }

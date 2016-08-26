@@ -192,8 +192,6 @@ var s2d;
 (function (s2d) {
     var InputManager = (function () {
         function InputManager() {
-            this.inputTouch = new s2d.Input.InputTouch();
-            this.inputMouse = new s2d.Input.InputMouse();
         }
         Object.defineProperty(InputManager.prototype, "pointerDown", {
             get: function () {
@@ -224,6 +222,10 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        InputManager.prototype.init = function () {
+            this.inputTouch = new s2d.Input.InputTouch();
+            this.inputMouse = new s2d.Input.InputMouse();
+        };
         InputManager.prototype.update = function () {
             //Nothing to do..
         };
@@ -237,24 +239,27 @@ var s2d;
         /**
          * bufferType: gl.ARRAY_BUFFER or gl.ELEMENT_ARRAY_BUFFER
          */
-        function RenderBuffer(gl, bufferType) {
+        function RenderBuffer(bufferType) {
             if (bufferType === void 0) { bufferType = WebGLRenderingContext.ARRAY_BUFFER; }
-            this.gl = gl;
+            var gl = s2d.renderer.gl;
             this._bufferType = bufferType;
             this._buffer = gl.createBuffer();
         }
         RenderBuffer.prototype.clear = function () {
+            var gl = s2d.renderer.gl;
             if (this._buffer != null) {
-                this.gl.deleteBuffer(this._buffer);
+                gl.deleteBuffer(this._buffer);
                 this._buffer = null;
             }
         };
         RenderBuffer.prototype.setData = function (data, staticData) {
+            var gl = s2d.renderer.gl;
             this.bind();
-            this.gl.bufferData(this._bufferType, data, staticData ? this.gl.STATIC_DRAW : this.gl.DYNAMIC_DRAW);
+            gl.bufferData(this._bufferType, data, staticData ? gl.STATIC_DRAW : gl.DYNAMIC_DRAW);
         };
         RenderBuffer.prototype.bind = function () {
-            this.gl.bindBuffer(this._bufferType, this._buffer);
+            var gl = s2d.renderer.gl;
+            gl.bindBuffer(this._bufferType, this._buffer);
         };
         return RenderBuffer;
     }());
@@ -263,8 +268,8 @@ var s2d;
 var s2d;
 (function (s2d) {
     var RenderShader = (function () {
-        function RenderShader(gl, shaderStr, type) {
-            this.gl = gl;
+        function RenderShader(shaderStr, type) {
+            var gl = s2d.renderer.gl;
             this._shader = gl.createShader(type);
             gl.shaderSource(this._shader, shaderStr);
             gl.compileShader(this._shader);
@@ -283,8 +288,9 @@ var s2d;
             configurable: true
         });
         RenderShader.prototype.clear = function () {
+            var gl = s2d.renderer.gl;
             if (this._shader != null) {
-                this.gl.deleteShader(this._shader);
+                gl.deleteShader(this._shader);
                 this._shader = null;
             }
         };
@@ -296,10 +302,10 @@ var s2d;
 var s2d;
 (function (s2d) {
     var RenderProgram = (function () {
-        function RenderProgram(gl, vertexShaderStr, fragmentShaderStr) {
-            this.gl = gl;
-            this._vertexShader = new s2d.RenderShader(gl, vertexShaderStr, gl.VERTEX_SHADER);
-            this._fragmentShader = new s2d.RenderShader(gl, fragmentShaderStr, gl.FRAGMENT_SHADER);
+        function RenderProgram(vertexShaderStr, fragmentShaderStr) {
+            var gl = s2d.renderer.gl;
+            this._vertexShader = new s2d.RenderShader(vertexShaderStr, gl.VERTEX_SHADER);
+            this._fragmentShader = new s2d.RenderShader(fragmentShaderStr, gl.FRAGMENT_SHADER);
             this._program = gl.createProgram();
             gl.attachShader(this._program, this._vertexShader.shader);
             gl.attachShader(this._program, this._fragmentShader.shader);
@@ -311,8 +317,9 @@ var s2d;
             }
         }
         RenderProgram.prototype.clear = function () {
+            var gl = s2d.renderer.gl;
             if (this._program != null) {
-                this.gl.deleteProgram(this._program);
+                gl.deleteProgram(this._program);
                 this._program = null;
             }
             if (this._vertexShader != null) {
@@ -325,17 +332,20 @@ var s2d;
             }
         };
         RenderProgram.prototype.useProgram = function () {
-            this.gl.useProgram(this._program);
+            var gl = s2d.renderer.gl;
+            gl.useProgram(this._program);
         };
         RenderProgram.prototype.setUniform2f = function (name, x, y) {
-            var uniformLocation = this.gl.getUniformLocation(this._program, name);
-            this.gl.uniform2f(uniformLocation, x, y);
+            var gl = s2d.renderer.gl;
+            var uniformLocation = gl.getUniformLocation(this._program, name);
+            gl.uniform2f(uniformLocation, x, y);
         };
         RenderProgram.prototype.setVertexAttributePointer = function (name, buffer, size, type, normalized, stride, offset) {
-            var attributeLocation = this.gl.getAttribLocation(this._program, name);
-            this.gl.enableVertexAttribArray(attributeLocation);
+            var gl = s2d.renderer.gl;
+            var attributeLocation = gl.getAttribLocation(this._program, name);
+            gl.enableVertexAttribArray(attributeLocation);
             buffer.bind();
-            this.gl.vertexAttribPointer(attributeLocation, size, type, normalized, stride, offset);
+            gl.vertexAttribPointer(attributeLocation, size, type, normalized, stride, offset);
         };
         return RenderProgram;
     }());
@@ -346,19 +356,19 @@ var s2d;
 var s2d;
 (function (s2d) {
     var RenderCommands = (function () {
-        function RenderCommands(gl) {
+        function RenderCommands() {
             this.currentBufferIndex = 0;
             this.tmpV1 = new s2d.RenderVertex();
             this.tmpV2 = new s2d.RenderVertex();
             this.tmpV3 = new s2d.RenderVertex();
             this.tmpV4 = new s2d.RenderVertex();
-            this.gl = gl;
-            this.renderProgram = new s2d.RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
+            var gl = s2d.renderer.gl;
+            this.renderProgram = new s2d.RenderProgram(RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderVertexBuffers = new Array();
             this.renderIndexBuffers = new Array();
             for (var i = 0; i < 16; i++) {
-                this.renderVertexBuffers.push(new s2d.RenderBuffer(gl, gl.ARRAY_BUFFER));
-                this.renderIndexBuffers.push(new s2d.RenderBuffer(gl, gl.ELEMENT_ARRAY_BUFFER));
+                this.renderVertexBuffers.push(new s2d.RenderBuffer(gl.ARRAY_BUFFER));
+                this.renderIndexBuffers.push(new s2d.RenderBuffer(gl.ELEMENT_ARRAY_BUFFER));
             }
             this.backingVertexArray = new ArrayBuffer(RenderCommands.MAX_VERTEX * RenderCommands.VERTEX_SIZE);
             this.positions = new Float32Array(this.backingVertexArray);
@@ -465,7 +475,7 @@ var s2d;
                 return;
             if (this.vertexOffset === 0)
                 return;
-            var gl = this.gl;
+            var gl = s2d.renderer.gl;
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", gl.canvas.width, gl.canvas.height);
             this.currentTexture.useTexture();
@@ -483,7 +493,7 @@ var s2d;
             else {
                 gl.disable(gl.BLEND);
             }
-            gl.drawElements(this.gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
+            gl.drawElements(gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
             this.currentBufferIndex = (this.currentBufferIndex + 1) % this.renderVertexBuffers.length;
             this.currentTexture = null;
         };
@@ -503,21 +513,8 @@ var s2d;
 (function (s2d) {
     var RenderManager = (function () {
         function RenderManager() {
-            var _this = this;
             this.tmpCameras = new Array(4);
             this.tmpDrawers = new Array(1024);
-            this.mainCanvas = document.getElementById("mainCanvas");
-            if (this.mainCanvas) {
-                //don't show context menu
-                this.mainCanvas.addEventListener("contextmenu", function (ev) { ev.preventDefault(); }, true);
-                window.addEventListener("contextmenu", function (ev) { ev.preventDefault(); }, true);
-                //resize canvas on window resize
-                window.addEventListener("resize", function () { return _this.onWindowResize(); }, false);
-                //register webgl context lost event
-                this.mainCanvas.addEventListener("webglcontextlost", function () { return _this.onWebGLContextLost(); }, false);
-                this.mainCanvas.addEventListener("webglcontextrestored", function () { return _this.onWebGLContextRestored(); }, false);
-                this.initWebGL();
-            }
         }
         Object.defineProperty(RenderManager.prototype, "contextLost", {
             get: function () {
@@ -547,6 +544,21 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        RenderManager.prototype.init = function () {
+            var _this = this;
+            this.mainCanvas = document.getElementById("mainCanvas");
+            if (this.mainCanvas) {
+                //don't show context menu
+                this.mainCanvas.addEventListener("contextmenu", function (ev) { ev.preventDefault(); }, true);
+                window.addEventListener("contextmenu", function (ev) { ev.preventDefault(); }, true);
+                //resize canvas on window resize
+                window.addEventListener("resize", function () { return _this.onWindowResize(); }, false);
+                //register webgl context lost event
+                this.mainCanvas.addEventListener("webglcontextlost", function () { return _this.onWebGLContextLost(); }, false);
+                this.mainCanvas.addEventListener("webglcontextrestored", function () { return _this.onWebGLContextRestored(); }, false);
+                this.initWebGL();
+            }
+        };
         RenderManager.prototype.onWindowResize = function () {
             this._screenWidth = window.innerWidth;
             this._screenHeight = window.innerHeight;
@@ -573,7 +585,7 @@ var s2d;
             //Disable depth test and writing to depth mask
             gl.disable(gl.DEPTH_TEST);
             gl.depthMask(false);
-            this._commands = new s2d.RenderCommands(gl);
+            this._commands = new s2d.RenderCommands();
             this.onWindowResize();
         };
         /**
@@ -2316,6 +2328,8 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        EntityManager.prototype.init = function () {
+        };
         EntityManager.prototype.getComponentInChildren = function (clazz, toReturn) {
             return this._root.getComponentInChildren(clazz, toReturn);
         };
@@ -2385,15 +2399,20 @@ var s2d;
             s2d.Drawer.initStatic();
             s2d.TextDrawer.initStatic();
             s2d.Time.initStatic();
+            //Manager instantiation
             this._renderer = new s2d.RenderManager();
             this._input = new s2d.InputManager();
             this._entities = new s2d.EntityManager();
             this._stats = new s2d.Stats();
-            this._stats.init();
             //Global vars initialization
             s2d.input = this._input;
             s2d.renderer = this._renderer;
             s2d.entities = this._entities;
+            //Manager initialization
+            this._renderer.init();
+            this._input.init();
+            this._entities.init();
+            this._stats.init();
         };
         Engine.prototype.update = function () {
             var now = Date.now() / 1000;
@@ -2454,12 +2473,13 @@ var GameLogic = (function (_super) {
         this.entities = new Array();
     }
     GameLogic.prototype.onInit = function () {
-        this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png", false);
-        this.font = new s2d.RenderFont(s2d.renderer.gl, "assets/font.xml");
+        this.texture = new s2d.RenderTexture(false).loadFromUrl("assets/test.png");
+        this.font = s2d.EmbeddedAssets.defaultFont;
         this.cam = s2d.EntityFactory.buildCamera();
         this.initTestComplex();
         //this.initTestSimple();
         this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
+        this.textFPS.scale = 3;
         this.textFPS.color.setFromRgba(0, 255, 0);
         this.textFPS.entity.transform.localX = 8;
         this.textFPS.entity.transform.localY = 8;
@@ -2545,6 +2565,7 @@ var s2d;
             _super.apply(this, arguments);
             this.color = s2d.Color.fromRgba(255, 255, 255, 255);
             this.text = "Nice FPS drawing!!";
+            this.scale = 1;
         }
         TextDrawer.initStatic = function () {
             TextDrawer.tmpRight = s2d.Vector2.create();
@@ -2557,8 +2578,8 @@ var s2d;
         };
         TextDrawer.prototype.draw = function (commands) {
             var font = this.font;
-            var color = this.color;
             var text = this.text;
+            var scale = this.scale;
             if (font.texture === null)
                 return; //Texture not loaded yet
             var texture = font.texture;
@@ -2576,9 +2597,11 @@ var s2d;
             var matrix = s2d.Drawer.tmpMatrix;
             tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = this.color.abgrHex;
             trans.getLocalToGlobalMatrix(matrix);
-            s2d.Vector2.set(right, 1, 0);
+            //By scaling the right / down vector with "scale", everything is automatically
+            //correctly scaled!
+            s2d.Vector2.set(right, 1 * scale, 0);
             s2d.Vector2.transformMat2dNormal(right, right, matrix);
-            s2d.Vector2.set(down, 0, 1);
+            s2d.Vector2.set(down, 0, 1 * scale);
             s2d.Vector2.transformMat2dNormal(down, down, matrix);
             s2d.Vector2.set(topLeft, 0, 0);
             s2d.Vector2.transformMat2d(topLeft, topLeft, matrix);
@@ -2595,27 +2618,36 @@ var s2d;
                 else {
                     var charData = font.chars[charCode];
                     if (charData) {
+                        var charWidth = charData.width;
+                        var charHeight = charData.height;
+                        var dx = charData.xoffset;
+                        var dy = charData.yoffset;
+                        var ox = topLeft[0];
+                        var oy = topLeft[1];
+                        //offset char dx / dy
+                        topLeft[0] += right[0] * dx + down[0] * dy;
+                        topLeft[1] += right[1] * dx + down[1] * dy;
                         tmpV1.x = topLeft[0];
                         tmpV1.y = topLeft[1];
                         tmpV1.u = charData.x / textureWidth;
                         tmpV1.v = charData.y / textureHeight;
-                        tmpV2.x = topLeft[0] + right[0] * charData.width;
-                        tmpV2.y = topLeft[1] + right[1] * charData.width;
-                        tmpV2.u = (charData.x + charData.width) / textureWidth;
+                        tmpV2.x = topLeft[0] + right[0] * charWidth;
+                        tmpV2.y = topLeft[1] + right[1] * charWidth;
+                        tmpV2.u = (charData.x + charWidth) / textureWidth;
                         tmpV2.v = charData.y / textureHeight;
-                        tmpV3.x = topLeft[0] + right[0] * charData.width + down[0] * charData.height;
-                        tmpV3.y = topLeft[1] + right[1] * charData.width + down[1] * charData.height;
-                        tmpV3.u = (charData.x + charData.width) / textureWidth;
-                        tmpV3.v = (charData.y + charData.height) / textureHeight;
-                        tmpV4.x = topLeft[0] + down[0] * charData.height;
-                        tmpV4.y = topLeft[1] + down[1] * charData.height;
+                        tmpV3.x = topLeft[0] + right[0] * charWidth + down[0] * charHeight;
+                        tmpV3.y = topLeft[1] + right[1] * charWidth + down[1] * charHeight;
+                        tmpV3.u = (charData.x + charWidth) / textureWidth;
+                        tmpV3.v = (charData.y + charHeight) / textureHeight;
+                        tmpV4.x = topLeft[0] + down[0] * charHeight;
+                        tmpV4.y = topLeft[1] + down[1] * charHeight;
                         tmpV4.u = charData.x / textureWidth;
-                        tmpV4.v = (charData.y + charData.height) / textureHeight;
+                        tmpV4.v = (charData.y + charHeight) / textureHeight;
                         //draw char
                         commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
                         //offset char xadvance
-                        topLeft[0] += right[0] * charData.xadvance;
-                        topLeft[1] += right[1] * charData.xadvance;
+                        topLeft[0] = ox + right[0] * charData.xadvance;
+                        topLeft[1] = oy + right[1] * charData.xadvance;
                     }
                 }
             }
@@ -2645,32 +2677,6 @@ var s2d;
         return TextureDrawer;
     }(s2d.Drawer));
     s2d.TextureDrawer = TextureDrawer;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            return textureDrawer;
-        };
-        EntityFactory.buildTextDrawer = function (font) {
-            var textDrawer = new s2d.Entity("Text").addComponent(s2d.TextDrawer);
-            textDrawer.font = font;
-            return textDrawer;
-        };
-        EntityFactory.buildWithComponent = function (clazz, name) {
-            if (name === void 0) { name = "Entity"; }
-            return new s2d.Entity(name).addComponent(clazz);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -3606,32 +3612,17 @@ var s2d;
     }());
     s2d.RenderFontCharData = RenderFontCharData;
     var RenderFont = (function () {
-        function RenderFont(gl, fontXmlSrc) {
-            var _this = this;
-            this.gl = null;
+        function RenderFont() {
             this._xhttp = null;
             this._texture = null;
-            this._fontData = null;
             this._textureWidth = 0;
             this._textureHeight = 0;
             this._lineHeight = 0;
             this._chars = new Array();
-            this.gl = gl;
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
-            this._xhttp.open("GET", fontXmlSrc, true);
-            this._xhttp.send(null);
         }
         Object.defineProperty(RenderFont.prototype, "texture", {
             get: function () {
                 return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "fontData", {
-            get: function () {
-                return this._fontData;
             },
             enumerable: true,
             configurable: true
@@ -3664,12 +3655,31 @@ var s2d;
             enumerable: true,
             configurable: true
         });
-        RenderFont.prototype.onXMLLoadComplete = function () {
-            this._fontData = JXON.stringToJs(this._xhttp.responseText);
-            this._textureWidth = parseInt(this._fontData.font.common.$scaleW);
-            this._textureHeight = parseInt(this._fontData.font.common.$scaleH);
-            this._lineHeight = parseInt(this._fontData.font.common.$lineHeight);
-            var charsJson = this._fontData.font.chars.char;
+        RenderFont.prototype.clear = function () {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+        };
+        RenderFont.prototype.loadFromEmbeddedData = function (fontXml, textureBase64) {
+            this.parseFontXml(fontXml);
+            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64);
+            return this;
+        };
+        RenderFont.prototype.loadFromUrl = function (fontXmlURL) {
+            var _this = this;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", fontXmlURL, true);
+            this._xhttp.send(null);
+            return this;
+        };
+        RenderFont.prototype.parseFontXml = function (xml) {
+            var fontData = JXON.stringToJs(xml);
+            this._textureWidth = parseInt(fontData.font.common.$scaleW);
+            this._textureHeight = parseInt(fontData.font.common.$scaleH);
+            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
+            var charsJson = fontData.font.chars.char;
             for (var i = 0; i < charsJson.length; i++) {
                 var charJson = charsJson[i];
                 var char = new RenderFontCharData();
@@ -3683,15 +3693,12 @@ var s2d;
                 char.yoffset = parseInt(charJson.$yoffset);
                 this._chars[char.id] = char;
             }
-            this._texture = new s2d.RenderTexture(this.gl, "assets/" + this._fontData.font.pages.page.$file, true);
-            this._xhttp = null;
+            return fontData;
         };
-        RenderFont.prototype.clear = function () {
-            if (this._texture != null) {
-                this._texture.clear();
-                this._texture = null;
-            }
-            this._fontData = null;
+        RenderFont.prototype.onXMLLoadComplete = function () {
+            var fontData = this.parseFontXml(this._xhttp.responseText);
+            this._xhttp = null;
+            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
         };
         return RenderFont;
     }());
@@ -3700,24 +3707,17 @@ var s2d;
 var s2d;
 (function (s2d) {
     var RenderTexture = (function () {
-        function RenderTexture(gl, imageSrc, hasAlpha) {
-            var _this = this;
-            this.gl = null;
+        function RenderTexture(hasAlpha) {
             this._texture = null;
             this._image = null;
             this._hasAlpha = false;
-            this.gl = gl;
+            var gl = s2d.renderer.gl;
             this._hasAlpha = hasAlpha;
             this._texture = gl.createTexture();
             var texture = this._texture;
             gl.bindTexture(gl.TEXTURE_2D, texture);
             // Fill the texture with a 1x1 white pixel.
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = imageSrc;
         }
         Object.defineProperty(RenderTexture.prototype, "texture", {
             get: function () {
@@ -3733,8 +3733,25 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        RenderTexture.prototype.loadFromUrl = function (imageUrl) {
+            var _this = this;
+            // Asynchronously load an image
+            this._image = new Image();
+            this._image.setAttribute('crossOrigin', 'anonymous');
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = imageUrl;
+            return this;
+        };
+        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64) {
+            var _this = this;
+            // Asynchronously load an image
+            this._image = new Image();
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = "data:image/png;base64," + imageBase64;
+            return this;
+        };
         RenderTexture.prototype.onImageLoadComplete = function () {
-            var gl = this.gl;
+            var gl = s2d.renderer.gl;
             var texture = this._texture;
             var image = this._image;
             // Now that the image has loaded make copy it to the texture.
@@ -3750,13 +3767,14 @@ var s2d;
             this._image = null;
         };
         RenderTexture.prototype.clear = function () {
+            var gl = s2d.renderer.gl;
             if (this._texture != null) {
-                this.gl.deleteTexture(this._texture);
+                gl.deleteTexture(this._texture);
                 this._texture = null;
             }
         };
         RenderTexture.prototype.useTexture = function () {
-            var gl = this.gl;
+            var gl = s2d.renderer.gl;
             gl.bindTexture(gl.TEXTURE_2D, this._texture);
         };
         return RenderTexture;
@@ -3776,6 +3794,64 @@ var s2d;
         return RenderVertex;
     }());
     s2d.RenderVertex = RenderVertex;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EntityFactory = (function () {
+        function EntityFactory() {
+        }
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function (font) {
+            var textDrawer = new s2d.Entity("Text").addComponent(s2d.TextDrawer);
+            textDrawer.font = font;
+            return textDrawer;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
+        };
+        return EntityFactory;
+    }());
+    s2d.EntityFactory = EntityFactory;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedAssets = (function () {
+        function EmbeddedAssets() {
+        }
+        Object.defineProperty(EmbeddedAssets, "defaultFont", {
+            get: function () {
+                if (!EmbeddedAssets._defaultFont)
+                    EmbeddedAssets._defaultFont = new s2d.RenderFont().loadFromEmbeddedData(window.atob(s2d.EmbeddedData.fontXmlBase64), s2d.EmbeddedData.fontTextureBase64);
+                return EmbeddedAssets._defaultFont;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return EmbeddedAssets;
+    }());
+    s2d.EmbeddedAssets = EmbeddedAssets;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedData = (function () {
+        function EmbeddedData() {
+        }
+        //Embeded font is KenPixel.ttf at 12px height
+        //Font texture encoded using https://www.base64-image.de/
+        EmbeddedData.fontTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAFjElEQVR4nO2c627rIBCEcZX3f2WfH6eOyGavgB2nM58U1V5gwWaABSXd9n1vrbW9vbL9/t0N29bZdyX/lrRr/jy71h7PLtM3cR3ly7Y34z/z3mba7z2X5Wfb9v8KyHSAlU9Lz1z3DTrI+u/vq+3M+B/1McKq9g/V+3AyyEZEI25r7x3q2a0OzPqP7JafrH+rPX2ZO9Tb+ygPEE8AVYerRujZ9c7az26n5T+yD/GzytEAvfKtEUBOxpsBVmJ1sBVsZafEq8hOxVb+qt2b6j17mUfT16DVQYgX+FXyV/2swnofo+u+Z6/WO8UxA3hr0Vns4vrKusnv+34IQ98R1ajbi8bNBrT5zr+inWfOkJb/WXv0vM9zgNYbio0nX46cASy8k6jsCZdEC/ysa61sVCZTXku3ziQyW9eRYM7aGkq8s4dq/mddD1Gp1TDr2rtfccKV6eAV5T0BV+rUxLM59oovrZzn38v/tP90GeSD9k724F6rHIVPLp3T9R4zgHQobVpwmB2B1v0d4g0pYmvUeWnW6OvLeIPCmr5Ht4+ZQP5Jfw4w0sERs0vA2XjPqsUR0ZJg+crGFe56HdhH7j96FPxNRDHSai5bRq86Cj6QCpe7ikzE3TNb3mqX9NffR761iL96jlDd04/6eZ4DzE4ld1vbSZLMDCDXP209XD0qRvbTms3dAin5KoFXtv3V/EeaFxxWnsu197sAq4Ojfb/3EL0fjUyDZXpkH12fRwRzRv4m8p4abxy7AK1iD2uk3CHq5xJU4FgCqlPf2R1dXQJkWrT/XhWzVP2sCOyquP77o+CDzFRmsepBMkuGlVY9QJkRsFdO8zuyt5/F7cfKl0Kl06jMHQ9+rsQK5M6uL7td3VqzvxEkkQ69CNZq2FvlLTclyvoi/5dOoQvyrzoj6NOyy9HL9wFeEgbuqw9CboAWA0iyHVndHsq00f1y1s7zAcWuLQGyI73p32twtD1ctV/m+cAYzxhANsCqUDZQMvrCrwqUuCQpRNtAyehLjIKibMTM84HFVLaBe2f3ZoHIl1Y2OwvwfGAdzxggnbm7t0RQ2R5qZRC41fnASBCoOY6o7vd5PnD++cDWWmvR7wKyx79RlEtuiveVsGoHRsvB8ZF1WPYm7DKfNo1q5TL5NSxfss3Ze6+8TNPKWW3JtNlMj74TuLf3Bkusju4r29r79N7bV6yLMnia8ef5kgFa/2xWehPp2vRs5fXoy0bPrwaX3i+DrMqt7WE0Y3jbS82/JaDeZt1n2/QtaDOf7Gzv+c338NN0pchKZcX9ZzXRCKrEGiMzgfcyP0X/rq3BEI14tf2zXws/Y4RpM4BXn9c5I+2LXuadsDo5ek/pGCBb+cq81gywi2u5Ln9Lp80QLdPWrGmme+cA3r6y2qF9h2X8jxCteVp90bNb29sm0vuyVrqXX5ZtStopaP8nsHrfRNqL/+kWklMZXQKs7aEXIFpr+4q/2qdaxrNLPhkQLmXkp2HRqPamuDPwfFvxRLRGztT5VWhfCYuQa6Ncw+R69mde1l/kiAHe7N21NoIrcQG5Mdovg3q8UZ492SM3xpsBOMoBGIkByB+C/yEEHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAnH8AfKNa7b1P4gAAAABJRU5ErkJggg==";
+        //XML encoded using https://www.base64encode.org/
+        EmbeddedData.fontXmlBase64 = "PD94bWwgdmVyc2lvbj0iMS4wIj8+DQo8Zm9udD4NCiAgPGluZm8gZmFjZT0iS2VuUGl4ZWwiIHNpemU9IjEyIiBib2xkPSIwIiBpdGFsaWM9IjAiIGNoYXJzZXQ9IkFOU0kiIHVuaWNvZGU9IjAiIHN0cmV0Y2hIPSIxMDAiIHNtb290aD0iMCIgYWE9IjEiIHBhZGRpbmc9IjAsMCwwLDAiIHNwYWNpbmc9IjEsMSIgb3V0bGluZT0iMCIvPg0KICA8Y29tbW9uIGxpbmVIZWlnaHQ9IjEyIiBiYXNlPSI5IiBzY2FsZVc9IjEyOCIgc2NhbGVIPSIxMjgiIHBhZ2VzPSIxIiBwYWNrZWQ9IjAiIGFscGhhQ2hubD0iMCIgcmVkQ2hubD0iNCIgZ3JlZW5DaG5sPSI0IiBibHVlQ2hubD0iNCIvPg0KICA8cGFnZXM+DQogICAgPHBhZ2UgaWQ9IjAiIGZpbGU9ImZvbnRfMC5wbmciIC8+DQogIDwvcGFnZXM+DQogIDxjaGFycyBjb3VudD0iMTM0Ij4NCiAgICA8Y2hhciBpZD0iMzIiIHg9IjczIiB5PSI0MiIgd2lkdGg9IjMiIGhlaWdodD0iMSIgeG9mZnNldD0iLTEiIHlvZmZzZXQ9IjExIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjMzIiB4PSIxMjYiIHk9IjE4IiB3aWR0aD0iMSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjM0IiB4PSIyNiIgeT0iNDIiIHdpZHRoPSIzIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMzUiIHg9IjM2IiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIzNiIgeD0iMzAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjEiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMzciIHg9IjQyIiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIzOCIgeD0iNzAiIHk9IjEwIiB3aWR0aD0iNiIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNyIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjM5IiB4PSI0MiIgeT0iNDIiIHdpZHRoPSIxIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDAiIHg9IjEyNSIgeT0iMTAiIHdpZHRoPSIyIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIzIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDEiIHg9Ijk2IiB5PSIzNCIgd2lkdGg9IjIiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0MiIgeD0iMTIiIHk9IjQ0IiB3aWR0aD0iMyIgaGVpZ2h0PSIzIiB4b2Zmc2V0PSIxIiB5b2Zmc2V0PSI0IiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQzIiB4PSIxMDUiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQ0IiB4PSI0MCIgeT0iNDIiIHdpZHRoPSIxIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjgiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDUiIHg9IjYxIiB5PSI0MiIgd2lkdGg9IjUiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNSIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0NiIgeD0iNzciIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSI4IiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQ3IiB4PSI3NyIgeT0iMTAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDgiIHg9IjMwIiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0OSIgeD0iODgiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjUwIiB4PSI4MyIgeT0iMTAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNTEiIHg9Ijg5IiB5PSIxMCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1MiIgeD0iOTUiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjUzIiB4PSIxMDEiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU0IiB4PSIxMDciIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU1IiB4PSIxMTMiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU2IiB4PSIxMTkiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU3IiB4PSIwIiB5PSIyMSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1OCIgeD0iMTI1IiB5PSIzNCIgd2lkdGg9IjEiIGhlaWdodD0iNSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1OSIgeD0iMTI2IiB5PSIyNiIgd2lkdGg9IjEiIGhlaWdodD0iNiIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2MCIgeD0iNDgiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjYxIiB4PSIwIiB5PSI0NSIgd2lkdGg9IjUiIGhlaWdodD0iMyIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2MiIgeD0iNTMiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjYzIiB4PSI2IiB5PSIyMSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2NCIgeD0iMzAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjY1IiB4PSIxMiIgeT0iMjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNjYiIHg9IjE4IiB5PSIxOSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2NyIgeD0iMjQiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjY4IiB4PSIzMCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNjkiIHg9IjM2IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3MCIgeD0iNDIiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjcxIiB4PSI0OCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzIiIHg9IjU0IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3MyIgeD0iNzYiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijc0IiB4PSI5MiIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzUiIHg9IjYwIiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3NiIgeD0iNjMiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijc3IiB4PSI1NSIgeT0iMTAiIHdpZHRoPSI3IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI4IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzgiIHg9IjY2IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3OSIgeD0iNzIiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjgwIiB4PSI3OCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODEiIHg9Ijg0IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4MiIgeD0iOTAiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjgzIiB4PSI5NiIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODQiIHg9IjEwMiIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODUiIHg9IjEwOCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODYiIHg9IjExNCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODciIHg9IjQ3IiB5PSIxMCIgd2lkdGg9IjciIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjgiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4OCIgeD0iMTIwIiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4OSIgeD0iMCIgeT0iMjkiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTAiIHg9IjYiIHk9IjI5IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjkxIiB4PSIxMDIiIHk9IjM0IiB3aWR0aD0iMiIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMyIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjkyIiB4PSIxMiIgeT0iMjgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTMiIHg9Ijk5IiB5PSIzNCIgd2lkdGg9IjIiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5NCIgeD0iNiIgeT0iNDUiIHdpZHRoPSI1IiBoZWlnaHQ9IjMiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTUiIHg9IjY3IiB5PSI0MiIgd2lkdGg9IjUiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iOCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5NiIgeD0iNDYiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSI0IiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijk3IiB4PSIxOCIgeT0iMjciIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTgiIHg9IjI0IiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5OSIgeD0iMTgiIHk9IjM1IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMCIgeD0iMzYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMSIgeD0iNDIiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMiIgeD0iNDgiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMyIgeD0iNTQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNCIgeD0iNjAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNSIgeD0iODQiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNiIgeD0iODAiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNyIgeD0iNjYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwOCIgeD0iNTgiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwOSIgeD0iMzkiIHk9IjEwIiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iOCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMCIgeD0iNzIiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMSIgeD0iNzgiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMiIgeD0iODQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMyIgeD0iOTAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExNCIgeD0iOTYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExNSIgeD0iMTAyIiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMTYiIHg9IjEwOCIgeT0iMjYiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTE3IiB4PSIxMTQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExOCIgeD0iMTIwIiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMTkiIHg9IjMxIiB5PSIxMCIgd2lkdGg9IjciIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjgiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMjAiIHg9IjAiIHk9IjM3IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEyMSIgeD0iNiIgeT0iMzciIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTIyIiB4PSIxMiIgeT0iMzYiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTIzIiB4PSI2OCIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI0IiB4PSIxMjYiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI1IiB4PSI3MiIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI2IiB4PSIxOSIgeT0iNDMiIHdpZHRoPSI2IiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjQiIHhhZHZhbmNlPSI3IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTMzIiB4PSI1NSIgeT0iNDIiIHdpZHRoPSI1IiBoZWlnaHQ9IjEiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjgiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTM5IiB4PSIxMjEiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NSIgeD0iMzgiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NiIgeD0iNDQiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NyIgeD0iMzQiIHk9IjQyIiB3aWR0aD0iMyIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0OCIgeD0iMzAiIHk9IjQyIiB3aWR0aD0iMyIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE1MSIgeD0iNDgiIHk9IjQyIiB3aWR0aD0iNiIgaGVpZ2h0PSIxIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSI1IiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE1NSIgeD0iMTE3IiB5PSIzNCIgd2lkdGg9IjMiIGhlaWdodD0iNSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMyIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxODMiIHg9IjEyNiIgeT0iOCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNSIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxODQiIHg9IjE2IiB5PSI0NCIgd2lkdGg9IjIiIGhlaWdodD0iMyIgeG9mZnNldD0iMCIgeW9mZnNldD0iOCIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTIiIHg9Ijg0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE5MyIgeD0iNzgiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTk0IiB4PSI0MiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTUiIHg9IjI0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE5NiIgeD0iOTAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTk3IiB4PSIzNiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTgiIHg9IjIyIiB5PSIxMCIgd2lkdGg9IjgiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjkiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTkiIHg9IjAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjEwIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMCIgeD0iMTA4IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMSIgeD0iMTAyIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMiIgeD0iOTYiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjAzIiB4PSI3MiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDQiIHg9IjEyIiB5PSIxMCIgd2lkdGg9IjMiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjQiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDUiIHg9IjgiIHk9IjEwIiB3aWR0aD0iMyIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwNiIgeD0iNCIgeT0iMTEiIHdpZHRoPSIzIiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjA3IiB4PSIwIiB5PSIxMSIgd2lkdGg9IjMiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjQiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDgiIHg9IjYzIiB5PSIxMCIgd2lkdGg9IjYiIGhlaWdodD0iNyIgeG9mZnNldD0iLTEiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjA5IiB4PSI2NiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMTAiIHg9IjYwIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxMSIgeD0iNTQiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjEyIiB4PSI0OCIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMTMiIHg9IjE4IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNCIgeD0iMTIiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjE1IiB4PSIxMTEiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNiIgeD0iMjQiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNyIgeD0iMTE0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxOCIgeD0iMTIwIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxOSIgeD0iNiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMjAiIHg9IjE2IiB5PSIxMCIgd2lkdGg9IjUiIGhlaWdodD0iOCIgeG9mZnNldD0iMCIgeW9mZnNldD0iMSIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICA8L2NoYXJzPg0KPC9mb250Pg0K";
+        return EmbeddedData;
+    }());
+    s2d.EmbeddedData = EmbeddedData;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {

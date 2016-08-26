@@ -3,18 +3,16 @@
 module s2d {
     export class RenderProgram {
 
-        private gl: WebGLRenderingContext;
         private _program: WebGLProgram;
         private _vertexShader: RenderShader;
         private _fragmentShader: RenderShader;
         private _linkOk: boolean;
 
-        public constructor(gl: WebGLRenderingContext, vertexShaderStr: string, fragmentShaderStr: string) {
+        public constructor(vertexShaderStr: string, fragmentShaderStr: string) {
+            let gl = renderer.gl;
 
-            this.gl = gl;
-
-            this._vertexShader = new RenderShader(gl, vertexShaderStr, gl.VERTEX_SHADER);
-            this._fragmentShader = new RenderShader(gl, fragmentShaderStr, gl.FRAGMENT_SHADER);
+            this._vertexShader = new RenderShader(vertexShaderStr, gl.VERTEX_SHADER);
+            this._fragmentShader = new RenderShader(fragmentShaderStr, gl.FRAGMENT_SHADER);
 
             this._program = gl.createProgram();
             gl.attachShader(this._program, this._vertexShader.shader);
@@ -30,8 +28,10 @@ module s2d {
         }
 
         public clear() {
+            let gl = renderer.gl;
+
             if (this._program != null) {
-                this.gl.deleteProgram(this._program);
+                gl.deleteProgram(this._program);
                 this._program = null;
             }
 
@@ -47,22 +47,26 @@ module s2d {
         }
 
         public useProgram() {
-            this.gl.useProgram(this._program);
+            let gl = renderer.gl;
+            gl.useProgram(this._program);
         }
 
         public setUniform2f(name: string, x: number, y: number) {
-            var uniformLocation = this.gl.getUniformLocation(this._program, name);
-            this.gl.uniform2f(uniformLocation, x, y);
+
+            let gl = renderer.gl;
+            var uniformLocation = gl.getUniformLocation(this._program, name);
+            gl.uniform2f(uniformLocation, x, y);
         }
 
         public setVertexAttributePointer(name: string, buffer: RenderBuffer, size: number, type: number, normalized: boolean, stride: number, offset: number) {
 
-            var attributeLocation = this.gl.getAttribLocation(this._program, name);
-            this.gl.enableVertexAttribArray(attributeLocation);
+            let gl = renderer.gl;
+            var attributeLocation = gl.getAttribLocation(this._program, name);
+            gl.enableVertexAttribArray(attributeLocation);
 
             buffer.bind();
 
-            this.gl.vertexAttribPointer(
+            gl.vertexAttribPointer(
                 attributeLocation,
                 size,
                 type,
@@ -71,7 +75,5 @@ module s2d {
                 offset
             );
         }
-
     }
-
 }

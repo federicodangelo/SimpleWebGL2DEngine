@@ -18,14 +18,15 @@ class GameLogic extends s2d.Behavior {
 
     public onInit() : void {
 
-        this.texture = new s2d.RenderTexture(s2d.renderer.gl, "assets/test.png", false);
-        this.font = new s2d.RenderFont(s2d.renderer.gl, "assets/font.xml");
+        this.texture = new s2d.RenderTexture(false).loadFromUrl("assets/test.png");
+        this.font = s2d.EmbeddedAssets.defaultFont;
         this.cam = s2d.EntityFactory.buildCamera();
         
         this.initTestComplex();
         //this.initTestSimple();
 
         this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
+        this.textFPS.scale = 3;
         this.textFPS.color.setFromRgba(0, 255, 0);
 
         this.textFPS.entity.transform.localX = 8;

@@ -1,7 +1,6 @@
 module s2d {
     export class RenderTexture {
 
-        private gl: WebGLRenderingContext = null;
         private _texture: WebGLTexture = null;
         private _image: HTMLImageElement = null;
         private _hasAlpha: boolean = false;
@@ -14,9 +13,9 @@ module s2d {
             return this._hasAlpha;
         }
 
-        public constructor(gl: WebGLRenderingContext, imageSrc: string, hasAlpha: boolean) {
+        public constructor(hasAlpha: boolean) {
 
-            this.gl = gl;
+            let gl = renderer.gl;
             this._hasAlpha = hasAlpha;
             this._texture = gl.createTexture();
 
@@ -27,16 +26,31 @@ module s2d {
             // Fill the texture with a 1x1 white pixel.
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
                 new Uint8Array([255, 255, 255, 255]));
+        }
+
+        public loadFromUrl(imageUrl: string) {
 
             // Asynchronously load an image
             this._image = new Image();
             this._image.setAttribute('crossOrigin', 'anonymous');
             this._image.addEventListener('load', () => this.onImageLoadComplete());
-            this._image.src = imageSrc;
+            this._image.src = imageUrl;
+
+            return this;
+        }
+
+        public loadFromEmbeddedData(imageBase64: string) {
+
+            // Asynchronously load an image
+            this._image = new Image();
+            this._image.addEventListener('load', () => this.onImageLoadComplete());
+            this._image.src = "data:image/png;base64," + imageBase64;
+            
+            return this;
         }
 
         private onImageLoadComplete() {
-            let gl = this.gl;
+            let gl = renderer.gl;
             let texture = this._texture;
             let image = this._image;
 
@@ -59,14 +73,15 @@ module s2d {
         }
 
         public clear() {
+            let gl = renderer.gl;
             if (this._texture != null) {
-                this.gl.deleteTexture(this._texture);
+                gl.deleteTexture(this._texture);
                 this._texture = null;
             }
         }
 
         public useTexture() {
-            let gl = this.gl;
+            let gl = renderer.gl;
             gl.bindTexture(gl.TEXTURE_2D, this._texture);
         }
     }

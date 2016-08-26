@@ -13,6 +13,9 @@ module s2d {
         constructor() {
         }
 
+        public init() {
+        }
+
         public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : number {
             return this._root.getComponentInChildren(clazz, toReturn);
         }

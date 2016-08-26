@@ -31,6 +31,9 @@ module s2d {
         }
 
         constructor() {
+        }
+
+        public init() {
             this.mainCanvas = <HTMLCanvasElement>document.getElementById("mainCanvas");
 
             if (this.mainCanvas) {
@@ -86,7 +89,7 @@ module s2d {
             gl.disable(gl.DEPTH_TEST);
             gl.depthMask(false);
 
-            this._commands = new RenderCommands(gl);
+            this._commands = new RenderCommands();
 
             this.onWindowResize();
         }

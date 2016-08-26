@@ -9,6 +9,7 @@ module s2d {
         public font: RenderFont;
         public color: Color = Color.fromRgba(255, 255, 255, 255);
         public text: string = "Nice FPS drawing!!";
+        public scale: number = 1;
 
         static tmpRight: Vector2;
         static tmpDown: Vector2;
@@ -30,49 +31,51 @@ module s2d {
 
         public draw(commands: RenderCommands): void {
 
-            var font = this.font;
-            var color = this.color;
-            var text = this.text;
+            let font = this.font;
+            let text = this.text;
+            let scale = this.scale;
 
             if (font.texture === null)
                 return; //Texture not loaded yet
 
-            var texture = font.texture;
-            var textureWidth = font.textureWidth;
-            var textureHeight = font.textureHeight;
-            var lineHeight = font.lineHeight;
+            let texture = font.texture;
+            let textureWidth = font.textureWidth;
+            let textureHeight = font.textureHeight;
+            let lineHeight = font.lineHeight;
 
-            var right = TextDrawer.tmpRight;
-            var down = TextDrawer.tmpDown;
-            var tmpV1 = TextDrawer.tmpV1;
-            var tmpV2 = TextDrawer.tmpV2;
-            var tmpV3 = TextDrawer.tmpV3;
-            var tmpV4 = TextDrawer.tmpV4;
-            var topLeft = TextDrawer.tmpTopLeft;
+            let right = TextDrawer.tmpRight;
+            let down = TextDrawer.tmpDown;
+            let tmpV1 = TextDrawer.tmpV1;
+            let tmpV2 = TextDrawer.tmpV2;
+            let tmpV3 = TextDrawer.tmpV3;
+            let tmpV4 = TextDrawer.tmpV4;
+            let topLeft = TextDrawer.tmpTopLeft;
 
-            var trans = this.entity.transform;
-            var matrix = Drawer.tmpMatrix;
+            let trans = this.entity.transform;
+            let matrix = Drawer.tmpMatrix;
 
             tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = this.color.abgrHex;
 
             trans.getLocalToGlobalMatrix(matrix);
 
-            Vector2.set(right, 1, 0);
+            //By scaling the right / down vector with "scale", everything is automatically
+            //correctly scaled!
+            Vector2.set(right, 1 * scale, 0);
             Vector2.transformMat2dNormal(right, right, matrix);
 
-            Vector2.set(down, 0, 1);
+            Vector2.set(down, 0, 1 * scale);
             Vector2.transformMat2dNormal(down, down, matrix);
 
             Vector2.set(topLeft, 0, 0);
             Vector2.transformMat2d(topLeft, topLeft, matrix);
 
-            var startX = topLeft[0];
-            var startY = topLeft[1];
-            var lines = 0;
+            let startX = topLeft[0];
+            let startY = topLeft[1];
+            let lines = 0;
 
             for (let i = 0; i < text.length; i++) {
 
-                var charCode = text.charCodeAt(i);
+                let charCode = text.charCodeAt(i);
 
                 if (charCode === 10) { //'\n'
 
@@ -81,35 +84,50 @@ module s2d {
                     topLeft[1] = startY + down[1] * lines * lineHeight;
 
                 } else {
-                    var charData = font.chars[charCode];
+
+                    let charData = font.chars[charCode];
 
                     if (charData) {
+
+                        var charWidth = charData.width;
+                        var charHeight = charData.height;
+
+                        var dx = charData.xoffset;
+                        var dy = charData.yoffset;
+
+                        var ox = topLeft[0];
+                        var oy = topLeft[1];
+
+                        //offset char dx / dy
+                        topLeft[0] += right[0] * dx + down[0] * dy;
+                        topLeft[1] += right[1] * dx + down[1] * dy;
+
                         tmpV1.x = topLeft[0];
                         tmpV1.y = topLeft[1];
                         tmpV1.u = charData.x / textureWidth;
                         tmpV1.v = charData.y / textureHeight;
 
-                        tmpV2.x = topLeft[0] + right[0] * charData.width;
-                        tmpV2.y = topLeft[1] + right[1] * charData.width;
-                        tmpV2.u = (charData.x + charData.width) / textureWidth;
+                        tmpV2.x = topLeft[0] + right[0] * charWidth;
+                        tmpV2.y = topLeft[1] + right[1] * charWidth;
+                        tmpV2.u = (charData.x + charWidth) / textureWidth;
                         tmpV2.v = charData.y / textureHeight;
 
-                        tmpV3.x = topLeft[0] + right[0] * charData.width + down[0] * charData.height;
-                        tmpV3.y = topLeft[1] + right[1] * charData.width + down[1] * charData.height;
-                        tmpV3.u = (charData.x + charData.width) / textureWidth;
-                        tmpV3.v = (charData.y + charData.height) / textureHeight;
+                        tmpV3.x = topLeft[0] + right[0] * charWidth + down[0] * charHeight;
+                        tmpV3.y = topLeft[1] + right[1] * charWidth + down[1] * charHeight;
+                        tmpV3.u = (charData.x + charWidth) / textureWidth;
+                        tmpV3.v = (charData.y + charHeight) / textureHeight;
 
-                        tmpV4.x = topLeft[0] + down[0] * charData.height;
-                        tmpV4.y = topLeft[1] + down[1] * charData.height;
+                        tmpV4.x = topLeft[0] + down[0] * charHeight;
+                        tmpV4.y = topLeft[1] + down[1] * charHeight;
                         tmpV4.u = charData.x / textureWidth;
-                        tmpV4.v = (charData.y + charData.height) / textureHeight;
+                        tmpV4.v = (charData.y + charHeight) / textureHeight;
 
                         //draw char
                         commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
 
                         //offset char xadvance
-                        topLeft[0] += right[0] * charData.xadvance;
-                        topLeft[1] += right[1] * charData.xadvance;
+                        topLeft[0] = ox + right[0] * charData.xadvance;
+                        topLeft[1] = oy + right[1] * charData.xadvance;
                     }
                 }
             }

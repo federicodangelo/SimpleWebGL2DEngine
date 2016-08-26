@@ -34,16 +34,22 @@ module s2d {
             TextDrawer.initStatic();
             Time.initStatic();
             
+            //Manager instantiation
             this._renderer = new RenderManager();
             this._input = new InputManager();
             this._entities = new EntityManager();
             this._stats = new Stats();
-            this._stats.init();
 
             //Global vars initialization
             input = this._input;
             renderer = this._renderer;
             entities = this._entities;
+
+            //Manager initialization
+            this._renderer.init();
+            this._input.init();
+            this._entities.init();
+            this._stats.init();
         }
 
         private lastUpdateTime : number = 0;

@@ -21,11 +21,9 @@ module s2d {
 
     export class RenderFont {
 
-        private gl: WebGLRenderingContext = null;
         private _xhttp: XMLHttpRequest = null;
 
         private _texture: RenderTexture = null;
-        private _fontData: any = null;
 
         private _textureWidth: number = 0;
         private _textureHeight: number = 0;
@@ -36,9 +34,6 @@ module s2d {
             return this._texture;
         }
 
-        public get fontData() {
-            return this._fontData;
-        }
 
         public get textureWidth() {
             return this._textureWidth;
@@ -56,23 +51,38 @@ module s2d {
             return this._chars;
         }
 
-        public constructor(gl: WebGLRenderingContext, fontXmlSrc: string) {
-            this.gl = gl;
-
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', () => this.onXMLLoadComplete());
-            this._xhttp.open("GET", fontXmlSrc, true);
-            this._xhttp.send(null);
+        public constructor() {
         }
 
-        private onXMLLoadComplete(): void {
-            this._fontData = JXON.stringToJs(this._xhttp.responseText);
+        public clear() {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+        }
 
-            this._textureWidth = parseInt(this._fontData.font.common.$scaleW);
-            this._textureHeight = parseInt(this._fontData.font.common.$scaleH);
-            this._lineHeight = parseInt(this._fontData.font.common.$lineHeight);
+        public loadFromEmbeddedData(fontXml: string, textureBase64: string) {
+            this.parseFontXml(fontXml);
+            this._texture = new RenderTexture(true).loadFromEmbeddedData(textureBase64);
+            return this;
+        }
 
-            let charsJson: Array<any> = this._fontData.font.chars.char;
+        public loadFromUrl(fontXmlURL: string) {
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', () => this.onXMLLoadComplete());
+            this._xhttp.open("GET", fontXmlURL, true);
+            this._xhttp.send(null);
+            return this;
+        }
+
+        private parseFontXml(xml:string) : any {
+            var fontData = JXON.stringToJs(xml);
+
+            this._textureWidth = parseInt(fontData.font.common.$scaleW);
+            this._textureHeight = parseInt(fontData.font.common.$scaleH);
+            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
+
+            let charsJson: Array<any> = fontData.font.chars.char;
 
             for (let i = 0; i < charsJson.length; i++) {
                 let charJson = charsJson[i];
@@ -94,17 +104,13 @@ module s2d {
                 this._chars[char.id] = char;
             }
 
-            this._texture = new RenderTexture(this.gl, "assets/" + this._fontData.font.pages.page.$file, true);
-
-            this._xhttp = null;
+            return fontData;
         }
 
-        public clear() {
-            if (this._texture != null) {
-                this._texture.clear();
-                this._texture = null;
-            }
-            this._fontData = null;
+        private onXMLLoadComplete(): void {
+            let fontData = this.parseFontXml(this._xhttp.responseText);
+            this._xhttp = null;
+            this._texture = new RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
         }
     }
 }

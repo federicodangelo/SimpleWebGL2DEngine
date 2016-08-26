@@ -33,6 +33,9 @@ module s2d {
         }
 
         constructor() {
+        }
+
+        public init() {
             this.inputTouch = new Input.InputTouch();
             this.inputMouse = new Input.InputMouse();
         }

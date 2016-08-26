@@ -62,8 +62,6 @@ module s2d {
             }
         `;
 
-        private gl: WebGLRenderingContext;
-
         private renderProgram: RenderProgram;
 
         private renderVertexBuffers: Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
@@ -92,15 +90,15 @@ module s2d {
         static INDEX_SIZE: number = 2; //16 bits
         static MAX_INDEXES: number = RenderCommands.MAX_TRIANGLES * 3; //3 index per triangle
 
-        public constructor(gl: WebGLRenderingContext) {
-            this.gl = gl;
-            this.renderProgram = new RenderProgram(gl, RenderCommands.vertexShader, RenderCommands.fragmentShader);
+        public constructor() {
+            let gl = renderer.gl;
+            this.renderProgram = new RenderProgram(RenderCommands.vertexShader, RenderCommands.fragmentShader);
 
             this.renderVertexBuffers = new Array<RenderBuffer>();
             this.renderIndexBuffers = new Array<RenderBuffer>();
             for (let i = 0; i < 16; i++) {
-                this.renderVertexBuffers.push(new RenderBuffer(gl, gl.ARRAY_BUFFER));
-                this.renderIndexBuffers.push(new RenderBuffer(gl, gl.ELEMENT_ARRAY_BUFFER));
+                this.renderVertexBuffers.push(new RenderBuffer(gl.ARRAY_BUFFER));
+                this.renderIndexBuffers.push(new RenderBuffer(gl.ELEMENT_ARRAY_BUFFER));
             }
 
             this.backingVertexArray = new ArrayBuffer(RenderCommands.MAX_VERTEX * RenderCommands.VERTEX_SIZE);
@@ -244,7 +242,7 @@ module s2d {
             if (this.vertexOffset === 0)
                 return;
 
-            let gl = this.gl;
+            let gl = renderer.gl;
 
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", gl.canvas.width, gl.canvas.height);
@@ -268,7 +266,7 @@ module s2d {
                 gl.disable(gl.BLEND);
             }
 
-            gl.drawElements(this.gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
+            gl.drawElements(gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
             this.currentBufferIndex = (this.currentBufferIndex + 1) % this.renderVertexBuffers.length;
 
             this.currentTexture = null;
