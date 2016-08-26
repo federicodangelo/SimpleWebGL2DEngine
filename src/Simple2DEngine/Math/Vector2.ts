@@ -436,6 +436,22 @@ module s2d {
         }
 
         /**
+         * Transforms the Vector2 normal with a Matrix2d
+         *
+         * @param {Vector2} out the receiving vector
+         * @param {Vector2} a the vector to transform
+         * @param {Matrix2d} m matrix to transform with
+         * @returns {Vector2} out
+         */
+        public static transformMat2dNormal(out: Vector2, a: Vector2, m: Matrix2d): Vector2 {
+            let x = a[0],
+                y = a[1];
+            out[0] = m[0] * x + m[2] * y;
+            out[1] = m[1] * x + m[3] * y;
+            return out;
+        }
+
+        /**
          * Transforms the Vector2 with a mat3
          * 3rd vector component is implicitly '1'
          *

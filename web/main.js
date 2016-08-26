@@ -2006,6 +2006,20 @@ var s2d;
             return out;
         };
         /**
+         * Transforms the Vector2 normal with a Matrix2d
+         *
+         * @param {Vector2} out the receiving vector
+         * @param {Vector2} a the vector to transform
+         * @param {Matrix2d} m matrix to transform with
+         * @returns {Vector2} out
+         */
+        Vector2.transformMat2dNormal = function (out, a, m) {
+            var x = a[0], y = a[1];
+            out[0] = m[0] * x + m[2] * y;
+            out[1] = m[1] * x + m[3] * y;
+            return out;
+        };
+        /**
          * Transforms the Vector2 with a mat4
          * 3rd vector component is implicitly '0'
          * 4th vector component is implicitly '1'
@@ -2448,7 +2462,7 @@ var GameLogic = (function (_super) {
         this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
         this.textFPS.color.setFromRgba(0, 255, 0);
         this.textFPS.entity.transform.localX = 8;
-        this.textFPS.entity.transform.localY = 0;
+        this.textFPS.entity.transform.localY = 8;
     };
     GameLogic.prototype.initTestSimple = function () {
         var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
@@ -2533,10 +2547,13 @@ var s2d;
             this.text = "Nice FPS drawing!!";
         }
         TextDrawer.initStatic = function () {
-            TextDrawer.tmpUVTopLeft = s2d.Vector2.create();
-            TextDrawer.tmpUVBottomRight = s2d.Vector2.create();
-            TextDrawer.tmpTranslate = s2d.Vector2.create();
-            TextDrawer.tmpSize = s2d.Vector2.create();
+            TextDrawer.tmpRight = s2d.Vector2.create();
+            TextDrawer.tmpDown = s2d.Vector2.create();
+            TextDrawer.tmpV1 = new s2d.RenderVertex();
+            TextDrawer.tmpV2 = new s2d.RenderVertex();
+            TextDrawer.tmpV3 = new s2d.RenderVertex();
+            TextDrawer.tmpV4 = new s2d.RenderVertex();
+            TextDrawer.tmpTopLeft = s2d.Vector2.create();
         };
         TextDrawer.prototype.draw = function (commands) {
             var font = this.font;
@@ -2547,38 +2564,48 @@ var s2d;
             var texture = font.texture;
             var textureWidth = font.textureWidth;
             var textureHeight = font.textureHeight;
-            var uvTopLeft = TextDrawer.tmpUVTopLeft;
-            var uvBottomRight = TextDrawer.tmpUVBottomRight;
-            var translate = TextDrawer.tmpTranslate;
-            var size = TextDrawer.tmpSize;
+            var right = TextDrawer.tmpRight;
+            var down = TextDrawer.tmpDown;
+            var tmpV1 = TextDrawer.tmpV1;
+            var tmpV2 = TextDrawer.tmpV2;
+            var tmpV3 = TextDrawer.tmpV3;
+            var tmpV4 = TextDrawer.tmpV4;
+            var topLeft = TextDrawer.tmpTopLeft;
             var trans = this.entity.transform;
             var matrix = s2d.Drawer.tmpMatrix;
-            var oldX = 0;
-            var oldY = 0;
+            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = this.color.abgrHex;
             trans.getLocalToGlobalMatrix(matrix);
+            s2d.Vector2.set(right, 1, 0);
+            s2d.Vector2.transformMat2dNormal(right, right, matrix);
+            s2d.Vector2.set(down, 0, 1);
+            s2d.Vector2.transformMat2dNormal(down, down, matrix);
+            s2d.Vector2.set(topLeft, 0, 0);
+            s2d.Vector2.transformMat2d(topLeft, topLeft, matrix);
             for (var i = 0; i < text.length; i++) {
                 var charCode = text.charCodeAt(i);
                 var charData = font.chars[charCode];
                 if (charData !== null) {
-                    size[0] = charData.width * 0.5;
-                    size[1] = charData.height * 0.5;
-                    uvTopLeft[0] = charData.x / textureWidth;
-                    uvTopLeft[1] = charData.y / textureHeight;
-                    uvBottomRight[0] = (charData.x + charData.width) / textureWidth;
-                    uvBottomRight[1] = (charData.y + charData.height) / textureHeight;
-                    //offset half-size (save last positions to restore later)
-                    oldX = matrix[4];
-                    oldY = matrix[5];
-                    s2d.Matrix2d.translate(matrix, matrix, size);
+                    tmpV1.x = topLeft[0];
+                    tmpV1.y = topLeft[1];
+                    tmpV1.u = charData.x / textureWidth;
+                    tmpV1.v = charData.y / textureHeight;
+                    tmpV2.x = topLeft[0] + right[0] * charData.width;
+                    tmpV2.y = topLeft[1] + right[1] * charData.width;
+                    tmpV2.u = (charData.x + charData.width) / textureWidth;
+                    tmpV2.v = charData.y / textureHeight;
+                    tmpV3.x = topLeft[0] + right[0] * charData.width + down[0] * charData.height;
+                    tmpV3.y = topLeft[1] + right[1] * charData.width + down[1] * charData.height;
+                    tmpV3.u = (charData.x + charData.width) / textureWidth;
+                    tmpV3.v = (charData.y + charData.height) / textureHeight;
+                    tmpV4.x = topLeft[0] + down[0] * charData.height;
+                    tmpV4.y = topLeft[1] + down[1] * charData.height;
+                    tmpV4.u = charData.x / textureWidth;
+                    tmpV4.v = (charData.y + charData.height) / textureHeight;
                     //draw char
-                    commands.drawRectSimple(matrix, size, texture, uvTopLeft, uvBottomRight, color);
-                    //un-offset half-size
-                    matrix[4] = oldX;
-                    matrix[5] = oldY;
+                    commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
                     //offset char xadvance
-                    translate[0] = charData.xadvance;
-                    translate[1] = 0;
-                    s2d.Matrix2d.translate(matrix, matrix, translate);
+                    topLeft[0] += right[0] * charData.xadvance;
+                    topLeft[1] += right[1] * charData.xadvance;
                 }
             }
         };

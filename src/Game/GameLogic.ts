@@ -29,7 +29,7 @@ class GameLogic extends s2d.Behavior {
         this.textFPS.color.setFromRgba(0, 255, 0);
 
         this.textFPS.entity.transform.localX = 8;
-        this.textFPS.entity.transform.localY = 0;
+        this.textFPS.entity.transform.localY = 8;
         
     }
 
