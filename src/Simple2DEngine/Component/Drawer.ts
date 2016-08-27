@@ -17,5 +17,9 @@ module s2d {
         public draw(commands : RenderCommands) : void {
             
         }
+
+        public getBestSize() : Vector2 {
+            return this.entity.transform.size;
+        }
    }
 }

@@ -6,20 +6,53 @@ module s2d {
 
     export class TextDrawer extends Drawer {
 
-        public font: RenderFont;
-        public color: Color = Color.fromRgba(255, 255, 255, 255);
-        public text: string = "Nice FPS drawing!!";
-        public scale: number = 1;
+        private _font: RenderFont = EmbeddedAssets.defaultFont;
+        private _color: Color = Color.fromRgba(255, 255, 255, 255);
+        private _text: string = "Nice FPS drawing!!";
+        private _fontScale: number = 1;
+        private _textVertexGenerator: TextVertextGenerator = new TextVertextGenerator();
 
-        static tmpRight: Vector2;
-        static tmpDown: Vector2;
-        static tmpV1: RenderVertex;
-        static tmpV2: RenderVertex;
-        static tmpV3: RenderVertex;
-        static tmpV4: RenderVertex;
-        static tmpTopLeft: Vector2;
+        public get font(): RenderFont {
+            return this._font;
+        }
 
-        static initStatic() {
+        public set font(value: RenderFont) {
+            this._font = value;
+        }
+
+        public get color(): Color {
+            return this._color;
+        }
+
+        public set color(value: Color) {
+            this._color = value;
+        }
+
+        public get text(): string {
+            return this._text;
+        }
+
+        public set text(value: string) {
+            this._text = value;
+        }
+
+        public get fontScale(): number {
+            return this._fontScale;
+        }
+
+        public set fontScale(value: number) {
+            this._fontScale = value;
+        }
+
+        private static tmpRight: Vector2;
+        private static tmpDown: Vector2;
+        private static tmpV1: RenderVertex;
+        private static tmpV2: RenderVertex;
+        private static tmpV3: RenderVertex;
+        private static tmpV4: RenderVertex;
+        private static tmpTopLeft: Vector2;
+
+        public static initStatic() {
             TextDrawer.tmpRight = Vector2.create();
             TextDrawer.tmpDown = Vector2.create();
             TextDrawer.tmpV1 = new RenderVertex();
@@ -29,107 +62,55 @@ module s2d {
             TextDrawer.tmpTopLeft = Vector2.create();
         }
 
+        public getBestSize() : Vector2 {
+            this.updateTextVertexGenerator();
+            return this._textVertexGenerator.size;
+        }
+
+        private updateTextVertexGenerator() {
+            this._textVertexGenerator.update(this._font, this._fontScale, this._text);
+        }
+
         public draw(commands: RenderCommands): void {
 
-            let font = this.font;
-            let text = this.text;
-            let scale = this.scale;
+            let texture = this.font.texture;
 
-            if (font.texture === null)
+            if (texture == null)
                 return; //Texture not loaded yet
 
-            let texture = font.texture;
-            let textureWidth = font.textureWidth;
-            let textureHeight = font.textureHeight;
-            let lineHeight = font.lineHeight;
+            this.updateTextVertexGenerator();
 
-            let right = TextDrawer.tmpRight;
-            let down = TextDrawer.tmpDown;
+            let trans = this.entity.transform;
+            let matrix = Drawer.tmpMatrix;
+            let colorNumber = this._color.abgrHex;
+
+            trans.getLocalToGlobalMatrix(matrix);
+
+            let vertexChars = this._textVertexGenerator.vertexChars;
+
             let tmpV1 = TextDrawer.tmpV1;
             let tmpV2 = TextDrawer.tmpV2;
             let tmpV3 = TextDrawer.tmpV3;
             let tmpV4 = TextDrawer.tmpV4;
-            let topLeft = TextDrawer.tmpTopLeft;
+            
+            for (let i = 0; i < vertexChars.length; i++) {
 
-            let trans = this.entity.transform;
-            let matrix = Drawer.tmpMatrix;
+                let vertexChar = vertexChars[i];
 
-            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = this.color.abgrHex;
+                tmpV1.copyFrom(vertexChar.v1);
+                tmpV2.copyFrom(vertexChar.v2);
+                tmpV3.copyFrom(vertexChar.v3);
+                tmpV4.copyFrom(vertexChar.v4);
 
-            trans.getLocalToGlobalMatrix(matrix);
+                tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = colorNumber;
 
-            //By scaling the right / down vector with "scale", everything is automatically
-            //correctly scaled!
-            Vector2.set(right, 1 * scale, 0);
-            Vector2.transformMat2dNormal(right, right, matrix);
+                tmpV1.transformMat2d(matrix);
+                tmpV2.transformMat2d(matrix);
+                tmpV3.transformMat2d(matrix);
+                tmpV4.transformMat2d(matrix);
 
-            Vector2.set(down, 0, 1 * scale);
-            Vector2.transformMat2dNormal(down, down, matrix);
-
-            Vector2.set(topLeft, 0, 0);
-            Vector2.transformMat2d(topLeft, topLeft, matrix);
-
-            let startX = topLeft[0];
-            let startY = topLeft[1];
-            let lines = 0;
-
-            for (let i = 0; i < text.length; i++) {
-
-                let charCode = text.charCodeAt(i);
-
-                if (charCode === 10) { //'\n'
-
-                    lines++;
-                    topLeft[0] = startX + down[0] * lines * lineHeight;
-                    topLeft[1] = startY + down[1] * lines * lineHeight;
-
-                } else {
-
-                    let charData = font.chars[charCode];
-
-                    if (charData) {
-
-                        var charWidth = charData.width;
-                        var charHeight = charData.height;
-
-                        var dx = charData.xoffset;
-                        var dy = charData.yoffset;
-
-                        var ox = topLeft[0];
-                        var oy = topLeft[1];
-
-                        //offset char dx / dy
-                        topLeft[0] += right[0] * dx + down[0] * dy;
-                        topLeft[1] += right[1] * dx + down[1] * dy;
-
-                        tmpV1.x = topLeft[0];
-                        tmpV1.y = topLeft[1];
-                        tmpV1.u = charData.x / textureWidth;
-                        tmpV1.v = charData.y / textureHeight;
-
-                        tmpV2.x = topLeft[0] + right[0] * charWidth;
-                        tmpV2.y = topLeft[1] + right[1] * charWidth;
-                        tmpV2.u = (charData.x + charWidth) / textureWidth;
-                        tmpV2.v = charData.y / textureHeight;
-
-                        tmpV3.x = topLeft[0] + right[0] * charWidth + down[0] * charHeight;
-                        tmpV3.y = topLeft[1] + right[1] * charWidth + down[1] * charHeight;
-                        tmpV3.u = (charData.x + charWidth) / textureWidth;
-                        tmpV3.v = (charData.y + charHeight) / textureHeight;
-
-                        tmpV4.x = topLeft[0] + down[0] * charHeight;
-                        tmpV4.y = topLeft[1] + down[1] * charHeight;
-                        tmpV4.u = charData.x / textureWidth;
-                        tmpV4.v = (charData.y + charHeight) / textureHeight;
-
-                        //draw char
-                        commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
-
-                        //offset char xadvance
-                        topLeft[0] = ox + right[0] * charData.xadvance;
-                        topLeft[1] = oy + right[1] * charData.xadvance;
-                    }
-                }
+                //draw char
+                commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
             }
         }
     }

@@ -128,15 +128,15 @@ module s2d {
             this.indexesOffset = 0;
         }
 
-        public drawRectSimple(mat: Matrix2d, halfSize: Vector2, texture: RenderTexture, uvTopLeft: Vector2, uvBottomRight: Vector2, color: Color): void {
+        public drawRectSimple(mat: Matrix2d, size: Vector2, texture: RenderTexture, uvTopLeft: Vector2, uvBottomRight: Vector2, color: Color): void {
 
             let tmpV1 = this.tmpV1;
             let tmpV2 = this.tmpV2;
             let tmpV3 = this.tmpV3;
             let tmpV4 = this.tmpV4;
 
-            let halfSizeX = halfSize[0];
-            let halfSizeY = halfSize[1];
+            let halfSizeX = size[0] * 0.5;
+            let halfSizeY = size[1] * 0.5;
 
             //Top left
             tmpV1.x = -halfSizeX;

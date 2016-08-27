@@ -10,7 +10,7 @@ module s2d {
         private _position: Vector2 = Vector2.create();
         private _rotation: number = 0;
         private _scale: Vector2 = Vector2.fromValues(1, 1);
-        private _halfSize: Vector2 = Vector2.fromValues(16, 16);
+        private _size: Vector2 = Vector2.fromValues(32, 32);
 
         //Linked list of children
         private _firstChild: Transform = null;
@@ -154,28 +154,28 @@ module s2d {
             this._localMatrix[3] = ss[1] * c;
         }
 
-        public get halfSize() {
-            return this._halfSize;
+        public get size() {
+            return this._size;
         }
 
-        public set halfSize(s: Vector2) {
-            Vector2.copy(this._halfSize, s);
+        public set size(s: Vector2) {
+            Vector2.copy(this._size, s);
         }
 
-        public get halfSizeX() {
-            return this._halfSize[0];
+        public get sizeX() {
+            return this._size[0];
         }
 
-        public set halfSizeX(v: number) {
-            this._halfSize[0] = v;
+        public set sizeX(v: number) {
+            this._size[0] = v;
         }
 
-        public get halfSizeY() {
-            return this._halfSize[1];
+        public get sizeY() {
+            return this._size[1];
         }
 
-        public set halfSizeY(v: number) {
-            this._halfSize[1] = v;
+        public set sizeY(v: number) {
+            this._size[1] = v;
         }
 
         /*
@@ -267,6 +267,8 @@ module s2d {
                 return this.getBehaviorInChildrenInternal(<any> toReturn, 0);
             else if (clazz === <any> Drawer)
                 return this.getDrawerInChildrenInternal(<any> toReturn, 0);
+            else if (clazz === <any> Layout)
+                return this.getLayoutInChildrenInternal(<any> toReturn, 0);
 
             return this.getComponentInChildrenInternal(clazz, toReturn, 0);
         }
@@ -311,6 +313,21 @@ module s2d {
 
             while (child !== null) {
                 index = child.getDrawerInChildrenInternal(toReturn, index);
+                child = child._nextSibling;
+            }
+
+            return index;
+        }
+
+        private getLayoutInChildrenInternal(toReturn: Array<Layout>, index : number): number {
+
+            if (this.entity !== null && this.entity.firstLayout !== null)
+                toReturn[index++] = this.entity.firstLayout;
+
+            let child = this._firstChild;
+
+            while (child !== null) {
+                index = child.getLayoutInChildrenInternal(toReturn, index);
                 child = child._nextSibling;
             }
 

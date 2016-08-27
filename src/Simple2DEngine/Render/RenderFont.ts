@@ -34,7 +34,6 @@ module s2d {
             return this._texture;
         }
 
-
         public get textureWidth() {
             return this._textureWidth;
         }
@@ -75,7 +74,7 @@ module s2d {
             return this;
         }
 
-        private parseFontXml(xml:string) : any {
+        private parseFontXml(xml: string): any {
             var fontData = JXON.stringToJs(xml);
 
             this._textureWidth = parseInt(fontData.font.common.$scaleW);

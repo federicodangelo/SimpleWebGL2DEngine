@@ -6,6 +6,14 @@ module s2d {
         public u : number;
         public v : number;
 
+        public copyFrom(v:RenderVertex) {
+            this.x = v.x;
+            this.y = v.y;
+            this.color = v.color;
+            this.u = v.u;
+            this.v = v.v;
+        }
+
         public transformMat2d(m: Matrix2d) : void {
             let x = this.x,
                 y = this.y;

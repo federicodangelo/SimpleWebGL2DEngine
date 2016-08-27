@@ -150,6 +150,7 @@ module s2d {
 
         private tmpCameras: Array<Camera> = new Array<Camera>(4);
         private tmpDrawers: Array<Drawer> = new Array<Drawer>(1024);
+        private tmpLayouts: Array<Layout> = new Array<Layout>(1024);
 
         public draw(): void {
 
@@ -159,11 +160,17 @@ module s2d {
             let drawers = this.tmpDrawers;
             let drawersLen = engine.entities.getComponentInChildren(Drawer, drawers);
 
+            let layouts = this.tmpLayouts;
+            let layoutsLen = engine.entities.getComponentInChildren(Layout, layouts);
+
             if (camerasLen === 0)
                 console.warn("No cameras to draw!!");
 
             if (drawersLen === 0)
                 console.warn("No entities to draw!!");
+
+            for (let i = 0; i < layoutsLen; i++)
+                layouts[i].updateLayout();
 
             this._commands.startFrame();
 

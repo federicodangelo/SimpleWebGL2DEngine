@@ -11,9 +11,10 @@ module s2d {
             return textureDrawer
         }
 
-        public static buildTextDrawer(font: RenderFont): TextDrawer {
-            var textDrawer = new Entity("Text").addComponent(TextDrawer);
-            textDrawer.font = font;
+        public static buildTextDrawer(): TextDrawer {
+            var entity = new Entity("Text");
+            var textDrawer = entity.addComponent(TextDrawer);
+            entity.addComponent(Layout).sizeMode = LayoutSizeMode.MatchDrawerBest;
             return textDrawer;
         }
 

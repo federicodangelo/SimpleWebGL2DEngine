@@ -385,13 +385,13 @@ var s2d;
             this.vertexOffset = 0;
             this.indexesOffset = 0;
         };
-        RenderCommands.prototype.drawRectSimple = function (mat, halfSize, texture, uvTopLeft, uvBottomRight, color) {
+        RenderCommands.prototype.drawRectSimple = function (mat, size, texture, uvTopLeft, uvBottomRight, color) {
             var tmpV1 = this.tmpV1;
             var tmpV2 = this.tmpV2;
             var tmpV3 = this.tmpV3;
             var tmpV4 = this.tmpV4;
-            var halfSizeX = halfSize[0];
-            var halfSizeY = halfSize[1];
+            var halfSizeX = size[0] * 0.5;
+            var halfSizeY = size[1] * 0.5;
             //Top left
             tmpV1.x = -halfSizeX;
             tmpV1.y = -halfSizeY;
@@ -515,6 +515,7 @@ var s2d;
         function RenderManager() {
             this.tmpCameras = new Array(4);
             this.tmpDrawers = new Array(1024);
+            this.tmpLayouts = new Array(1024);
         }
         Object.defineProperty(RenderManager.prototype, "contextLost", {
             get: function () {
@@ -638,10 +639,14 @@ var s2d;
             var camerasLen = s2d.engine.entities.getComponentInChildren(s2d.Camera, cameras);
             var drawers = this.tmpDrawers;
             var drawersLen = s2d.engine.entities.getComponentInChildren(s2d.Drawer, drawers);
+            var layouts = this.tmpLayouts;
+            var layoutsLen = s2d.engine.entities.getComponentInChildren(s2d.Layout, layouts);
             if (camerasLen === 0)
                 console.warn("No cameras to draw!!");
             if (drawersLen === 0)
                 console.warn("No entities to draw!!");
+            for (var i = 0; i < layoutsLen; i++)
+                layouts[i].updateLayout();
             this._commands.startFrame();
             for (var i = 0; i < camerasLen; i++)
                 this.renderCamera(cameras[i], drawers, drawersLen);
@@ -711,7 +716,7 @@ var s2d;
             this._position = s2d.Vector2.create();
             this._rotation = 0;
             this._scale = s2d.Vector2.fromValues(1, 1);
-            this._halfSize = s2d.Vector2.fromValues(16, 16);
+            this._size = s2d.Vector2.fromValues(32, 32);
             //Linked list of children
             this._firstChild = null;
             this._lastChild = null;
@@ -856,32 +861,32 @@ var s2d;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Transform.prototype, "halfSize", {
+        Object.defineProperty(Transform.prototype, "size", {
             get: function () {
-                return this._halfSize;
+                return this._size;
             },
             set: function (s) {
-                s2d.Vector2.copy(this._halfSize, s);
+                s2d.Vector2.copy(this._size, s);
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Transform.prototype, "halfSizeX", {
+        Object.defineProperty(Transform.prototype, "sizeX", {
             get: function () {
-                return this._halfSize[0];
+                return this._size[0];
             },
             set: function (v) {
-                this._halfSize[0] = v;
+                this._size[0] = v;
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Transform.prototype, "halfSizeY", {
+        Object.defineProperty(Transform.prototype, "sizeY", {
             get: function () {
-                return this._halfSize[1];
+                return this._size[1];
             },
             set: function (v) {
-                this._halfSize[1] = v;
+                this._size[1] = v;
             },
             enumerable: true,
             configurable: true
@@ -962,6 +967,8 @@ var s2d;
                 return this.getBehaviorInChildrenInternal(toReturn, 0);
             else if (clazz === s2d.Drawer)
                 return this.getDrawerInChildrenInternal(toReturn, 0);
+            else if (clazz === s2d.Layout)
+                return this.getLayoutInChildrenInternal(toReturn, 0);
             return this.getComponentInChildrenInternal(clazz, toReturn, 0);
         };
         Transform.prototype.getComponentInChildrenInternal = function (clazz, toReturn, index) {
@@ -991,6 +998,16 @@ var s2d;
             var child = this._firstChild;
             while (child !== null) {
                 index = child.getDrawerInChildrenInternal(toReturn, index);
+                child = child._nextSibling;
+            }
+            return index;
+        };
+        Transform.prototype.getLayoutInChildrenInternal = function (toReturn, index) {
+            if (this.entity !== null && this.entity.firstLayout !== null)
+                toReturn[index++] = this.entity.firstLayout;
+            var child = this._firstChild;
+            while (child !== null) {
+                index = child.getLayoutInChildrenInternal(toReturn, index);
                 child = child._nextSibling;
             }
             return index;
@@ -2233,6 +2250,9 @@ var s2d;
         };
         Drawer.prototype.draw = function (commands) {
         };
+        Drawer.prototype.getBestSize = function () {
+            return this.entity.transform.size;
+        };
         return Drawer;
     }(s2d.Component));
     s2d.Drawer = Drawer;
@@ -2244,13 +2264,16 @@ var s2d;
 (function (s2d) {
     var Entity = (function () {
         function Entity(name) {
-            if (name === void 0) { name = "Entity"; }
+            if (name === void 0) { name = null; }
             this._name = "Entity";
             this._transform = null;
             this._firstDrawer = null;
             this._firstBehavior = null;
+            this._firstLayout = null;
             //First component in the entity
             this._firstComponent = null;
+            if (name === null)
+                name = "Entity " + Entity.entityConunter++;
             this._name = name;
             this._transform = this.addComponent(s2d.Transform);
         }
@@ -2285,6 +2308,13 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Entity.prototype, "firstLayout", {
+            get: function () {
+                return this._firstLayout;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Entity.prototype.addComponent = function (clazz) {
             var comp = new clazz();
             var tmp = this._firstComponent;
@@ -2294,6 +2324,8 @@ var s2d;
                 this._firstDrawer = comp;
             if (comp instanceof s2d.Behavior)
                 this._firstBehavior = comp;
+            if (comp instanceof s2d.Layout)
+                this._firstLayout = comp;
             comp.init(this);
             return comp;
         };
@@ -2309,6 +2341,7 @@ var s2d;
         Entity.prototype.getComponentInChildren = function (clazz, toReturn) {
             return this._transform.getComponentInChildren(clazz, toReturn);
         };
+        Entity.entityConunter = 0;
         return Entity;
     }());
     s2d.Entity = Entity;
@@ -2474,12 +2507,11 @@ var GameLogic = (function (_super) {
     }
     GameLogic.prototype.onInit = function () {
         this.texture = new s2d.RenderTexture(false).loadFromUrl("assets/test.png");
-        this.font = s2d.EmbeddedAssets.defaultFont;
         this.cam = s2d.EntityFactory.buildCamera();
         this.initTestComplex();
         //this.initTestSimple();
-        this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
-        this.textFPS.scale = 3;
+        this.textFPS = s2d.EntityFactory.buildTextDrawer();
+        this.textFPS.fontScale = 3;
         this.textFPS.color.setFromRgba(0, 255, 0);
         this.textFPS.entity.transform.localX = 8;
         this.textFPS.entity.transform.localY = 8;
@@ -2554,6 +2586,103 @@ var s2d;
     }(s2d.Component));
     s2d.Camera = Camera;
 })(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    (function (LayoutSizeMode) {
+        LayoutSizeMode[LayoutSizeMode["None"] = 0] = "None";
+        LayoutSizeMode[LayoutSizeMode["MatchDrawerBest"] = 1] = "MatchDrawerBest";
+    })(s2d.LayoutSizeMode || (s2d.LayoutSizeMode = {}));
+    var LayoutSizeMode = s2d.LayoutSizeMode;
+    (function (LayoutAnchorMode) {
+        LayoutAnchorMode[LayoutAnchorMode["None"] = 0] = "None";
+        LayoutAnchorMode[LayoutAnchorMode["RelativeToParent"] = 1] = "RelativeToParent";
+    })(s2d.LayoutAnchorMode || (s2d.LayoutAnchorMode = {}));
+    var LayoutAnchorMode = s2d.LayoutAnchorMode;
+    var LayoutRectOffset = (function () {
+        function LayoutRectOffset() {
+            this.top = 0;
+            this.left = 0;
+            this.bottom = 0;
+            this.right = 0;
+        }
+        Object.defineProperty(LayoutRectOffset.prototype, "all", {
+            set: function (offset) {
+                this.left = this.right = this.top = this.bottom = offset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return LayoutRectOffset;
+    }());
+    s2d.LayoutRectOffset = LayoutRectOffset;
+    var Layout = (function (_super) {
+        __extends(Layout, _super);
+        function Layout() {
+            _super.apply(this, arguments);
+            this._widthSizeMode = LayoutSizeMode.None;
+            this._heightSizeMode = LayoutSizeMode.None;
+            this._sizeOffset = s2d.Vector2.create();
+        }
+        Object.defineProperty(Layout.prototype, "widthSizeMode", {
+            //private _xAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
+            //private _yAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
+            get: function () {
+                return this._widthSizeMode;
+            },
+            set: function (value) {
+                this._widthSizeMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Layout.prototype, "heightSizeMode", {
+            get: function () {
+                return this._heightSizeMode;
+            },
+            set: function (value) {
+                this._heightSizeMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Layout.prototype, "sizeMode", {
+            set: function (value) {
+                this._heightSizeMode = this._widthSizeMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Layout.prototype, "sizeOffset", {
+            get: function () {
+                return this._sizeOffset;
+            },
+            set: function (value) {
+                this._sizeOffset = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Layout.prototype.updateLayout = function () {
+            if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest ||
+                this._heightSizeMode === LayoutSizeMode.MatchDrawerBest) {
+                var drawer = this.entity.firstDrawer;
+                if (drawer !== null) {
+                    //DON'T MUTATE THIS VECTOR!!
+                    var bestSize = drawer.getBestSize();
+                    if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest)
+                        this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                    if (this._heightSizeMode === LayoutSizeMode.MatchDrawerBest)
+                        this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                }
+                else {
+                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchThisDrawerBest' but drawer is missing", this);
+                }
+            }
+        };
+        return Layout;
+    }(s2d.Component));
+    s2d.Layout = Layout;
+})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 /// <reference path="../Math/Matrix3.ts" />
 /// <reference path="../Math/Vector2.ts" />
@@ -2563,10 +2692,52 @@ var s2d;
         __extends(TextDrawer, _super);
         function TextDrawer() {
             _super.apply(this, arguments);
-            this.color = s2d.Color.fromRgba(255, 255, 255, 255);
-            this.text = "Nice FPS drawing!!";
-            this.scale = 1;
+            this._font = s2d.EmbeddedAssets.defaultFont;
+            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
+            this._text = "Nice FPS drawing!!";
+            this._fontScale = 1;
+            this._textVertexGenerator = new s2d.TextVertextGenerator();
         }
+        Object.defineProperty(TextDrawer.prototype, "font", {
+            get: function () {
+                return this._font;
+            },
+            set: function (value) {
+                this._font = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextDrawer.prototype, "color", {
+            get: function () {
+                return this._color;
+            },
+            set: function (value) {
+                this._color = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextDrawer.prototype, "text", {
+            get: function () {
+                return this._text;
+            },
+            set: function (value) {
+                this._text = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextDrawer.prototype, "fontScale", {
+            get: function () {
+                return this._fontScale;
+            },
+            set: function (value) {
+                this._fontScale = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
         TextDrawer.initStatic = function () {
             TextDrawer.tmpRight = s2d.Vector2.create();
             TextDrawer.tmpDown = s2d.Vector2.create();
@@ -2576,80 +2747,40 @@ var s2d;
             TextDrawer.tmpV4 = new s2d.RenderVertex();
             TextDrawer.tmpTopLeft = s2d.Vector2.create();
         };
+        TextDrawer.prototype.getBestSize = function () {
+            this.updateTextVertexGenerator();
+            return this._textVertexGenerator.size;
+        };
+        TextDrawer.prototype.updateTextVertexGenerator = function () {
+            this._textVertexGenerator.update(this._font, this._fontScale, this._text);
+        };
         TextDrawer.prototype.draw = function (commands) {
-            var font = this.font;
-            var text = this.text;
-            var scale = this.scale;
-            if (font.texture === null)
+            var texture = this.font.texture;
+            if (texture == null)
                 return; //Texture not loaded yet
-            var texture = font.texture;
-            var textureWidth = font.textureWidth;
-            var textureHeight = font.textureHeight;
-            var lineHeight = font.lineHeight;
-            var right = TextDrawer.tmpRight;
-            var down = TextDrawer.tmpDown;
+            this.updateTextVertexGenerator();
+            var trans = this.entity.transform;
+            var matrix = s2d.Drawer.tmpMatrix;
+            var colorNumber = this._color.abgrHex;
+            trans.getLocalToGlobalMatrix(matrix);
+            var vertexChars = this._textVertexGenerator.vertexChars;
             var tmpV1 = TextDrawer.tmpV1;
             var tmpV2 = TextDrawer.tmpV2;
             var tmpV3 = TextDrawer.tmpV3;
             var tmpV4 = TextDrawer.tmpV4;
-            var topLeft = TextDrawer.tmpTopLeft;
-            var trans = this.entity.transform;
-            var matrix = s2d.Drawer.tmpMatrix;
-            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = this.color.abgrHex;
-            trans.getLocalToGlobalMatrix(matrix);
-            //By scaling the right / down vector with "scale", everything is automatically
-            //correctly scaled!
-            s2d.Vector2.set(right, 1 * scale, 0);
-            s2d.Vector2.transformMat2dNormal(right, right, matrix);
-            s2d.Vector2.set(down, 0, 1 * scale);
-            s2d.Vector2.transformMat2dNormal(down, down, matrix);
-            s2d.Vector2.set(topLeft, 0, 0);
-            s2d.Vector2.transformMat2d(topLeft, topLeft, matrix);
-            var startX = topLeft[0];
-            var startY = topLeft[1];
-            var lines = 0;
-            for (var i = 0; i < text.length; i++) {
-                var charCode = text.charCodeAt(i);
-                if (charCode === 10) {
-                    lines++;
-                    topLeft[0] = startX + down[0] * lines * lineHeight;
-                    topLeft[1] = startY + down[1] * lines * lineHeight;
-                }
-                else {
-                    var charData = font.chars[charCode];
-                    if (charData) {
-                        var charWidth = charData.width;
-                        var charHeight = charData.height;
-                        var dx = charData.xoffset;
-                        var dy = charData.yoffset;
-                        var ox = topLeft[0];
-                        var oy = topLeft[1];
-                        //offset char dx / dy
-                        topLeft[0] += right[0] * dx + down[0] * dy;
-                        topLeft[1] += right[1] * dx + down[1] * dy;
-                        tmpV1.x = topLeft[0];
-                        tmpV1.y = topLeft[1];
-                        tmpV1.u = charData.x / textureWidth;
-                        tmpV1.v = charData.y / textureHeight;
-                        tmpV2.x = topLeft[0] + right[0] * charWidth;
-                        tmpV2.y = topLeft[1] + right[1] * charWidth;
-                        tmpV2.u = (charData.x + charWidth) / textureWidth;
-                        tmpV2.v = charData.y / textureHeight;
-                        tmpV3.x = topLeft[0] + right[0] * charWidth + down[0] * charHeight;
-                        tmpV3.y = topLeft[1] + right[1] * charWidth + down[1] * charHeight;
-                        tmpV3.u = (charData.x + charWidth) / textureWidth;
-                        tmpV3.v = (charData.y + charHeight) / textureHeight;
-                        tmpV4.x = topLeft[0] + down[0] * charHeight;
-                        tmpV4.y = topLeft[1] + down[1] * charHeight;
-                        tmpV4.u = charData.x / textureWidth;
-                        tmpV4.v = (charData.y + charHeight) / textureHeight;
-                        //draw char
-                        commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
-                        //offset char xadvance
-                        topLeft[0] = ox + right[0] * charData.xadvance;
-                        topLeft[1] = oy + right[1] * charData.xadvance;
-                    }
-                }
+            for (var i = 0; i < vertexChars.length; i++) {
+                var vertexChar = vertexChars[i];
+                tmpV1.copyFrom(vertexChar.v1);
+                tmpV2.copyFrom(vertexChar.v2);
+                tmpV3.copyFrom(vertexChar.v3);
+                tmpV4.copyFrom(vertexChar.v4);
+                tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = colorNumber;
+                tmpV1.transformMat2d(matrix);
+                tmpV2.transformMat2d(matrix);
+                tmpV3.transformMat2d(matrix);
+                tmpV4.transformMat2d(matrix);
+                //draw char
+                commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
             }
         };
         return TextDrawer;
@@ -2665,18 +2796,218 @@ var s2d;
         __extends(TextureDrawer, _super);
         function TextureDrawer() {
             _super.apply(this, arguments);
-            this.uvTopLeft = s2d.Vector2.fromValues(0, 0);
-            this.uvBottomRight = s2d.Vector2.fromValues(1, 1);
-            this.color = s2d.Color.fromRgba(255, 255, 255, 255);
+            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
+            this._uvTopLeft = s2d.Vector2.fromValues(0, 0);
+            this._uvBottomRight = s2d.Vector2.fromValues(1, 1);
         }
+        Object.defineProperty(TextureDrawer.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            set: function (value) {
+                this._texture = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextureDrawer.prototype, "color", {
+            get: function () {
+                return this._color;
+            },
+            set: function (value) {
+                this._color = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextureDrawer.prototype, "uvTopLeft", {
+            get: function () {
+                return this._uvTopLeft;
+            },
+            set: function (value) {
+                this._uvTopLeft = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextureDrawer.prototype, "uvBottomRight", {
+            get: function () {
+                return this._uvBottomRight;
+            },
+            set: function (value) {
+                this._uvBottomRight = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
         TextureDrawer.prototype.draw = function (commands) {
             var trans = this.entity.transform;
             trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
-            commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.halfSize, this.texture, this.uvTopLeft, this.uvBottomRight, this.color);
+            commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, this._texture, this._uvTopLeft, this._uvBottomRight, this._color);
         };
         return TextureDrawer;
     }(s2d.Drawer));
     s2d.TextureDrawer = TextureDrawer;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var TextVertextGeneratorChar = (function () {
+        function TextVertextGeneratorChar() {
+            this.v1 = new s2d.RenderVertex();
+            this.v2 = new s2d.RenderVertex();
+            this.v3 = new s2d.RenderVertex();
+            this.v4 = new s2d.RenderVertex();
+        }
+        return TextVertextGeneratorChar;
+    }());
+    s2d.TextVertextGeneratorChar = TextVertextGeneratorChar;
+    var TextVertextGenerator = (function () {
+        function TextVertextGenerator() {
+            this._font = null;
+            this._text = null;
+            this._scale = -1;
+            this._vertexChars = new Array();
+            this._current = s2d.Vector2.create();
+            this._size = s2d.Vector2.create();
+        }
+        Object.defineProperty(TextVertextGenerator.prototype, "vertexChars", {
+            get: function () {
+                return this._vertexChars;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextVertextGenerator.prototype, "size", {
+            get: function () {
+                return this._size;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        TextVertextGenerator.prototype.update = function (font, scale, text) {
+            if (font.texture === null) {
+                //Don't do anything if the font isn't initialised yet
+                return;
+            }
+            if (this._font !== font || this._scale !== scale || this._text !== text) {
+                this._font = font;
+                this._scale = scale;
+                this._text = text;
+                this.updateChars();
+            }
+        };
+        TextVertextGenerator.prototype.updateChars = function () {
+            var font = this._font;
+            var text = this._text;
+            var textLen = text.length;
+            var scale = this._scale;
+            var texture = font.texture;
+            var textureWidth = font.textureWidth;
+            var textureHeight = font.textureHeight;
+            var lineHeight = font.lineHeight * scale;
+            var current = this._current;
+            var startX = 0;
+            var startY = 0;
+            var lines = 0;
+            var maxX = 0;
+            var maxY = lineHeight;
+            current[0] = 0;
+            current[1] = 0;
+            var vertexChars = this._vertexChars;
+            var vertexCharsIndex = 0;
+            for (var i = 0; i < textLen; i++) {
+                var charCode = text.charCodeAt(i);
+                if (charCode === 10) {
+                    lines++;
+                    current[0] = 0;
+                    current[1] += lineHeight;
+                    maxY = lineHeight;
+                }
+                else {
+                    var charData = font.chars[charCode];
+                    if (charData) {
+                        var vertexChar = null;
+                        if (vertexCharsIndex === vertexChars.length) {
+                            vertexChar = new TextVertextGeneratorChar();
+                            vertexChars.push(vertexChar);
+                        }
+                        else {
+                            vertexChar = vertexChars[vertexCharsIndex];
+                        }
+                        vertexCharsIndex++;
+                        vertexChar.charCode = charCode;
+                        var charWidth = charData.width;
+                        var charHeight = charData.height;
+                        var dx = charData.xoffset * scale;
+                        var dy = charData.yoffset * scale;
+                        var ox = current[0];
+                        var oy = current[1];
+                        var tmpV1 = vertexChar.v1;
+                        var tmpV2 = vertexChar.v2;
+                        var tmpV3 = vertexChar.v3;
+                        var tmpV4 = vertexChar.v4;
+                        //offset char dx / dy
+                        current[0] += dx;
+                        current[1] += dy;
+                        tmpV1.x = current[0];
+                        tmpV1.y = current[1];
+                        tmpV1.u = charData.x / textureWidth;
+                        tmpV1.v = charData.y / textureHeight;
+                        tmpV2.x = current[0] + charWidth * scale;
+                        tmpV2.y = current[1];
+                        tmpV2.u = (charData.x + charWidth) / textureWidth;
+                        tmpV2.v = charData.y / textureHeight;
+                        tmpV3.x = current[0] + charWidth * scale;
+                        tmpV3.y = current[1] + charHeight * scale;
+                        tmpV3.u = (charData.x + charWidth) / textureWidth;
+                        tmpV3.v = (charData.y + charHeight) / textureHeight;
+                        tmpV4.x = current[0];
+                        tmpV4.y = current[1] + charHeight * scale;
+                        tmpV4.u = charData.x / textureWidth;
+                        tmpV4.v = (charData.y + charHeight) / textureHeight;
+                        //offset char xadvance
+                        current[0] = ox + charData.xadvance * scale;
+                        current[1] = oy;
+                        if (current[0] > maxX)
+                            maxX = current[0];
+                    }
+                }
+            }
+            if (vertexCharsIndex < vertexChars.length)
+                vertexChars.splice(vertexCharsIndex);
+            this._size[0] = maxX;
+            this._size[1] = maxY;
+        };
+        return TextVertextGenerator;
+    }());
+    s2d.TextVertextGenerator = TextVertextGenerator;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EntityFactory = (function () {
+        function EntityFactory() {
+        }
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function () {
+            var entity = new s2d.Entity("Text");
+            var textDrawer = entity.addComponent(s2d.TextDrawer);
+            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
+            return textDrawer;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
+        };
+        return EntityFactory;
+    }());
+    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -3786,6 +4117,13 @@ var s2d;
     var RenderVertex = (function () {
         function RenderVertex() {
         }
+        RenderVertex.prototype.copyFrom = function (v) {
+            this.x = v.x;
+            this.y = v.y;
+            this.color = v.color;
+            this.u = v.u;
+            this.v = v.v;
+        };
         RenderVertex.prototype.transformMat2d = function (m) {
             var x = this.x, y = this.y;
             this.x = m[0] * x + m[2] * y + m[4];
@@ -3794,32 +4132,6 @@ var s2d;
         return RenderVertex;
     }());
     s2d.RenderVertex = RenderVertex;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            return textureDrawer;
-        };
-        EntityFactory.buildTextDrawer = function (font) {
-            var textDrawer = new s2d.Entity("Text").addComponent(s2d.TextDrawer);
-            textDrawer.font = font;
-            return textDrawer;
-        };
-        EntityFactory.buildWithComponent = function (clazz, name) {
-            if (name === void 0) { name = "Entity"; }
-            return new s2d.Entity(name).addComponent(clazz);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -3863,6 +4175,31 @@ var s2d;
         return EngineConfiguration;
     }());
     s2d.EngineConfiguration = EngineConfiguration;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EngineConsole = (function () {
+        function EngineConsole() {
+        }
+        EngineConsole.error = function (message, target) {
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.error(prefix + message);
+        };
+        EngineConsole.getClassName = function (instance) {
+            var funcNameRegex = /function (.{1,})\(/;
+            var results = (funcNameRegex).exec(instance["constructor"].toString());
+            return (results && results.length > 1) ? results[1] : "";
+        };
+        return EngineConsole;
+    }());
+    s2d.EngineConsole = EngineConsole;
 })(s2d || (s2d = {}));
 /// <reference path="EngineConfiguration.ts" />
 var s2d;

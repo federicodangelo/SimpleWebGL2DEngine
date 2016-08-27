@@ -3,22 +3,26 @@
 /// <reference path="../Component/Drawer.ts" />
 
 module s2d {
-    
+
     export class Entity {
 
-        private _name : String = "Entity";
-        private _transform : Transform = null;
-        private _firstDrawer : Drawer = null;
-        private _firstBehavior : Behavior = null;
+        private _name: String = "Entity";
+        private _transform: Transform = null;
+
+        private _firstDrawer: Drawer = null;
+        private _firstBehavior: Behavior = null;
+        private _firstLayout: Layout = null;
 
         //First component in the entity
-        private _firstComponent : Component = null;
+        private _firstComponent: Component = null;
+
+        private static entityConunter: number = 0;
 
         public get name() {
             return this._name;
         }
 
-        public set name(s:String) {
+        public set name(s: String) {
             this._name = s;
         }
 
@@ -34,29 +38,39 @@ module s2d {
             return this._firstDrawer;
         }
 
-        constructor(name:String = "Entity") {
+        public get firstLayout() {
+            return this._firstLayout;
+        }
+
+        constructor(name: String = null) {
+            if (name === null)
+                name = "Entity " + Entity.entityConunter++;
+
             this._name = name;
             this._transform = this.addComponent(Transform);
         }
 
-        public addComponent<T extends Component>(clazz : {new() : T}) : T {
+        public addComponent<T extends Component>(clazz: { new (): T }): T {
             let comp = new clazz();
-            
+
             let tmp = this._firstComponent;
             this._firstComponent = comp;
             comp.__internal_nextComponent = tmp;
 
             if (comp instanceof Drawer)
-                this._firstDrawer = <any> comp;
+                this._firstDrawer = <any>comp;
 
             if (comp instanceof Behavior)
-                this._firstBehavior = <any> comp;
+                this._firstBehavior = <any>comp;
+
+            if (comp instanceof Layout)
+                this._firstLayout = <any>comp;
 
             comp.init(this);
             return comp;
         }
 
-        public getComponent<T extends Component>(clazz : {new() : T}) : T {
+        public getComponent<T extends Component>(clazz: { new (): T }): T {
 
             let comp = this._firstComponent;
 
@@ -65,11 +79,11 @@ module s2d {
                     return comp;
                 comp = comp.__internal_nextComponent;
             }
-            
+
             return null;
         }
 
-        public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : number {
+        public getComponentInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>): number {
             return this._transform.getComponentInChildren(clazz, toReturn);
         }
     }

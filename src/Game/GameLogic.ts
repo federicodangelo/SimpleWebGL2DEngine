@@ -10,7 +10,6 @@ class GameLogic extends s2d.Behavior {
     static RECTS_COUNT = 8192;
 
     private texture : s2d.RenderTexture;
-    private font : s2d.RenderFont;
 
     private textFPS : s2d.TextDrawer;
     private lastFps : number;
@@ -19,14 +18,13 @@ class GameLogic extends s2d.Behavior {
     public onInit() : void {
 
         this.texture = new s2d.RenderTexture(false).loadFromUrl("assets/test.png");
-        this.font = s2d.EmbeddedAssets.defaultFont;
         this.cam = s2d.EntityFactory.buildCamera();
         
         this.initTestComplex();
         //this.initTestSimple();
 
-        this.textFPS = s2d.EntityFactory.buildTextDrawer(this.font);
-        this.textFPS.scale = 3;
+        this.textFPS = s2d.EntityFactory.buildTextDrawer();
+        this.textFPS.fontScale = 3;
         this.textFPS.color.setFromRgba(0, 255, 0);
 
         this.textFPS.entity.transform.localX = 8;
