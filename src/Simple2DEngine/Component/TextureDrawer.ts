@@ -47,7 +47,7 @@ module s2d {
         public draw(commands: RenderCommands): void {
             var trans = this.entity.transform;
             trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
-            commands.drawRectSimple(Drawer.tmpMatrix, trans.size, this._texture, this._uvTopLeft, this._uvBottomRight, this._color);
+            commands.drawRectSimple(Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvTopLeft, this._uvBottomRight, this._color);
         }
     }
 }

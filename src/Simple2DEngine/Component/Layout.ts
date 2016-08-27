@@ -3,7 +3,7 @@ module s2d {
     export enum LayoutSizeMode {
         None,
         MatchDrawerBest,
-        //MatchChildrenBest,
+        MatchChildrenBest,
         //MatchParent
     }
 
@@ -57,7 +57,7 @@ module s2d {
         }
 
         public set sizeOffset(value: Vector2) {
-            this._sizeOffset = value;
+            Vector2.copy(this._sizeOffset, value);
         }
 
         public updateLayout() {
@@ -80,6 +80,33 @@ module s2d {
                     EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchThisDrawerBest' but drawer is missing", this);
                 }
             }
+
+            if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest ||
+                this._heightSizeMode === LayoutSizeMode.MatchChildrenBest) {
+
+                let firstChild = this.entity.transform.getFirstChild();
+
+                if (firstChild !== null) {
+                    let firstChildDrawer = firstChild.entity.firstDrawer;
+                    
+                    if (firstChildDrawer !== null) {
+
+                        //DON'T MUTATE THIS VECTOR!!
+                        let bestSize = firstChildDrawer.getBestSize();
+
+                        if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest)
+                            this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+
+                        if (this._heightSizeMode === LayoutSizeMode.MatchChildrenBest)
+                            this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+
+                    } else {
+                        EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but children with drawer is missing", this);
+                    }
+                } else {
+                    EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but not children found", this);
+                }
+            }        
         }
     }
 }

@@ -81,10 +81,13 @@ module s2d {
             this.updateTextVertexGenerator();
 
             let trans = this.entity.transform;
-            let matrix = Drawer.tmpMatrix;
+
+            let tmpMatrix = Drawer.tmpMatrix;
+            let tmpVector = Drawer.tmpVector;
+
             let colorNumber = this._color.abgrHex;
 
-            trans.getLocalToGlobalMatrix(matrix);
+            trans.getLocalToGlobalMatrix(tmpMatrix);
 
             let vertexChars = this._textVertexGenerator.vertexChars;
 
@@ -92,6 +95,13 @@ module s2d {
             let tmpV2 = TextDrawer.tmpV2;
             let tmpV3 = TextDrawer.tmpV3;
             let tmpV4 = TextDrawer.tmpV4;
+
+            //Offset matrix by pivot, vertex coordinates are generated starting at (0,0) and going (right,down)
+            //so we need to offset the pivot by (1, 1) to get the expected behavior
+
+            tmpVector[0] = -trans.sizeX * 0.5 * (trans.pivotX + 1);
+            tmpVector[1] = -trans.sizeY * 0.5 * (trans.pivotY + 1);
+            Matrix2d.translate(tmpMatrix, tmpMatrix, tmpVector);
             
             for (let i = 0; i < vertexChars.length; i++) {
 
@@ -104,10 +114,10 @@ module s2d {
 
                 tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = colorNumber;
 
-                tmpV1.transformMat2d(matrix);
-                tmpV2.transformMat2d(matrix);
-                tmpV3.transformMat2d(matrix);
-                tmpV4.transformMat2d(matrix);
+                tmpV1.transformMat2d(tmpMatrix);
+                tmpV2.transformMat2d(tmpMatrix);
+                tmpV3.transformMat2d(tmpMatrix);
+                tmpV4.transformMat2d(tmpMatrix);
 
                 //draw char
                 commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);

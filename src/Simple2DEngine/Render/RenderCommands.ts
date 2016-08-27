@@ -128,7 +128,7 @@ module s2d {
             this.indexesOffset = 0;
         }
 
-        public drawRectSimple(mat: Matrix2d, size: Vector2, texture: RenderTexture, uvTopLeft: Vector2, uvBottomRight: Vector2, color: Color): void {
+        public drawRectSimple(mat: Matrix2d, size: Vector2, pivot: Vector2, texture: RenderTexture, uvTopLeft: Vector2, uvBottomRight: Vector2, color: Color): void {
 
             let tmpV1 = this.tmpV1;
             let tmpV2 = this.tmpV2;
@@ -138,30 +138,33 @@ module s2d {
             let halfSizeX = size[0] * 0.5;
             let halfSizeY = size[1] * 0.5;
 
+            let dx = -pivot[0] * halfSizeX;
+            let dy = -pivot[1] * halfSizeY;
+
             //Top left
-            tmpV1.x = -halfSizeX;
-            tmpV1.y = -halfSizeY;
+            tmpV1.x = -halfSizeX + dx;
+            tmpV1.y = -halfSizeY + dy;
             tmpV1.color = color.abgrHex;
             tmpV1.u = uvTopLeft[0];
             tmpV1.v = uvTopLeft[1];
 
             //Top right
-            tmpV2.x = halfSizeX;
-            tmpV2.y = -halfSizeY;
+            tmpV2.x = halfSizeX + dx;
+            tmpV2.y = -halfSizeY + dy;
             tmpV2.color = color.abgrHex;
             tmpV2.u = uvBottomRight[0];
             tmpV2.v = uvTopLeft[1];
 
             //Bottom right
-            tmpV3.x = halfSizeX;
-            tmpV3.y = halfSizeY;
+            tmpV3.x = halfSizeX + dx;
+            tmpV3.y = halfSizeY + dy;
             tmpV3.color = color.abgrHex;
             tmpV3.u = uvBottomRight[0];
             tmpV3.v = uvBottomRight[1];
 
             //Bottom left
-            tmpV4.x = -halfSizeX;
-            tmpV4.y = halfSizeY;
+            tmpV4.x = -halfSizeX + dx;
+            tmpV4.y = halfSizeY + dy;
             tmpV4.color = color.abgrHex;
             tmpV4.u = uvTopLeft[0];
             tmpV4.v = uvBottomRight[1];

@@ -78,7 +78,7 @@ module s2d {
                     lines++;
                     current[0] = 0;
                     current[1] += lineHeight;
-                    maxY = lineHeight;
+                    maxY += lineHeight;
 
                 } else {
 

@@ -385,34 +385,36 @@ var s2d;
             this.vertexOffset = 0;
             this.indexesOffset = 0;
         };
-        RenderCommands.prototype.drawRectSimple = function (mat, size, texture, uvTopLeft, uvBottomRight, color) {
+        RenderCommands.prototype.drawRectSimple = function (mat, size, pivot, texture, uvTopLeft, uvBottomRight, color) {
             var tmpV1 = this.tmpV1;
             var tmpV2 = this.tmpV2;
             var tmpV3 = this.tmpV3;
             var tmpV4 = this.tmpV4;
             var halfSizeX = size[0] * 0.5;
             var halfSizeY = size[1] * 0.5;
+            var dx = -pivot[0] * halfSizeX;
+            var dy = -pivot[1] * halfSizeY;
             //Top left
-            tmpV1.x = -halfSizeX;
-            tmpV1.y = -halfSizeY;
+            tmpV1.x = -halfSizeX + dx;
+            tmpV1.y = -halfSizeY + dy;
             tmpV1.color = color.abgrHex;
             tmpV1.u = uvTopLeft[0];
             tmpV1.v = uvTopLeft[1];
             //Top right
-            tmpV2.x = halfSizeX;
-            tmpV2.y = -halfSizeY;
+            tmpV2.x = halfSizeX + dx;
+            tmpV2.y = -halfSizeY + dy;
             tmpV2.color = color.abgrHex;
             tmpV2.u = uvBottomRight[0];
             tmpV2.v = uvTopLeft[1];
             //Bottom right
-            tmpV3.x = halfSizeX;
-            tmpV3.y = halfSizeY;
+            tmpV3.x = halfSizeX + dx;
+            tmpV3.y = halfSizeY + dy;
             tmpV3.color = color.abgrHex;
             tmpV3.u = uvBottomRight[0];
             tmpV3.v = uvBottomRight[1];
             //Bottom left
-            tmpV4.x = -halfSizeX;
-            tmpV4.y = halfSizeY;
+            tmpV4.x = -halfSizeX + dx;
+            tmpV4.y = halfSizeY + dy;
             tmpV4.color = color.abgrHex;
             tmpV4.u = uvTopLeft[0];
             tmpV4.v = uvBottomRight[1];
@@ -717,6 +719,7 @@ var s2d;
             this._rotation = 0;
             this._scale = s2d.Vector2.fromValues(1, 1);
             this._size = s2d.Vector2.fromValues(32, 32);
+            this._pivot = s2d.Vector2.create();
             //Linked list of children
             this._firstChild = null;
             this._lastChild = null;
@@ -887,6 +890,37 @@ var s2d;
             },
             set: function (v) {
                 this._size[1] = v;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Transform.prototype, "pivot", {
+            get: function () {
+                return this._pivot;
+            },
+            set: function (p) {
+                this._pivot[0] = s2d.SMath.clamp(p[0], -1, 1);
+                this._pivot[1] = s2d.SMath.clamp(p[1], -1, 1);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Transform.prototype, "pivotX", {
+            get: function () {
+                return this._pivot[0];
+            },
+            set: function (v) {
+                this._pivot[0] = s2d.SMath.clamp(v, -1, 1);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Transform.prototype, "pivotY", {
+            get: function () {
+                return this._pivot[1];
+            },
+            set: function (v) {
+                this._pivot[1] = s2d.SMath.clamp(v, -1, 1);
             },
             enumerable: true,
             configurable: true
@@ -2510,11 +2544,23 @@ var GameLogic = (function (_super) {
         this.cam = s2d.EntityFactory.buildCamera();
         this.initTestComplex();
         //this.initTestSimple();
+        /*
+        var textBackground = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        textBackground.transform.localX = 8;
+        textBackground.transform.localY = 8;
+        textBackground.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
+        textBackground.getComponent(s2d.Layout).sizeOffset = s2d.Vector2.fromValues(8, 8); //4px on each size
+        textBackground.transform.pivotX = -1;
+        textBackground.transform.pivotY = -1;
+        */
         this.textFPS = s2d.EntityFactory.buildTextDrawer();
         this.textFPS.fontScale = 3;
         this.textFPS.color.setFromRgba(0, 255, 0);
+        this.textFPS.entity.transform.pivotX = -1;
+        this.textFPS.entity.transform.pivotY = -1;
         this.textFPS.entity.transform.localX = 8;
         this.textFPS.entity.transform.localY = 8;
+        //this.textFPS.entity.transform.parent = textBackground.transform;
     };
     GameLogic.prototype.initTestSimple = function () {
         var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
@@ -2591,6 +2637,7 @@ var s2d;
     (function (LayoutSizeMode) {
         LayoutSizeMode[LayoutSizeMode["None"] = 0] = "None";
         LayoutSizeMode[LayoutSizeMode["MatchDrawerBest"] = 1] = "MatchDrawerBest";
+        LayoutSizeMode[LayoutSizeMode["MatchChildrenBest"] = 2] = "MatchChildrenBest";
     })(s2d.LayoutSizeMode || (s2d.LayoutSizeMode = {}));
     var LayoutSizeMode = s2d.LayoutSizeMode;
     (function (LayoutAnchorMode) {
@@ -2657,7 +2704,7 @@ var s2d;
                 return this._sizeOffset;
             },
             set: function (value) {
-                this._sizeOffset = value;
+                s2d.Vector2.copy(this._sizeOffset, value);
             },
             enumerable: true,
             configurable: true
@@ -2676,6 +2723,27 @@ var s2d;
                 }
                 else {
                     s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchThisDrawerBest' but drawer is missing", this);
+                }
+            }
+            if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest ||
+                this._heightSizeMode === LayoutSizeMode.MatchChildrenBest) {
+                var firstChild = this.entity.transform.getFirstChild();
+                if (firstChild !== null) {
+                    var firstChildDrawer = firstChild.entity.firstDrawer;
+                    if (firstChildDrawer !== null) {
+                        //DON'T MUTATE THIS VECTOR!!
+                        var bestSize = firstChildDrawer.getBestSize();
+                        if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest)
+                            this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                        if (this._heightSizeMode === LayoutSizeMode.MatchChildrenBest)
+                            this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                    }
+                    else {
+                        s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but children with drawer is missing", this);
+                    }
+                }
+                else {
+                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but not children found", this);
                 }
             }
         };
@@ -2760,14 +2828,20 @@ var s2d;
                 return; //Texture not loaded yet
             this.updateTextVertexGenerator();
             var trans = this.entity.transform;
-            var matrix = s2d.Drawer.tmpMatrix;
+            var tmpMatrix = s2d.Drawer.tmpMatrix;
+            var tmpVector = s2d.Drawer.tmpVector;
             var colorNumber = this._color.abgrHex;
-            trans.getLocalToGlobalMatrix(matrix);
+            trans.getLocalToGlobalMatrix(tmpMatrix);
             var vertexChars = this._textVertexGenerator.vertexChars;
             var tmpV1 = TextDrawer.tmpV1;
             var tmpV2 = TextDrawer.tmpV2;
             var tmpV3 = TextDrawer.tmpV3;
             var tmpV4 = TextDrawer.tmpV4;
+            //Offset matrix by pivot, vertex coordinates are generated starting at (0,0) and going (right,down)
+            //so we need to offset the pivot by (1, 1) to get the expected behavior
+            tmpVector[0] = -trans.sizeX * 0.5 * (trans.pivotX + 1);
+            tmpVector[1] = -trans.sizeY * 0.5 * (trans.pivotY + 1);
+            s2d.Matrix2d.translate(tmpMatrix, tmpMatrix, tmpVector);
             for (var i = 0; i < vertexChars.length; i++) {
                 var vertexChar = vertexChars[i];
                 tmpV1.copyFrom(vertexChar.v1);
@@ -2775,10 +2849,10 @@ var s2d;
                 tmpV3.copyFrom(vertexChar.v3);
                 tmpV4.copyFrom(vertexChar.v4);
                 tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = colorNumber;
-                tmpV1.transformMat2d(matrix);
-                tmpV2.transformMat2d(matrix);
-                tmpV3.transformMat2d(matrix);
-                tmpV4.transformMat2d(matrix);
+                tmpV1.transformMat2d(tmpMatrix);
+                tmpV2.transformMat2d(tmpMatrix);
+                tmpV3.transformMat2d(tmpMatrix);
+                tmpV4.transformMat2d(tmpMatrix);
                 //draw char
                 commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
             }
@@ -2843,7 +2917,7 @@ var s2d;
         TextureDrawer.prototype.draw = function (commands) {
             var trans = this.entity.transform;
             trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
-            commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, this._texture, this._uvTopLeft, this._uvBottomRight, this._color);
+            commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvTopLeft, this._uvBottomRight, this._color);
         };
         return TextureDrawer;
     }(s2d.Drawer));
@@ -2921,7 +2995,7 @@ var s2d;
                     lines++;
                     current[0] = 0;
                     current[1] += lineHeight;
-                    maxY = lineHeight;
+                    maxY += lineHeight;
                 }
                 else {
                     var charData = font.chars[charCode];

@@ -11,6 +11,7 @@ module s2d {
         private _rotation: number = 0;
         private _scale: Vector2 = Vector2.fromValues(1, 1);
         private _size: Vector2 = Vector2.fromValues(32, 32);
+        private _pivot: Vector2 = Vector2.create();
 
         //Linked list of children
         private _firstChild: Transform = null;
@@ -20,8 +21,9 @@ module s2d {
         private _prevSibling: Transform = null;
         private _nextSibling: Transform = null;
 
-        private _localMatrix : Matrix2d = Matrix2d.create();
+        private _localMatrix: Matrix2d = Matrix2d.create();
         //private _localMatrixDirty : boolean = true;
+
 
         public get parent() {
             return this._parent;
@@ -178,6 +180,31 @@ module s2d {
             this._size[1] = v;
         }
 
+        public get pivot() {
+            return this._pivot;
+        }
+
+        public set pivot(p: Vector2) {
+            this._pivot[0] = SMath.clamp(p[0], -1, 1);
+            this._pivot[1] = SMath.clamp(p[1], -1, 1);
+        }
+
+        public get pivotX() {
+            return this._pivot[0];
+        }
+
+        public set pivotX(v: number) {
+            this._pivot[0] = SMath.clamp(v, -1, 1);
+        }
+
+        public get pivotY() {
+            return this._pivot[1];
+        }
+
+        public set pivotY(v: number) {
+            this._pivot[1] = SMath.clamp(v, -1, 1);
+        }
+        
         /*
         private getLocalMatrix(): Matrix2d {
             let localMatrix = this._localMatrix;
@@ -263,17 +290,17 @@ module s2d {
 
         public getComponentInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>): number {
 
-            if (clazz === <any> Behavior)
-                return this.getBehaviorInChildrenInternal(<any> toReturn, 0);
-            else if (clazz === <any> Drawer)
-                return this.getDrawerInChildrenInternal(<any> toReturn, 0);
-            else if (clazz === <any> Layout)
-                return this.getLayoutInChildrenInternal(<any> toReturn, 0);
+            if (clazz === <any>Behavior)
+                return this.getBehaviorInChildrenInternal(<any>toReturn, 0);
+            else if (clazz === <any>Drawer)
+                return this.getDrawerInChildrenInternal(<any>toReturn, 0);
+            else if (clazz === <any>Layout)
+                return this.getLayoutInChildrenInternal(<any>toReturn, 0);
 
             return this.getComponentInChildrenInternal(clazz, toReturn, 0);
         }
 
-        private getComponentInChildrenInternal<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, index : number): number {
+        private getComponentInChildrenInternal<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, index: number): number {
 
             let comp = this.getComponent(clazz);
             if (comp !== null)
@@ -289,7 +316,7 @@ module s2d {
             return index;
         }
 
-        private getBehaviorInChildrenInternal(toReturn: Array<Behavior>, index : number): number {
+        private getBehaviorInChildrenInternal(toReturn: Array<Behavior>, index: number): number {
 
             if (this.entity !== null && this.entity.firstBehavior !== null)
                 toReturn[index++] = this.entity.firstBehavior;
@@ -304,7 +331,7 @@ module s2d {
             return index;
         }
 
-        private getDrawerInChildrenInternal(toReturn: Array<Drawer>, index : number): number {
+        private getDrawerInChildrenInternal(toReturn: Array<Drawer>, index: number): number {
 
             if (this.entity !== null && this.entity.firstDrawer !== null)
                 toReturn[index++] = this.entity.firstDrawer;
@@ -319,7 +346,7 @@ module s2d {
             return index;
         }
 
-        private getLayoutInChildrenInternal(toReturn: Array<Layout>, index : number): number {
+        private getLayoutInChildrenInternal(toReturn: Array<Layout>, index: number): number {
 
             if (this.entity !== null && this.entity.firstLayout !== null)
                 toReturn[index++] = this.entity.firstLayout;

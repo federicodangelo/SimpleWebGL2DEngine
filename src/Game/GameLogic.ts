@@ -23,13 +23,27 @@ class GameLogic extends s2d.Behavior {
         this.initTestComplex();
         //this.initTestSimple();
 
+        /*
+        var textBackground = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        textBackground.transform.localX = 8;
+        textBackground.transform.localY = 8;
+        textBackground.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
+        textBackground.getComponent(s2d.Layout).sizeOffset = s2d.Vector2.fromValues(8, 8); //4px on each size
+        textBackground.transform.pivotX = -1;
+        textBackground.transform.pivotY = -1;
+        */
+
         this.textFPS = s2d.EntityFactory.buildTextDrawer();
         this.textFPS.fontScale = 3;
         this.textFPS.color.setFromRgba(0, 255, 0);
 
+        this.textFPS.entity.transform.pivotX = -1;
+        this.textFPS.entity.transform.pivotY = -1;
+
         this.textFPS.entity.transform.localX = 8;
         this.textFPS.entity.transform.localY = 8;
-        
+
+        //this.textFPS.entity.transform.parent = textBackground.transform;
     }
 
     private initTestSimple() {
