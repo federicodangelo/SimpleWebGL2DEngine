@@ -14,6 +14,10 @@ module s2d {
         }
 
         public init() {
+            this._root.pivotX = -1;
+            this._root.pivotY = -1;
+            this._root.sizeX = renderer.screenWidth;
+            this._root.sizeY = renderer.screenHeight;
         }
 
         public getComponentInChildren<T extends Component>(clazz : {new() : T}, toReturn:Array<T>) : number {
@@ -23,6 +27,9 @@ module s2d {
         private tmpBehaviors : Array<Behavior> = new Array<Behavior>(1024);        
 
         public update() : void {
+
+            this._root.sizeX = renderer.screenWidth;
+            this._root.sizeY = renderer.screenHeight;
 
             var behaviors:Array<Behavior> = this.tmpBehaviors;
 

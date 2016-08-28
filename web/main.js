@@ -2396,11 +2396,17 @@ var s2d;
             configurable: true
         });
         EntityManager.prototype.init = function () {
+            this._root.pivotX = -1;
+            this._root.pivotY = -1;
+            this._root.sizeX = s2d.renderer.screenWidth;
+            this._root.sizeY = s2d.renderer.screenHeight;
         };
         EntityManager.prototype.getComponentInChildren = function (clazz, toReturn) {
             return this._root.getComponentInChildren(clazz, toReturn);
         };
         EntityManager.prototype.update = function () {
+            this._root.sizeX = s2d.renderer.screenWidth;
+            this._root.sizeY = s2d.renderer.screenHeight;
             var behaviors = this.tmpBehaviors;
             var behaviorsLen = this.getComponentInChildren(s2d.Behavior, behaviors);
             for (var i = 0; i < behaviorsLen; i++) {
