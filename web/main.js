@@ -2801,6 +2801,9 @@ var GameLogic = (function (_super) {
         var clearButton = s2d.EntityFactory.buildTextButton(this.texture, "Clear");
         clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
         clearButton.onClick.attach(this, this.onClearButtonClicked);
+        var addMore = s2d.EntityFactory.buildTextButton(this.texture, "Add\nMore");
+        addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
+        addMore.onClick.attach(function () { _this.initTest(); });
         var toggleRotationButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nRotation");
         toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
         toggleRotationButton.onClick.attach(function () { return GameLogic.TEST_MOVING = !GameLogic.TEST_MOVING; });
@@ -2874,7 +2877,7 @@ var GameLogic = (function (_super) {
             stats.lastUpdateTime !== this.lastUpdateTime ||
             stats.lastDrawcalls !== this.lastDrawcalls ||
             this.entities.length !== this.lastEntitiesCount) {
-            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms\nDraw Calls: " + stats.lastDrawcalls + "\nEntities: " + this.lastEntitiesCount;
+            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms\nDraw Calls: " + stats.lastDrawcalls + "\nEntities: " + this.entities.length;
             this.lastFps = stats.lastFps;
             this.lastUpdateTime = stats.lastUpdateTime;
             this.lastDrawcalls = stats.lastDrawcalls;
@@ -2883,7 +2886,7 @@ var GameLogic = (function (_super) {
     };
     GameLogic.TEST_NESTING = true;
     GameLogic.TEST_MOVING = true;
-    GameLogic.RECTS_COUNT = 8192;
+    GameLogic.RECTS_COUNT = 1024;
     return GameLogic;
 }(s2d.Behavior));
 // Copyright (c) 2015 Rogier Schouten<github@workingcode.ninja>
@@ -3670,214 +3673,6 @@ var s2d;
         return InputPointer;
     }());
     s2d.InputPointer = InputPointer;
-})(s2d || (s2d = {}));
-/// <reference path="../Util/JXON.d.ts" />
-var s2d;
-(function (s2d) {
-    var RenderFontCharData = (function () {
-        function RenderFontCharData() {
-            this.id = 0;
-            this.width = 0;
-            this.height = 0;
-            this.x = 0;
-            this.y = 0;
-            this.xadvance = 0;
-            this.xoffset = 0;
-            this.yoffset = 0;
-        }
-        return RenderFontCharData;
-    }());
-    s2d.RenderFontCharData = RenderFontCharData;
-    var RenderFont = (function () {
-        function RenderFont() {
-            this._xhttp = null;
-            this._texture = null;
-            this._textureWidth = 0;
-            this._textureHeight = 0;
-            this._lineHeight = 0;
-            this._chars = new Array();
-        }
-        Object.defineProperty(RenderFont.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "textureWidth", {
-            get: function () {
-                return this._textureWidth;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "textureHeight", {
-            get: function () {
-                return this._textureHeight;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "lineHeight", {
-            get: function () {
-                return this._lineHeight;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "chars", {
-            get: function () {
-                return this._chars;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderFont.prototype.clear = function () {
-            if (this._texture != null) {
-                this._texture.clear();
-                this._texture = null;
-            }
-        };
-        RenderFont.prototype.loadFromEmbeddedData = function (fontXml, textureBase64) {
-            this.parseFontXml(fontXml);
-            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64);
-            return this;
-        };
-        RenderFont.prototype.loadFromUrl = function (fontXmlURL) {
-            var _this = this;
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
-            this._xhttp.open("GET", fontXmlURL, true);
-            this._xhttp.send(null);
-            return this;
-        };
-        RenderFont.prototype.parseFontXml = function (xml) {
-            var fontData = JXON.stringToJs(xml);
-            this._textureWidth = parseInt(fontData.font.common.$scaleW);
-            this._textureHeight = parseInt(fontData.font.common.$scaleH);
-            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
-            var charsJson = fontData.font.chars.char;
-            for (var i = 0; i < charsJson.length; i++) {
-                var charJson = charsJson[i];
-                var char = new RenderFontCharData();
-                char.id = parseInt(charJson.$id);
-                char.width = parseInt(charJson.$width);
-                char.height = parseInt(charJson.$height);
-                char.x = parseInt(charJson.$x);
-                char.y = parseInt(charJson.$y);
-                char.xadvance = parseInt(charJson.$xadvance);
-                char.xoffset = parseInt(charJson.$xoffset);
-                char.yoffset = parseInt(charJson.$yoffset);
-                this._chars[char.id] = char;
-            }
-            return fontData;
-        };
-        RenderFont.prototype.onXMLLoadComplete = function () {
-            var fontData = this.parseFontXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
-        };
-        return RenderFont;
-    }());
-    s2d.RenderFont = RenderFont;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var RenderTexture = (function () {
-        function RenderTexture(hasAlpha) {
-            this._texture = null;
-            this._image = null;
-            this._hasAlpha = false;
-            var gl = s2d.renderer.gl;
-            this._hasAlpha = hasAlpha;
-            this._texture = gl.createTexture();
-            var texture = this._texture;
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            // Fill the texture with a 1x1 white pixel.
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
-        }
-        Object.defineProperty(RenderTexture.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
-            get: function () {
-                return this._hasAlpha;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderTexture.prototype.loadFromUrl = function (imageUrl) {
-            var _this = this;
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = imageUrl;
-            return this;
-        };
-        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64) {
-            var _this = this;
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = "data:image/png;base64," + imageBase64;
-            return this;
-        };
-        RenderTexture.prototype.onImageLoadComplete = function () {
-            var gl = s2d.renderer.gl;
-            var texture = this._texture;
-            var image = this._image;
-            // Now that the image has loaded make copy it to the texture.
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.generateMipmap(gl.TEXTURE_2D);
-            this._image = null;
-        };
-        RenderTexture.prototype.clear = function () {
-            var gl = s2d.renderer.gl;
-            if (this._texture != null) {
-                gl.deleteTexture(this._texture);
-                this._texture = null;
-            }
-        };
-        RenderTexture.prototype.useTexture = function () {
-            var gl = s2d.renderer.gl;
-            gl.bindTexture(gl.TEXTURE_2D, this._texture);
-        };
-        return RenderTexture;
-    }());
-    s2d.RenderTexture = RenderTexture;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var RenderVertex = (function () {
-        function RenderVertex() {
-        }
-        RenderVertex.prototype.copyFrom = function (v) {
-            this.x = v.x;
-            this.y = v.y;
-            this.color = v.color;
-            this.u = v.u;
-            this.v = v.v;
-        };
-        RenderVertex.prototype.transformMat2d = function (m) {
-            var x = this.x, y = this.y;
-            this.x = m[0] * x + m[2] * y + m[4];
-            this.y = m[1] * x + m[3] * y + m[5];
-        };
-        return RenderVertex;
-    }());
-    s2d.RenderVertex = RenderVertex;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -4850,6 +4645,214 @@ var s2d;
         return SMath;
     }());
     s2d.SMath = SMath;
+})(s2d || (s2d = {}));
+/// <reference path="../Util/JXON.d.ts" />
+var s2d;
+(function (s2d) {
+    var RenderFontCharData = (function () {
+        function RenderFontCharData() {
+            this.id = 0;
+            this.width = 0;
+            this.height = 0;
+            this.x = 0;
+            this.y = 0;
+            this.xadvance = 0;
+            this.xoffset = 0;
+            this.yoffset = 0;
+        }
+        return RenderFontCharData;
+    }());
+    s2d.RenderFontCharData = RenderFontCharData;
+    var RenderFont = (function () {
+        function RenderFont() {
+            this._xhttp = null;
+            this._texture = null;
+            this._textureWidth = 0;
+            this._textureHeight = 0;
+            this._lineHeight = 0;
+            this._chars = new Array();
+        }
+        Object.defineProperty(RenderFont.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureWidth", {
+            get: function () {
+                return this._textureWidth;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureHeight", {
+            get: function () {
+                return this._textureHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "lineHeight", {
+            get: function () {
+                return this._lineHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "chars", {
+            get: function () {
+                return this._chars;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderFont.prototype.clear = function () {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+        };
+        RenderFont.prototype.loadFromEmbeddedData = function (fontXml, textureBase64) {
+            this.parseFontXml(fontXml);
+            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64);
+            return this;
+        };
+        RenderFont.prototype.loadFromUrl = function (fontXmlURL) {
+            var _this = this;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", fontXmlURL, true);
+            this._xhttp.send(null);
+            return this;
+        };
+        RenderFont.prototype.parseFontXml = function (xml) {
+            var fontData = JXON.stringToJs(xml);
+            this._textureWidth = parseInt(fontData.font.common.$scaleW);
+            this._textureHeight = parseInt(fontData.font.common.$scaleH);
+            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
+            var charsJson = fontData.font.chars.char;
+            for (var i = 0; i < charsJson.length; i++) {
+                var charJson = charsJson[i];
+                var char = new RenderFontCharData();
+                char.id = parseInt(charJson.$id);
+                char.width = parseInt(charJson.$width);
+                char.height = parseInt(charJson.$height);
+                char.x = parseInt(charJson.$x);
+                char.y = parseInt(charJson.$y);
+                char.xadvance = parseInt(charJson.$xadvance);
+                char.xoffset = parseInt(charJson.$xoffset);
+                char.yoffset = parseInt(charJson.$yoffset);
+                this._chars[char.id] = char;
+            }
+            return fontData;
+        };
+        RenderFont.prototype.onXMLLoadComplete = function () {
+            var fontData = this.parseFontXml(this._xhttp.responseText);
+            this._xhttp = null;
+            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
+        };
+        return RenderFont;
+    }());
+    s2d.RenderFont = RenderFont;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var RenderTexture = (function () {
+        function RenderTexture(hasAlpha) {
+            this._texture = null;
+            this._image = null;
+            this._hasAlpha = false;
+            var gl = s2d.renderer.gl;
+            this._hasAlpha = hasAlpha;
+            this._texture = gl.createTexture();
+            var texture = this._texture;
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            // Fill the texture with a 1x1 white pixel.
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+        }
+        Object.defineProperty(RenderTexture.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
+            get: function () {
+                return this._hasAlpha;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderTexture.prototype.loadFromUrl = function (imageUrl) {
+            var _this = this;
+            // Asynchronously load an image
+            this._image = new Image();
+            this._image.setAttribute('crossOrigin', 'anonymous');
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = imageUrl;
+            return this;
+        };
+        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64) {
+            var _this = this;
+            // Asynchronously load an image
+            this._image = new Image();
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = "data:image/png;base64," + imageBase64;
+            return this;
+        };
+        RenderTexture.prototype.onImageLoadComplete = function () {
+            var gl = s2d.renderer.gl;
+            var texture = this._texture;
+            var image = this._image;
+            // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            this._image = null;
+        };
+        RenderTexture.prototype.clear = function () {
+            var gl = s2d.renderer.gl;
+            if (this._texture != null) {
+                gl.deleteTexture(this._texture);
+                this._texture = null;
+            }
+        };
+        RenderTexture.prototype.useTexture = function () {
+            var gl = s2d.renderer.gl;
+            gl.bindTexture(gl.TEXTURE_2D, this._texture);
+        };
+        return RenderTexture;
+    }());
+    s2d.RenderTexture = RenderTexture;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var RenderVertex = (function () {
+        function RenderVertex() {
+        }
+        RenderVertex.prototype.copyFrom = function (v) {
+            this.x = v.x;
+            this.y = v.y;
+            this.color = v.color;
+            this.u = v.u;
+            this.v = v.v;
+        };
+        RenderVertex.prototype.transformMat2d = function (m) {
+            var x = this.x, y = this.y;
+            this.x = m[0] * x + m[2] * y + m[4];
+            this.y = m[1] * x + m[3] * y + m[5];
+        };
+        return RenderVertex;
+    }());
+    s2d.RenderVertex = RenderVertex;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {

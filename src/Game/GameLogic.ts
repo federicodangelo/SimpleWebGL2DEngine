@@ -7,7 +7,7 @@ class GameLogic extends s2d.Behavior {
 
     static TEST_NESTING = true;
     static TEST_MOVING = true;
-    static RECTS_COUNT = 8192;
+    static RECTS_COUNT = 1024;
 
     private texture: s2d.RenderTexture;
 
@@ -36,6 +36,10 @@ class GameLogic extends s2d.Behavior {
         let clearButton = s2d.EntityFactory.buildTextButton(this.texture, "Clear");
         clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
         clearButton.onClick.attach(this, this.onClearButtonClicked);
+
+        let addMore = s2d.EntityFactory.buildTextButton(this.texture, "Add\nMore");
+        addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
+        addMore.onClick.attach(() => { this.initTest(); });
 
         let toggleRotationButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nRotation");
         toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
@@ -136,7 +140,7 @@ class GameLogic extends s2d.Behavior {
             stats.lastDrawcalls !== this.lastDrawcalls || 
             this.entities.length !== this.lastEntitiesCount) {
 
-            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms\nDraw Calls: " + stats.lastDrawcalls + "\nEntities: " + this.lastEntitiesCount;
+            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms\nDraw Calls: " + stats.lastDrawcalls + "\nEntities: " + this.entities.length;
 
             this.lastFps = stats.lastFps;
             this.lastUpdateTime = stats.lastUpdateTime;
