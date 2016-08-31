@@ -269,6 +269,7 @@ module s2d {
                 gl.disable(gl.BLEND);
             }
 
+            engine.stats.incrmentDrawcalls();
             gl.drawElements(gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
             this.currentBufferIndex = (this.currentBufferIndex + 1) % this.renderVertexBuffers.length;
 

@@ -8,6 +8,7 @@ module s2d {
 
         private _name: String = "Entity";
         private _transform: Transform = null;
+        private _destroyed: boolean = false;
 
         private _firstDrawer: Drawer = null;
         private _firstBehavior: Behavior = null;
@@ -42,6 +43,10 @@ module s2d {
             return this._firstLayout;
         }
 
+        public get destroyed() {
+            return this._destroyed;
+        }
+
         constructor(name: String = null) {
             if (name === null)
                 name = "Entity " + Entity.entityConunter++;
@@ -51,6 +56,12 @@ module s2d {
         }
 
         public addComponent<T extends Component>(clazz: { new (): T }): T {
+
+            if (this._destroyed) {
+                EngineConsole.error("Can't add components to a destroyed entity", this);
+                return;
+            }
+
             let comp = new clazz();
 
             let tmp = this._firstComponent;
@@ -85,6 +96,23 @@ module s2d {
 
         public getComponentInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>): number {
             return this._transform.getComponentInChildren(clazz, toReturn);
+        }
+
+        public destroy() {
+            entities.destroyEntity(this);
+        }
+
+        public __internal_destroy() : void {
+            if (!this._destroyed) {
+                this._destroyed = true;
+
+                //Destroy components
+                var comp = this._firstComponent;
+                while (comp !== null) {
+                    comp.destroy();
+                    comp = comp.__internal_nextComponent;
+                }
+            }            
         }
     }
 }

@@ -1,4 +1,4 @@
-module s2d.Input {
+module s2d {
 
     export class InputMouse {
 

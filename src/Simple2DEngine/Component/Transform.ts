@@ -4,8 +4,6 @@ module s2d {
 
     export class Transform extends Component {
 
-        private static MAX_NESTING: number = 128;
-
         private _parent: Transform = null;
         private _position: Vector2 = Vector2.create();
         private _rotation: number = 0;
@@ -30,7 +28,24 @@ module s2d {
         }
 
         protected onInit(): void {
-            engine.entities.root.addChild(this);
+            engine.entities.root.addChildLast(this);
+        }
+
+        protected onDestroy(): void {
+            //Destroy child entities
+            var child = this._firstChild;
+            while (child !== null) {
+                var tmp = child.entity;
+                child = child._nextSibling;
+                tmp.destroy();
+            }
+
+            if (this._parent === null)
+                engine.entities.root.removeChild(this);
+            else
+                this._parent.removeChild(this);
+
+            this._parent = null;
         }
 
         public set parent(p: Transform) {
@@ -42,9 +57,14 @@ module s2d {
             this._parent = p;
 
             if (this._parent === null)
-                engine.entities.root.addChild(this);
+                engine.entities.root.addChildLast(this);
             else
-                this._parent.addChild(this);
+                this._parent.addChildLast(this);
+        }
+
+        public setParent(p: Transform) {
+            this.parent = p;
+            return this;
         }
 
         public get localPosition() {
@@ -81,6 +101,12 @@ module s2d {
             this._localMatrix[5] = this._position[1];
         }
 
+        public setLocalPosition(x: number, y: number) {
+            this.localX = x;
+            this.localY = y;
+            return this;
+        }
+
         public get localRotationRadians() {
             return this._rotation;
         }
@@ -105,6 +131,16 @@ module s2d {
 
         public set localRotationDegrees(deg: number) {
             this.localRotationRadians = deg * SMath.deg2rad;
+        }
+
+        public setLocalRotationRadians(rad: number) {
+            this.localRotationRadians = rad;
+            return this;
+        }
+
+        public setlocalRotationDegrees(deg: number) {
+            this.localRotationRadians = deg;
+            return this;
         }
 
         public get localScale() {
@@ -156,6 +192,12 @@ module s2d {
             this._localMatrix[3] = ss[1] * c;
         }
 
+        public setLocalScale(x: number, y: number) {
+            this.localScaleX = x;
+            this.localScaleY = y;
+            return this;
+        }
+
         public get size() {
             return this._size;
         }
@@ -178,6 +220,12 @@ module s2d {
 
         public set sizeY(v: number) {
             this._size[1] = v;
+        }
+
+        public setSize(x: number, y: number) {
+            this.sizeX = x;
+            this.sizeY = y;
+            return this;
         }
 
         public get pivot() {
@@ -204,7 +252,74 @@ module s2d {
         public set pivotY(v: number) {
             this._pivot[1] = SMath.clamp(v, -1, 1);
         }
-        
+
+        public setPivot(x: number, y: number) {
+            this.pivotX = x;
+            this.pivotY = y;
+            return this;
+        }
+
+        private static tmpV1: Vector2;
+        private static tmpV2: Vector2;
+        private static tmpV3: Vector2;
+        private static tmpV4: Vector2;
+        private static tmpMatrix: Matrix2d;
+
+        public static initStatic() {
+            Transform.tmpV1 = Vector2.create();
+            Transform.tmpV2 = Vector2.create();
+            Transform.tmpV3 = Vector2.create();
+            Transform.tmpV4 = Vector2.create();
+            Transform.tmpMatrix = Matrix2d.create();
+        }
+
+        public getBounds(out: Rect): Rect {
+            var tmpV1 = Transform.tmpV1;
+            var tmpV2 = Transform.tmpV2;
+            var tmpV3 = Transform.tmpV3;
+            var tmpV4 = Transform.tmpV4;
+            var tmpMatrix = Transform.tmpMatrix;
+
+            this.getLocalToGlobalMatrix(tmpMatrix);
+
+            let halfSizeX = this.size[0] * 0.5;
+            let halfSizeY = this.size[1] * 0.5;
+
+            let dx = -this.pivot[0] * halfSizeX;
+            let dy = -this.pivot[1] * halfSizeY;
+
+            //Top left
+            tmpV1[0] = -halfSizeX + dx;
+            tmpV1[1] = -halfSizeY + dy;
+
+            //Top right
+            tmpV2[0] = halfSizeX + dx;
+            tmpV2[1] = -halfSizeY + dy;
+
+            //Bottom right
+            tmpV3[0] = halfSizeX + dx;
+            tmpV3[1] = halfSizeY + dy;
+
+            //Bottom left
+            tmpV4[0] = -halfSizeX + dx;
+            tmpV4[1] = halfSizeY + dy;
+
+            Vector2.transformMat2d(tmpV1, tmpV1, tmpMatrix);
+            Vector2.transformMat2d(tmpV2, tmpV2, tmpMatrix);
+            Vector2.transformMat2d(tmpV3, tmpV3, tmpMatrix);
+            Vector2.transformMat2d(tmpV4, tmpV4, tmpMatrix);
+
+            var minX = Math.min(tmpV1[0], tmpV2[0], tmpV3[0], tmpV4[0]);
+            var minY = Math.min(tmpV1[1], tmpV2[1], tmpV3[1], tmpV4[1]);
+
+            var maxX = Math.max(tmpV1[0], tmpV2[0], tmpV3[0], tmpV4[0]);
+            var maxY = Math.max(tmpV1[1], tmpV2[1], tmpV3[1], tmpV4[1]);
+
+            Rect.set(out, minX, minY, maxX - minX, maxY - minY);
+
+            return out;
+        }
+
         /*
         private getLocalMatrix(): Matrix2d {
             let localMatrix = this._localMatrix;
@@ -253,7 +368,7 @@ module s2d {
             return out;
         }
 
-        private addChild(p: Transform) {
+        private addChildLast(p: Transform) {
             if (this._firstChild === null) {
                 this._firstChild = this._lastChild = p;
             } else {
@@ -261,6 +376,15 @@ module s2d {
                 p._prevSibling = this._lastChild;
                 this._lastChild = p;
             }
+        }
+
+        private addChildFirst(p: Transform) {
+            p._nextSibling = this._firstChild;
+            if (this._firstChild !== null)
+                this._firstChild._prevSibling = p;
+            this._firstChild = p;
+            if (this._lastChild === null)
+                this._lastChild = p;
         }
 
         private removeChild(p: Transform) {
@@ -359,6 +483,34 @@ module s2d {
             }
 
             return index;
+        }
+
+        /**
+         * Makes the transform the first child in the parent container
+         */
+        public moveToTop() {
+            if (this._prevSibling !== null) {
+                //We remove ourselve from our parent and then we add ourselves again
+                //at the beginning
+                let p = (this._parent === null) ? engine.entities.root : this._parent;
+
+                p.removeChild(this);
+                p.addChildFirst(this);
+            }
+        }
+
+        /**
+         * Makes the transform the last child in the parent container
+         */
+        public moveToBottom() {
+            if (this._nextSibling !== null) {
+                //We remove ourselve from our parent and then we add ourselves again,
+                //which leaves us at the bottom.. 
+                let p = (this._parent === null) ? engine.entities.root : this._parent;
+
+                p.removeChild(this);
+                p.addChildLast(this);
+            }
         }
     }
 }

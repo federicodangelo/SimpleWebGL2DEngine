@@ -7,17 +7,25 @@ module s2d {
         //Linked list of components that belong to the same entity
         public __internal_nextComponent : Component = null;
 
+        public get entity() {
+            return this._entity;
+        } 
+
         public init(entity : Entity) : void {
             this._entity = entity;
             this.onInit();
         } 
 
-        public get entity() {
-            return this._entity;
-        } 
-
         protected onInit() : void {
             
+        }
+
+        public destroy() : void {
+            this.onDestroy();
+        }
+
+        protected onDestroy() : void {
+
         }
 
         public getComponent<T extends Component>(clazz : {new() : T}) : T {

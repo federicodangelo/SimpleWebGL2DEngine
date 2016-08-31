@@ -33,6 +33,7 @@ module s2d {
             Drawer.initStatic();
             TextDrawer.initStatic();
             Time.initStatic();
+            Transform.initStatic();
             
             //Manager instantiation
             this._renderer = new RenderManager();

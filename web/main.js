@@ -5,186 +5,180 @@ var __extends = (this && this.__extends) || function (d, b) {
 };
 var s2d;
 (function (s2d) {
-    var Input;
-    (function (Input) {
-        var InputMouse = (function () {
-            /*
-            Mouse buttons values (from https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button):
-                0: Main button pressed, usually the left button or the un-initialized state
-                1: Auxiliary button pressed, usually the wheel button or the middle button (if present)
-                2: Secondary button pressed, usually the right button
-                3: Fourth button, typically the Browser Back button
-                4: Fifth button, typically the Browser Forward button
-            */
-            function InputMouse() {
-                var _this = this;
-                this.onMouseDown = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPosition(ev);
-                    if (ev.button === 0)
-                        _this._leftDown = true;
-                    else if (ev.button === 2)
-                        _this._rightDown = true;
-                    //TEST!!
-                    //this.engine.renderer.enterFullscreen();
-                };
-                this.onMouseMove = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPosition(ev);
-                };
-                this.onMouseOut = function (ev) {
-                    ev.preventDefault();
-                    //Nothing to do..
-                };
-                this.onMouseOver = function (ev) {
-                    ev.preventDefault();
-                    //Nothing to do..
-                };
-                this.onMouseUp = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPosition(ev);
-                    if (ev.button === 0)
-                        _this._leftDown = false;
-                    else if (ev.button === 2)
-                        _this._rightDown = false;
-                };
-                this.onMouseWheel = function (ev) {
-                    ev.preventDefault();
-                    //TODO: Do we handle this?
-                };
-                this._lastX = 0;
-                this._lastY = 0;
-                this._leftDown = false;
-                this._rightDown = false;
-                document.addEventListener("mousedown", this.onMouseDown, true);
-                document.addEventListener("mousemove", this.onMouseMove, true);
-                document.addEventListener("mouseout", this.onMouseOut, true);
-                document.addEventListener("mouseover", this.onMouseOver, true);
-                document.addEventListener("mouseup", this.onMouseUp, true);
-                document.addEventListener("mousewheel", this.onMouseWheel, true);
-            }
-            Object.defineProperty(InputMouse.prototype, "x", {
-                get: function () {
-                    return this._lastX;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "y", {
-                get: function () {
-                    return this._lastY;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "isDown", {
-                get: function () {
-                    return this._leftDown || this._rightDown;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "isLeftDown", {
-                get: function () {
-                    return this._leftDown;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            Object.defineProperty(InputMouse.prototype, "isRightDown", {
-                get: function () {
-                    return this._rightDown;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            InputMouse.prototype.updateLastPosition = function (ev) {
-                if (ev.x >= 0 && ev.x < s2d.engine.renderer.screenWidth && ev.y >= 0 && ev.y < s2d.engine.renderer.screenHeight) {
-                    this._lastX = ev.x;
-                    this._lastY = ev.y;
-                }
+    var InputMouse = (function () {
+        /*
+        Mouse buttons values (from https://developer.mozilla.org/en-US/docs/Web/API/MouseEvent/button):
+            0: Main button pressed, usually the left button or the un-initialized state
+            1: Auxiliary button pressed, usually the wheel button or the middle button (if present)
+            2: Secondary button pressed, usually the right button
+            3: Fourth button, typically the Browser Back button
+            4: Fifth button, typically the Browser Forward button
+        */
+        function InputMouse() {
+            var _this = this;
+            this.onMouseDown = function (ev) {
+                ev.preventDefault();
+                _this.updateLastPosition(ev);
+                if (ev.button === 0)
+                    _this._leftDown = true;
+                else if (ev.button === 2)
+                    _this._rightDown = true;
+                //TEST!!
+                //this.engine.renderer.enterFullscreen();
             };
-            return InputMouse;
-        }());
-        Input.InputMouse = InputMouse;
-    })(Input = s2d.Input || (s2d.Input = {}));
+            this.onMouseMove = function (ev) {
+                ev.preventDefault();
+                _this.updateLastPosition(ev);
+            };
+            this.onMouseOut = function (ev) {
+                ev.preventDefault();
+                //Nothing to do..
+            };
+            this.onMouseOver = function (ev) {
+                ev.preventDefault();
+                //Nothing to do..
+            };
+            this.onMouseUp = function (ev) {
+                ev.preventDefault();
+                _this.updateLastPosition(ev);
+                if (ev.button === 0)
+                    _this._leftDown = false;
+                else if (ev.button === 2)
+                    _this._rightDown = false;
+            };
+            this.onMouseWheel = function (ev) {
+                ev.preventDefault();
+                //TODO: Do we handle this?
+            };
+            this._lastX = 0;
+            this._lastY = 0;
+            this._leftDown = false;
+            this._rightDown = false;
+            document.addEventListener("mousedown", this.onMouseDown, true);
+            document.addEventListener("mousemove", this.onMouseMove, true);
+            document.addEventListener("mouseout", this.onMouseOut, true);
+            document.addEventListener("mouseover", this.onMouseOver, true);
+            document.addEventListener("mouseup", this.onMouseUp, true);
+            document.addEventListener("mousewheel", this.onMouseWheel, true);
+        }
+        Object.defineProperty(InputMouse.prototype, "x", {
+            get: function () {
+                return this._lastX;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(InputMouse.prototype, "y", {
+            get: function () {
+                return this._lastY;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(InputMouse.prototype, "isDown", {
+            get: function () {
+                return this._leftDown || this._rightDown;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(InputMouse.prototype, "isLeftDown", {
+            get: function () {
+                return this._leftDown;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(InputMouse.prototype, "isRightDown", {
+            get: function () {
+                return this._rightDown;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        InputMouse.prototype.updateLastPosition = function (ev) {
+            if (ev.x >= 0 && ev.x < s2d.engine.renderer.screenWidth && ev.y >= 0 && ev.y < s2d.engine.renderer.screenHeight) {
+                this._lastX = ev.x;
+                this._lastY = ev.y;
+            }
+        };
+        return InputMouse;
+    }());
+    s2d.InputMouse = InputMouse;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
-    var Input;
-    (function (Input) {
-        var Touch = (function () {
-            function Touch() {
-            }
-            return Touch;
-        }());
-        Input.Touch = Touch;
-        var InputTouch = (function () {
-            function InputTouch() {
-                var _this = this;
-                this.onTouchStart = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPositions(ev);
-                    //TEST!!
-                    //this.engine.renderer.enterFullscreen();
-                };
-                this.onTouchEnd = function (ev) {
-                    ev.preventDefault();
-                    for (var i = 0; i < ev.changedTouches.length; i++)
-                        _this.removeTouch(ev.changedTouches[i].identifier);
-                };
-                this.onTouchMove = function (ev) {
-                    ev.preventDefault();
-                    _this.updateLastPositions(ev);
-                };
-                this.onTouchCancel = function (ev) {
-                    ev.preventDefault();
-                    for (var i = 0; i < ev.changedTouches.length; i++)
-                        _this.removeTouch(ev.changedTouches[i].identifier);
-                };
-                this._touches = new Array();
-                document.addEventListener("touchstart", this.onTouchStart, true);
-                document.addEventListener("touchend", this.onTouchEnd, true);
-                document.addEventListener("touchmove", this.onTouchMove, true);
-                document.addEventListener("touchcancel", this.onTouchCancel, true);
-            }
-            Object.defineProperty(InputTouch.prototype, "touches", {
-                get: function () {
-                    return this._touches;
-                },
-                enumerable: true,
-                configurable: true
-            });
-            InputTouch.prototype.removeTouch = function (id) {
-                for (var i = 0; i < this._touches.length; i++)
-                    if (this._touches[i].id === id)
-                        this._touches.splice(i, 1);
+    var Touch = (function () {
+        function Touch() {
+        }
+        return Touch;
+    }());
+    s2d.Touch = Touch;
+    var InputTouch = (function () {
+        function InputTouch() {
+            var _this = this;
+            this.onTouchStart = function (ev) {
+                ev.preventDefault();
+                _this.updateLastPositions(ev);
+                //TEST!!
+                //this.engine.renderer.enterFullscreen();
             };
-            InputTouch.prototype.getOrCreateTouch = function (id) {
-                for (var i = 0; i < this._touches.length; i++)
-                    if (this._touches[i].id === id)
-                        return this._touches[i];
-                var newTouch = new Touch();
-                newTouch.id = id;
-                this._touches.push(newTouch);
-                return newTouch;
+            this.onTouchEnd = function (ev) {
+                ev.preventDefault();
+                for (var i = 0; i < ev.changedTouches.length; i++)
+                    _this.removeTouch(ev.changedTouches[i].identifier);
             };
-            InputTouch.prototype.updateLastPositions = function (ev) {
-                for (var i = 0; i < ev.changedTouches.length; i++) {
-                    var id = ev.changedTouches[i].identifier;
-                    var x = ev.changedTouches[i].clientX;
-                    var y = ev.changedTouches[i].clientY;
-                    var touch = this.getOrCreateTouch(id);
-                    if (x >= 0 && x < s2d.engine.renderer.screenWidth && y >= 0 && y < s2d.engine.renderer.screenHeight) {
-                        touch.x = x;
-                        touch.y = y;
-                    }
+            this.onTouchMove = function (ev) {
+                ev.preventDefault();
+                _this.updateLastPositions(ev);
+            };
+            this.onTouchCancel = function (ev) {
+                ev.preventDefault();
+                for (var i = 0; i < ev.changedTouches.length; i++)
+                    _this.removeTouch(ev.changedTouches[i].identifier);
+            };
+            this._touches = new Array();
+            document.addEventListener("touchstart", this.onTouchStart, true);
+            document.addEventListener("touchend", this.onTouchEnd, true);
+            document.addEventListener("touchmove", this.onTouchMove, true);
+            document.addEventListener("touchcancel", this.onTouchCancel, true);
+        }
+        Object.defineProperty(InputTouch.prototype, "touches", {
+            get: function () {
+                return this._touches;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        InputTouch.prototype.removeTouch = function (id) {
+            for (var i = 0; i < this._touches.length; i++)
+                if (this._touches[i].id === id)
+                    this._touches.splice(i, 1);
+        };
+        InputTouch.prototype.getOrCreateTouch = function (id) {
+            for (var i = 0; i < this._touches.length; i++)
+                if (this._touches[i].id === id)
+                    return this._touches[i];
+            var newTouch = new Touch();
+            newTouch.id = id;
+            this._touches.push(newTouch);
+            return newTouch;
+        };
+        InputTouch.prototype.updateLastPositions = function (ev) {
+            for (var i = 0; i < ev.changedTouches.length; i++) {
+                var id = ev.changedTouches[i].identifier;
+                var x = ev.changedTouches[i].clientX;
+                var y = ev.changedTouches[i].clientY;
+                var touch = this.getOrCreateTouch(id);
+                if (x >= 0 && x < s2d.engine.renderer.screenWidth && y >= 0 && y < s2d.engine.renderer.screenHeight) {
+                    touch.x = x;
+                    touch.y = y;
                 }
-            };
-            return InputTouch;
-        }());
-        Input.InputTouch = InputTouch;
-    })(Input = s2d.Input || (s2d.Input = {}));
+            }
+        };
+        return InputTouch;
+    }());
+    s2d.InputTouch = InputTouch;
 })(s2d || (s2d = {}));
 /// <reference path="InputMouse.ts" />
 /// <reference path="InputTouch.ts" />
@@ -192,20 +186,23 @@ var s2d;
 (function (s2d) {
     var InputManager = (function () {
         function InputManager() {
+            this._lastInteractableDown = null;
+            this.tmpInteractables = new Array(1024);
+            this.tmpRect = s2d.Rect.create();
         }
         Object.defineProperty(InputManager.prototype, "pointerDown", {
             get: function () {
-                return this.inputMouse.isDown || this.inputTouch.touches.length > 0;
+                return this._inputMouse.isDown || this._inputTouch.touches.length > 0;
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(InputManager.prototype, "pointerX", {
             get: function () {
-                if (this.inputMouse.isDown)
-                    return this.inputMouse.x;
-                if (this.inputTouch.touches.length > 0)
-                    return this.inputTouch.touches[0].x;
+                if (this._inputMouse.isDown)
+                    return this._inputMouse.x;
+                if (this._inputTouch.touches.length > 0)
+                    return this._inputTouch.touches[0].x;
                 return 0;
             },
             enumerable: true,
@@ -213,21 +210,76 @@ var s2d;
         });
         Object.defineProperty(InputManager.prototype, "pointerY", {
             get: function () {
-                if (this.inputMouse.isDown)
-                    return this.inputMouse.y;
-                if (this.inputTouch.touches.length > 0)
-                    return this.inputTouch.touches[0].y;
+                if (this._inputMouse.isDown)
+                    return this._inputMouse.y;
+                if (this._inputTouch.touches.length > 0)
+                    return this._inputTouch.touches[0].y;
                 return 0;
             },
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(InputManager.prototype, "pointer", {
+            get: function () {
+                return this._inputPointer;
+            },
+            enumerable: true,
+            configurable: true
+        });
         InputManager.prototype.init = function () {
-            this.inputTouch = new s2d.Input.InputTouch();
-            this.inputMouse = new s2d.Input.InputMouse();
+            this._inputTouch = new s2d.InputTouch();
+            this._inputMouse = new s2d.InputMouse();
+            this._inputPointer = new s2d.InputPointer();
         };
         InputManager.prototype.update = function () {
-            //Nothing to do..
+            this.updatePointer();
+            var newInteractable = this.getInteractableUnderPointer();
+            var pointer = this._inputPointer;
+            if (pointer.down) {
+                if (pointer.downFrames === 0) {
+                    if (newInteractable !== null) {
+                        this._lastInteractableDown = newInteractable;
+                        newInteractable.onPointerDown(pointer);
+                    }
+                }
+            }
+            else {
+                if (this._lastInteractableDown !== null) {
+                    var tmp = this._lastInteractableDown;
+                    this._lastInteractableDown = null;
+                    tmp.onPointerUp(pointer);
+                }
+            }
+        };
+        InputManager.prototype.updatePointer = function () {
+            var inputPointer = this._inputPointer;
+            var x = this.pointerX;
+            var y = this.pointerY;
+            var down = this.pointerDown;
+            inputPointer.delta[0] = x - inputPointer.position[0];
+            inputPointer.delta[1] = y - inputPointer.position[1];
+            inputPointer.position[0] = x;
+            inputPointer.position[1] = y;
+            if (inputPointer.down && down) {
+                inputPointer.downFrames++;
+            }
+            else {
+                inputPointer.down = down;
+                inputPointer.downFrames = 0;
+            }
+        };
+        InputManager.prototype.getInteractableUnderPointer = function () {
+            var rect = this.tmpRect;
+            var pointer = this._inputPointer;
+            var interactables = this.tmpInteractables;
+            var interactablesCount = s2d.entities.getComponentInChildren(s2d.Interactable, interactables);
+            for (var i = 0; i < interactablesCount; i++) {
+                var interactable = interactables[i];
+                if (interactable.enabled)
+                    if (s2d.Rect.containts(interactable.getBounds(rect), pointer.position[0], pointer.position[1]))
+                        return interactable;
+            }
+            return null;
         };
         return InputManager;
     }());
@@ -495,6 +547,7 @@ var s2d;
             else {
                 gl.disable(gl.BLEND);
             }
+            s2d.engine.stats.incrmentDrawcalls();
             gl.drawElements(gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
             this.currentBufferIndex = (this.currentBufferIndex + 1) % this.renderVertexBuffers.length;
             this.currentTexture = null;
@@ -685,10 +738,6 @@ var s2d;
             //Linked list of components that belong to the same entity
             this.__internal_nextComponent = null;
         }
-        Component.prototype.init = function (entity) {
-            this._entity = entity;
-            this.onInit();
-        };
         Object.defineProperty(Component.prototype, "entity", {
             get: function () {
                 return this._entity;
@@ -696,7 +745,16 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Component.prototype.init = function (entity) {
+            this._entity = entity;
+            this.onInit();
+        };
         Component.prototype.onInit = function () {
+        };
+        Component.prototype.destroy = function () {
+            this.onDestroy();
+        };
+        Component.prototype.onDestroy = function () {
         };
         Component.prototype.getComponent = function (clazz) {
             if (this._entity !== null)
@@ -740,15 +798,33 @@ var s2d;
                     this._parent.removeChild(this);
                 this._parent = p;
                 if (this._parent === null)
-                    s2d.engine.entities.root.addChild(this);
+                    s2d.engine.entities.root.addChildLast(this);
                 else
-                    this._parent.addChild(this);
+                    this._parent.addChildLast(this);
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.onInit = function () {
-            s2d.engine.entities.root.addChild(this);
+            s2d.engine.entities.root.addChildLast(this);
+        };
+        Transform.prototype.onDestroy = function () {
+            //Destroy child entities
+            var child = this._firstChild;
+            while (child !== null) {
+                var tmp = child.entity;
+                child = child._nextSibling;
+                tmp.destroy();
+            }
+            if (this._parent === null)
+                s2d.engine.entities.root.removeChild(this);
+            else
+                this._parent.removeChild(this);
+            this._parent = null;
+        };
+        Transform.prototype.setParent = function (p) {
+            this.parent = p;
+            return this;
         };
         Object.defineProperty(Transform.prototype, "localPosition", {
             get: function () {
@@ -787,6 +863,11 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Transform.prototype.setLocalPosition = function (x, y) {
+            this.localX = x;
+            this.localY = y;
+            return this;
+        };
         Object.defineProperty(Transform.prototype, "localRotationRadians", {
             get: function () {
                 return this._rotation;
@@ -815,6 +896,14 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Transform.prototype.setLocalRotationRadians = function (rad) {
+            this.localRotationRadians = rad;
+            return this;
+        };
+        Transform.prototype.setlocalRotationDegrees = function (deg) {
+            this.localRotationRadians = deg;
+            return this;
+        };
         Object.defineProperty(Transform.prototype, "localScale", {
             get: function () {
                 return this._scale;
@@ -864,6 +953,11 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Transform.prototype.setLocalScale = function (x, y) {
+            this.localScaleX = x;
+            this.localScaleY = y;
+            return this;
+        };
         Object.defineProperty(Transform.prototype, "size", {
             get: function () {
                 return this._size;
@@ -894,6 +988,11 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Transform.prototype.setSize = function (x, y) {
+            this.sizeX = x;
+            this.sizeY = y;
+            return this;
+        };
         Object.defineProperty(Transform.prototype, "pivot", {
             get: function () {
                 return this._pivot;
@@ -925,6 +1024,52 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Transform.prototype.setPivot = function (x, y) {
+            this.pivotX = x;
+            this.pivotY = y;
+            return this;
+        };
+        Transform.initStatic = function () {
+            Transform.tmpV1 = s2d.Vector2.create();
+            Transform.tmpV2 = s2d.Vector2.create();
+            Transform.tmpV3 = s2d.Vector2.create();
+            Transform.tmpV4 = s2d.Vector2.create();
+            Transform.tmpMatrix = s2d.Matrix2d.create();
+        };
+        Transform.prototype.getBounds = function (out) {
+            var tmpV1 = Transform.tmpV1;
+            var tmpV2 = Transform.tmpV2;
+            var tmpV3 = Transform.tmpV3;
+            var tmpV4 = Transform.tmpV4;
+            var tmpMatrix = Transform.tmpMatrix;
+            this.getLocalToGlobalMatrix(tmpMatrix);
+            var halfSizeX = this.size[0] * 0.5;
+            var halfSizeY = this.size[1] * 0.5;
+            var dx = -this.pivot[0] * halfSizeX;
+            var dy = -this.pivot[1] * halfSizeY;
+            //Top left
+            tmpV1[0] = -halfSizeX + dx;
+            tmpV1[1] = -halfSizeY + dy;
+            //Top right
+            tmpV2[0] = halfSizeX + dx;
+            tmpV2[1] = -halfSizeY + dy;
+            //Bottom right
+            tmpV3[0] = halfSizeX + dx;
+            tmpV3[1] = halfSizeY + dy;
+            //Bottom left
+            tmpV4[0] = -halfSizeX + dx;
+            tmpV4[1] = halfSizeY + dy;
+            s2d.Vector2.transformMat2d(tmpV1, tmpV1, tmpMatrix);
+            s2d.Vector2.transformMat2d(tmpV2, tmpV2, tmpMatrix);
+            s2d.Vector2.transformMat2d(tmpV3, tmpV3, tmpMatrix);
+            s2d.Vector2.transformMat2d(tmpV4, tmpV4, tmpMatrix);
+            var minX = Math.min(tmpV1[0], tmpV2[0], tmpV3[0], tmpV4[0]);
+            var minY = Math.min(tmpV1[1], tmpV2[1], tmpV3[1], tmpV4[1]);
+            var maxX = Math.max(tmpV1[0], tmpV2[0], tmpV3[0], tmpV4[0]);
+            var maxY = Math.max(tmpV1[1], tmpV2[1], tmpV3[1], tmpV4[1]);
+            s2d.Rect.set(out, minX, minY, maxX - minX, maxY - minY);
+            return out;
+        };
         /*
         private getLocalMatrix(): Matrix2d {
             let localMatrix = this._localMatrix;
@@ -968,7 +1113,7 @@ var s2d;
             s2d.Matrix2d.invert(out, out);
             return out;
         };
-        Transform.prototype.addChild = function (p) {
+        Transform.prototype.addChildLast = function (p) {
             if (this._firstChild === null) {
                 this._firstChild = this._lastChild = p;
             }
@@ -977,6 +1122,14 @@ var s2d;
                 p._prevSibling = this._lastChild;
                 this._lastChild = p;
             }
+        };
+        Transform.prototype.addChildFirst = function (p) {
+            p._nextSibling = this._firstChild;
+            if (this._firstChild !== null)
+                this._firstChild._prevSibling = p;
+            this._firstChild = p;
+            if (this._lastChild === null)
+                this._lastChild = p;
         };
         Transform.prototype.removeChild = function (p) {
             if (p._nextSibling !== null)
@@ -1046,7 +1199,30 @@ var s2d;
             }
             return index;
         };
-        Transform.MAX_NESTING = 128;
+        /**
+         * Makes the transform the first child in the parent container
+         */
+        Transform.prototype.moveToTop = function () {
+            if (this._prevSibling !== null) {
+                //We remove ourselve from our parent and then we add ourselves again
+                //at the beginning
+                var p = (this._parent === null) ? s2d.engine.entities.root : this._parent;
+                p.removeChild(this);
+                p.addChildFirst(this);
+            }
+        };
+        /**
+         * Makes the transform the last child in the parent container
+         */
+        Transform.prototype.moveToBottom = function () {
+            if (this._nextSibling !== null) {
+                //We remove ourselve from our parent and then we add ourselves again,
+                //which leaves us at the bottom.. 
+                var p = (this._parent === null) ? s2d.engine.entities.root : this._parent;
+                p.removeChild(this);
+                p.addChildLast(this);
+            }
+        };
         return Transform;
     }(s2d.Component));
     s2d.Transform = Transform;
@@ -2301,6 +2477,7 @@ var s2d;
             if (name === void 0) { name = null; }
             this._name = "Entity";
             this._transform = null;
+            this._destroyed = false;
             this._firstDrawer = null;
             this._firstBehavior = null;
             this._firstLayout = null;
@@ -2349,7 +2526,18 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Entity.prototype, "destroyed", {
+            get: function () {
+                return this._destroyed;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Entity.prototype.addComponent = function (clazz) {
+            if (this._destroyed) {
+                s2d.EngineConsole.error("Can't add components to a destroyed entity", this);
+                return;
+            }
             var comp = new clazz();
             var tmp = this._firstComponent;
             this._firstComponent = comp;
@@ -2375,6 +2563,20 @@ var s2d;
         Entity.prototype.getComponentInChildren = function (clazz, toReturn) {
             return this._transform.getComponentInChildren(clazz, toReturn);
         };
+        Entity.prototype.destroy = function () {
+            s2d.entities.destroyEntity(this);
+        };
+        Entity.prototype.__internal_destroy = function () {
+            if (!this._destroyed) {
+                this._destroyed = true;
+                //Destroy components
+                var comp = this._firstComponent;
+                while (comp !== null) {
+                    comp.destroy();
+                    comp = comp.__internal_nextComponent;
+                }
+            }
+        };
         Entity.entityConunter = 0;
         return Entity;
     }());
@@ -2386,7 +2588,12 @@ var s2d;
     var EntityManager = (function () {
         function EntityManager() {
             this._root = new s2d.Transform();
+            this._entitiesToDestroy = null;
+            this._entitiesToDestroy1 = new Array();
+            this._entitiesToDestroy2 = new Array();
+            this._insideDestroy = false;
             this.tmpBehaviors = new Array(1024);
+            this._entitiesToDestroy = this._entitiesToDestroy1;
         }
         Object.defineProperty(EntityManager.prototype, "root", {
             get: function () {
@@ -2412,6 +2619,36 @@ var s2d;
             for (var i = 0; i < behaviorsLen; i++) {
                 var behavior = behaviors[i];
                 behavior.update();
+            }
+            //Destroy all entities registered for destruction
+            this.destroyEntities();
+        };
+        EntityManager.prototype.destroyEntities = function () {
+            if (this._entitiesToDestroy.length > 0) {
+                this._insideDestroy = true;
+                var tmp = this._entitiesToDestroy;
+                //Swap array where new destroyed entities will be stored, just in case that
+                //the destroy function registers new entities for destruction
+                if (this._entitiesToDestroy === this._entitiesToDestroy1)
+                    this._entitiesToDestroy = this._entitiesToDestroy2;
+                else
+                    this._entitiesToDestroy = this._entitiesToDestroy1;
+                for (var i = 0; i < tmp.length; i++)
+                    tmp[i].__internal_destroy();
+                tmp.length = 0;
+                this._insideDestroy = false;
+            }
+        };
+        EntityManager.prototype.destroyEntity = function (entity) {
+            if (!entity.destroyed) {
+                if (!this._insideDestroy) {
+                    //Destruction is delayed
+                    this._entitiesToDestroy.push(entity);
+                }
+                else {
+                    //We are already in the destroy loop, no need to delay the destruction
+                    entity.__internal_destroy();
+                }
             }
         };
         return EntityManager;
@@ -2472,6 +2709,7 @@ var s2d;
             s2d.Drawer.initStatic();
             s2d.TextDrawer.initStatic();
             s2d.Time.initStatic();
+            s2d.Transform.initStatic();
             //Manager instantiation
             this._renderer = new s2d.RenderManager();
             this._input = new s2d.InputManager();
@@ -2544,29 +2782,49 @@ var GameLogic = (function (_super) {
     function GameLogic() {
         _super.apply(this, arguments);
         this.entities = new Array();
+        this.lastFps = 0;
+        this.lastUpdateTime = 0;
+        this.lastEntitiesCount = 0;
+        this.lastDrawcalls = 0;
     }
     GameLogic.prototype.onInit = function () {
+        var _this = this;
         this.texture = new s2d.RenderTexture(false).loadFromUrl("assets/test.png");
         this.cam = s2d.EntityFactory.buildCamera();
+        this.uiContainer = new s2d.Entity("UI Container").transform;
+        this.textFPS = s2d.EntityFactory.buildTextDrawer();
+        this.textFPS.entity.transform.setPivot(-1, -1).setLocalPosition(8, 8).setParent(this.uiContainer);
+        this.textFPS.color.setFromRgba(0, 255, 0);
+        var resetButton = s2d.EntityFactory.buildTextButton(this.texture, "Reset");
+        resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
+        resetButton.onClick.attach(this, this.onResetButtonClicked);
+        var clearButton = s2d.EntityFactory.buildTextButton(this.texture, "Clear");
+        clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
+        clearButton.onClick.attach(this, this.onClearButtonClicked);
+        var toggleRotationButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nRotation");
+        toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
+        toggleRotationButton.onClick.attach(function () { return GameLogic.TEST_MOVING = !GameLogic.TEST_MOVING; });
+        var toggleNestingButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nNesting");
+        toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
+        toggleNestingButton.onClick.attach(function () { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; _this.clear(); _this.initTest(); });
+        this.initTest();
+    };
+    GameLogic.prototype.onResetButtonClicked = function (button) {
+        this.clear();
+        this.initTest();
+    };
+    GameLogic.prototype.onClearButtonClicked = function (button) {
+        this.clear();
+    };
+    GameLogic.prototype.initTest = function () {
         this.initTestComplex();
         //this.initTestSimple();
-        /*
-        var textBackground = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        textBackground.transform.localX = 8;
-        textBackground.transform.localY = 8;
-        textBackground.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
-        textBackground.getComponent(s2d.Layout).sizeOffset = s2d.Vector2.fromValues(8, 8); //4px on each size
-        textBackground.transform.pivotX = -1;
-        textBackground.transform.pivotY = -1;
-        */
-        this.textFPS = s2d.EntityFactory.buildTextDrawer();
-        this.textFPS.fontScale = 3;
-        this.textFPS.color.setFromRgba(0, 255, 0);
-        this.textFPS.entity.transform.pivotX = -1;
-        this.textFPS.entity.transform.pivotY = -1;
-        this.textFPS.entity.transform.localX = 8;
-        this.textFPS.entity.transform.localY = 8;
-        //this.textFPS.entity.transform.parent = textBackground.transform;
+        this.uiContainer.moveToBottom();
+    };
+    GameLogic.prototype.clear = function () {
+        for (var i = 0; i < this.entities.length; i++)
+            this.entities[i].destroy();
+        this.entities.length = 0;
     };
     GameLogic.prototype.initTestSimple = function () {
         var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
@@ -2607,15 +2865,20 @@ var GameLogic = (function (_super) {
             for (var i = 0; i < entities.length; i++)
                 entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
         }
-        if (s2d.input.pointerDown)
-            this.cam.clearColor.setFromRgba(255, 0, 0); //red
-        else
-            this.cam.clearColor.setFromRgba(0, 0, 0); //black
+        //if (s2d.input.pointerDown)
+        //    this.cam.clearColor.setFromRgba(255, 0, 0); //red
+        //else
+        //    this.cam.clearColor.setFromRgba(0, 0, 0); //black
         var stats = s2d.engine.stats;
-        if (stats.lastFps !== this.lastFps || stats.lastUpdateTime !== this.lastUpdateTime) {
-            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms";
+        if (stats.lastFps !== this.lastFps ||
+            stats.lastUpdateTime !== this.lastUpdateTime ||
+            stats.lastDrawcalls !== this.lastDrawcalls ||
+            this.entities.length !== this.lastEntitiesCount) {
+            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms\nDraw Calls: " + stats.lastDrawcalls + "\nEntities: " + this.lastEntitiesCount;
             this.lastFps = stats.lastFps;
             this.lastUpdateTime = stats.lastUpdateTime;
+            this.lastDrawcalls = stats.lastDrawcalls;
+            this.lastEntitiesCount = this.entities.length;
         }
     };
     GameLogic.TEST_NESTING = true;
@@ -2623,6 +2886,285 @@ var GameLogic = (function (_super) {
     GameLogic.RECTS_COUNT = 8192;
     return GameLogic;
 }(s2d.Behavior));
+// Copyright (c) 2015 Rogier Schouten<github@workingcode.ninja>
+// License: ISC
+var s2d;
+(function (s2d) {
+    /**
+     * Base class for events.
+     * Handles attaching and detaching listeners
+     */
+    var BaseEvent = (function () {
+        function BaseEvent() {
+        }
+        /**
+         * Attach an event handler
+         * @param boundTo (Optional) The this argument of the handler
+         * @param handler The function to call.
+         */
+        BaseEvent.prototype.attach = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            var boundTo;
+            var handler;
+            var event;
+            if (typeof args[0] === 'function') {
+                handler = args[0];
+            }
+            else if (args.length === 1 && typeof args[0].post === 'function') {
+                event = args[0];
+            }
+            else {
+                if (typeof args[0] !== 'object') {
+                    throw new Error('Expect a function or object as first argument');
+                }
+                ;
+                if (typeof args[1] !== 'function') {
+                    throw new Error('Expect a function as second argument');
+                }
+                boundTo = args[0];
+                handler = args[1];
+            }
+            if (!this._listeners) {
+                this._listeners = [];
+            }
+            else {
+                // make a copy of the array so events that are underway have a stable local copy
+                // of the listeners array at the time of post()
+                this._listeners = this._listeners.map(function (listener) {
+                    return listener;
+                });
+            }
+            this._listeners.push({
+                deleted: false,
+                boundTo: boundTo,
+                handler: handler,
+                event: event
+            });
+        };
+        /**
+         * Detach implementation. See the overloads for description.
+         */
+        BaseEvent.prototype.detach = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            if (!this._listeners || this._listeners.length === 0) {
+                return;
+            }
+            var boundTo;
+            var handler;
+            var event;
+            if (args.length >= 1) {
+                if (typeof (args[0]) === 'function') {
+                    handler = args[0];
+                }
+                else if (args.length === 1 && typeof args[0].post === 'function') {
+                    event = args[0];
+                }
+                else {
+                    boundTo = args[0];
+                }
+            }
+            if (args.length >= 2) {
+                handler = args[1];
+            }
+            // remove listeners AND mark them as deleted so subclasses don't send any more events to them
+            this._listeners = this._listeners.filter(function (listener) {
+                if ((typeof handler === 'undefined' || listener.handler === handler)
+                    && (typeof event === 'undefined' || listener.event === event)
+                    && (typeof boundTo === 'undefined' || listener.boundTo === boundTo)) {
+                    listener.deleted = true;
+                    return false;
+                }
+                return true;
+            });
+            if (this._listeners.length === 0) {
+                delete this._listeners;
+            }
+        };
+        /**
+         * Abstract post() method to be able to connect any type of event to any other directly
+         * @abstract
+         */
+        BaseEvent.prototype.post = function (data) {
+            throw new Error('abstract');
+        };
+        /**
+         * The number of attached listeners
+         */
+        BaseEvent.prototype.listenerCount = function () {
+            return (this._listeners ? this._listeners.length : 0);
+        };
+        /**
+         * Call the given listener, if it is not marked as 'deleted'
+         * @param listener The listener to call
+         * @param args The arguments to the handler
+         */
+        BaseEvent.prototype._call = function (listener, args) {
+            if (!listener.deleted) {
+                if (listener.event) {
+                    listener.event.post.apply(listener.event, args);
+                }
+                else {
+                    listener.handler.apply((typeof listener.boundTo === 'object' ? listener.boundTo : this), args);
+                }
+            }
+        };
+        return BaseEvent;
+    }());
+    s2d.BaseEvent = BaseEvent;
+})(s2d || (s2d = {}));
+/// <reference path="base-event.ts" />
+// Copyright (c) 2015 Rogier Schouten<github@workingcode.ninja>
+// License: ISC
+var s2d;
+(function (s2d) {
+    /**
+     * This is a true EventEmitter replacement: the handlers are called synchronously when
+     * you post the event.
+     * - Allows better error handling by aggregating any errors thrown by handlers.
+     * - Prevents livelock by throwing an error when recursion depth is above a maximum.
+     * - Handlers are called only for events posted after they were attached.
+     * - Handlers are not called anymore when they are detached, even if a post() is in progress
+     */
+    var SyncEvent = (function (_super) {
+        __extends(SyncEvent, _super);
+        function SyncEvent() {
+            _super.apply(this, arguments);
+            /**
+             * Recursive post() invocations
+             */
+            this._recursion = 0;
+        }
+        SyncEvent.prototype.post = function () {
+            var args = [];
+            for (var _i = 0; _i < arguments.length; _i++) {
+                args[_i - 0] = arguments[_i];
+            }
+            if (!this._listeners || this._listeners.length === 0) {
+                return;
+            }
+            this._recursion++;
+            if (SyncEvent.MAX_RECURSION_DEPTH > 0 &&
+                this._recursion > SyncEvent.MAX_RECURSION_DEPTH) {
+                throw new Error('event fired recursively');
+            }
+            // copy a reference to the array because this._listeners might be replaced during
+            // the handler calls
+            var listeners = this._listeners;
+            for (var i = 0; i < listeners.length; ++i) {
+                var listener = listeners[i];
+                this._call(listener, args);
+            }
+            this._recursion--;
+        };
+        /**
+         * Maximum number of times that an event handler may cause the same event
+         * recursively.
+         */
+        SyncEvent.MAX_RECURSION_DEPTH = 10;
+        return SyncEvent;
+    }(s2d.BaseEvent));
+    s2d.SyncEvent = SyncEvent;
+    /**
+     * Convenience class for events without data
+     */
+    var VoidSyncEvent = (function (_super) {
+        __extends(VoidSyncEvent, _super);
+        function VoidSyncEvent() {
+            _super.apply(this, arguments);
+        }
+        /**
+         * Send the event.
+         */
+        VoidSyncEvent.prototype.post = function () {
+            _super.prototype.post.call(this, undefined);
+        };
+        return VoidSyncEvent;
+    }(SyncEvent));
+    s2d.VoidSyncEvent = VoidSyncEvent;
+    /**
+     * Similar to 'error' event on EventEmitter: throws when a post() occurs while no handlers set.
+     */
+    var ErrorSyncEvent = (function (_super) {
+        __extends(ErrorSyncEvent, _super);
+        function ErrorSyncEvent() {
+            _super.apply(this, arguments);
+        }
+        ErrorSyncEvent.prototype.post = function (data) {
+            if (this.listenerCount() === 0) {
+                throw new Error("error event posted while no listeners attached. Error: " + data.message);
+            }
+            _super.prototype.post.call(this, data);
+        };
+        return ErrorSyncEvent;
+    }(SyncEvent));
+    s2d.ErrorSyncEvent = ErrorSyncEvent;
+})(s2d || (s2d = {}));
+/// <reference path="Component.ts" />
+/// <reference path="../Event/sync-event.ts" />
+var s2d;
+(function (s2d) {
+    var Interactable = (function (_super) {
+        __extends(Interactable, _super);
+        function Interactable() {
+            _super.apply(this, arguments);
+            this._enabled = true;
+        }
+        Object.defineProperty(Interactable.prototype, "enabled", {
+            get: function () {
+                return this._enabled;
+            },
+            set: function (value) {
+                this._enabled = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Interactable.prototype.getBounds = function (out) {
+            return this.entity.transform.getBounds(out);
+        };
+        Interactable.prototype.onPointerOver = function (pointer) {
+        };
+        Interactable.prototype.onPointerOut = function (pointer) {
+        };
+        Interactable.prototype.onPointerMove = function (pointer) {
+        };
+        Interactable.prototype.onPointerDown = function (pointer) {
+        };
+        Interactable.prototype.onPointerUp = function (pointer) {
+        };
+        return Interactable;
+    }(s2d.Component));
+    s2d.Interactable = Interactable;
+})(s2d || (s2d = {}));
+/// <reference path="Interactable.ts" />
+var s2d;
+(function (s2d) {
+    var Button = (function (_super) {
+        __extends(Button, _super);
+        function Button() {
+            _super.apply(this, arguments);
+            this._onClick = new s2d.SyncEvent();
+        }
+        Object.defineProperty(Button.prototype, "onClick", {
+            get: function () {
+                return this._onClick;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Button.prototype.onPointerUp = function (pointer) {
+            this._onClick.post(this);
+        };
+        return Button;
+    }(s2d.Interactable));
+    s2d.Button = Button;
+})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
 (function (s2d) {
@@ -3078,8 +3620,35 @@ var s2d;
         EntityFactory.buildTextDrawer = function () {
             var entity = new s2d.Entity("Text");
             var textDrawer = entity.addComponent(s2d.TextDrawer);
+            textDrawer.fontScale = 3;
             entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
             return textDrawer;
+        };
+        EntityFactory.buildButton = function (texture) {
+            var entity = new s2d.Entity("Button");
+            var button = entity.addComponent(s2d.Button);
+            var textureDrawer = entity.addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            entity.transform.pivotX = -1;
+            entity.transform.pivotY = -1;
+            return button;
+        };
+        EntityFactory.buildTextButton = function (texture, text) {
+            var entity = new s2d.Entity("Button");
+            var button = entity.addComponent(s2d.Button);
+            var textureDrawer = entity.addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            entity.transform.setPivot(-1, -1);
+            //Layout used to make the button match the size of the text inside
+            var layout = entity.addComponent(s2d.Layout);
+            layout.sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
+            layout.sizeOffset = s2d.Vector2.fromValues(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
         };
         EntityFactory.buildWithComponent = function (clazz, name) {
             if (name === void 0) { name = "Entity"; }
@@ -3088,6 +3657,227 @@ var s2d;
         return EntityFactory;
     }());
     s2d.EntityFactory = EntityFactory;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var InputPointer = (function () {
+        function InputPointer() {
+            this.down = false;
+            this.downFrames = 0;
+            this.position = s2d.Vector2.create();
+            this.delta = s2d.Vector2.create();
+        }
+        return InputPointer;
+    }());
+    s2d.InputPointer = InputPointer;
+})(s2d || (s2d = {}));
+/// <reference path="../Util/JXON.d.ts" />
+var s2d;
+(function (s2d) {
+    var RenderFontCharData = (function () {
+        function RenderFontCharData() {
+            this.id = 0;
+            this.width = 0;
+            this.height = 0;
+            this.x = 0;
+            this.y = 0;
+            this.xadvance = 0;
+            this.xoffset = 0;
+            this.yoffset = 0;
+        }
+        return RenderFontCharData;
+    }());
+    s2d.RenderFontCharData = RenderFontCharData;
+    var RenderFont = (function () {
+        function RenderFont() {
+            this._xhttp = null;
+            this._texture = null;
+            this._textureWidth = 0;
+            this._textureHeight = 0;
+            this._lineHeight = 0;
+            this._chars = new Array();
+        }
+        Object.defineProperty(RenderFont.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureWidth", {
+            get: function () {
+                return this._textureWidth;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureHeight", {
+            get: function () {
+                return this._textureHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "lineHeight", {
+            get: function () {
+                return this._lineHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "chars", {
+            get: function () {
+                return this._chars;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderFont.prototype.clear = function () {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+        };
+        RenderFont.prototype.loadFromEmbeddedData = function (fontXml, textureBase64) {
+            this.parseFontXml(fontXml);
+            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64);
+            return this;
+        };
+        RenderFont.prototype.loadFromUrl = function (fontXmlURL) {
+            var _this = this;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", fontXmlURL, true);
+            this._xhttp.send(null);
+            return this;
+        };
+        RenderFont.prototype.parseFontXml = function (xml) {
+            var fontData = JXON.stringToJs(xml);
+            this._textureWidth = parseInt(fontData.font.common.$scaleW);
+            this._textureHeight = parseInt(fontData.font.common.$scaleH);
+            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
+            var charsJson = fontData.font.chars.char;
+            for (var i = 0; i < charsJson.length; i++) {
+                var charJson = charsJson[i];
+                var char = new RenderFontCharData();
+                char.id = parseInt(charJson.$id);
+                char.width = parseInt(charJson.$width);
+                char.height = parseInt(charJson.$height);
+                char.x = parseInt(charJson.$x);
+                char.y = parseInt(charJson.$y);
+                char.xadvance = parseInt(charJson.$xadvance);
+                char.xoffset = parseInt(charJson.$xoffset);
+                char.yoffset = parseInt(charJson.$yoffset);
+                this._chars[char.id] = char;
+            }
+            return fontData;
+        };
+        RenderFont.prototype.onXMLLoadComplete = function () {
+            var fontData = this.parseFontXml(this._xhttp.responseText);
+            this._xhttp = null;
+            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
+        };
+        return RenderFont;
+    }());
+    s2d.RenderFont = RenderFont;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var RenderTexture = (function () {
+        function RenderTexture(hasAlpha) {
+            this._texture = null;
+            this._image = null;
+            this._hasAlpha = false;
+            var gl = s2d.renderer.gl;
+            this._hasAlpha = hasAlpha;
+            this._texture = gl.createTexture();
+            var texture = this._texture;
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            // Fill the texture with a 1x1 white pixel.
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
+        }
+        Object.defineProperty(RenderTexture.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
+            get: function () {
+                return this._hasAlpha;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderTexture.prototype.loadFromUrl = function (imageUrl) {
+            var _this = this;
+            // Asynchronously load an image
+            this._image = new Image();
+            this._image.setAttribute('crossOrigin', 'anonymous');
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = imageUrl;
+            return this;
+        };
+        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64) {
+            var _this = this;
+            // Asynchronously load an image
+            this._image = new Image();
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = "data:image/png;base64," + imageBase64;
+            return this;
+        };
+        RenderTexture.prototype.onImageLoadComplete = function () {
+            var gl = s2d.renderer.gl;
+            var texture = this._texture;
+            var image = this._image;
+            // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.generateMipmap(gl.TEXTURE_2D);
+            this._image = null;
+        };
+        RenderTexture.prototype.clear = function () {
+            var gl = s2d.renderer.gl;
+            if (this._texture != null) {
+                gl.deleteTexture(this._texture);
+                this._texture = null;
+            }
+        };
+        RenderTexture.prototype.useTexture = function () {
+            var gl = s2d.renderer.gl;
+            gl.bindTexture(gl.TEXTURE_2D, this._texture);
+        };
+        return RenderTexture;
+    }());
+    s2d.RenderTexture = RenderTexture;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var RenderVertex = (function () {
+        function RenderVertex() {
+        }
+        RenderVertex.prototype.copyFrom = function (v) {
+            this.x = v.x;
+            this.y = v.y;
+            this.color = v.color;
+            this.u = v.u;
+            this.v = v.v;
+        };
+        RenderVertex.prototype.transformMat2d = function (m) {
+            var x = this.x, y = this.y;
+            this.x = m[0] * x + m[2] * y + m[4];
+            this.y = m[1] * x + m[3] * y + m[5];
+        };
+        return RenderVertex;
+    }());
+    s2d.RenderVertex = RenderVertex;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -3979,6 +4769,62 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
+    var Rect = (function (_super) {
+        __extends(Rect, _super);
+        function Rect() {
+            _super.apply(this, arguments);
+        }
+        Rect.create = function () {
+            var a = new Float32Array(4);
+            a[0] = 0;
+            a[1] = 0;
+            a[2] = 0;
+            a[3] = 0;
+            return a;
+        };
+        Rect.clone = function (a) {
+            var out = Rect.create();
+            out[0] = a[0];
+            out[1] = a[1];
+            out[2] = a[2];
+            out[3] = a[3];
+            return out;
+        };
+        Rect.fromValues = function (x, y, width, height) {
+            var out = Rect.create();
+            out[0] = x;
+            out[1] = y;
+            out[2] = width;
+            out[3] = height;
+            return out;
+        };
+        Rect.copy = function (out, a) {
+            out[0] = a[0];
+            out[1] = a[1];
+            out[2] = a[2];
+            out[3] = a[3];
+            return out;
+        };
+        Rect.set = function (out, x, y, width, height) {
+            out[0] = x;
+            out[1] = y;
+            out[2] = width;
+            out[3] = height;
+            return out;
+        };
+        Rect.containts = function (rect, x, y) {
+            var rx = rect[0];
+            var ry = rect[1];
+            var rwidth = rect[2];
+            var rheight = rect[3];
+            return x >= rx && x <= rx + rwidth && y >= ry && y <= ry + rheight;
+        };
+        return Rect;
+    }(Float32Array));
+    s2d.Rect = Rect;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var SMath = (function () {
         function SMath() {
         }
@@ -4004,214 +4850,6 @@ var s2d;
         return SMath;
     }());
     s2d.SMath = SMath;
-})(s2d || (s2d = {}));
-/// <reference path="../Util/JXON.d.ts" />
-var s2d;
-(function (s2d) {
-    var RenderFontCharData = (function () {
-        function RenderFontCharData() {
-            this.id = 0;
-            this.width = 0;
-            this.height = 0;
-            this.x = 0;
-            this.y = 0;
-            this.xadvance = 0;
-            this.xoffset = 0;
-            this.yoffset = 0;
-        }
-        return RenderFontCharData;
-    }());
-    s2d.RenderFontCharData = RenderFontCharData;
-    var RenderFont = (function () {
-        function RenderFont() {
-            this._xhttp = null;
-            this._texture = null;
-            this._textureWidth = 0;
-            this._textureHeight = 0;
-            this._lineHeight = 0;
-            this._chars = new Array();
-        }
-        Object.defineProperty(RenderFont.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "textureWidth", {
-            get: function () {
-                return this._textureWidth;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "textureHeight", {
-            get: function () {
-                return this._textureHeight;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "lineHeight", {
-            get: function () {
-                return this._lineHeight;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "chars", {
-            get: function () {
-                return this._chars;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderFont.prototype.clear = function () {
-            if (this._texture != null) {
-                this._texture.clear();
-                this._texture = null;
-            }
-        };
-        RenderFont.prototype.loadFromEmbeddedData = function (fontXml, textureBase64) {
-            this.parseFontXml(fontXml);
-            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64);
-            return this;
-        };
-        RenderFont.prototype.loadFromUrl = function (fontXmlURL) {
-            var _this = this;
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
-            this._xhttp.open("GET", fontXmlURL, true);
-            this._xhttp.send(null);
-            return this;
-        };
-        RenderFont.prototype.parseFontXml = function (xml) {
-            var fontData = JXON.stringToJs(xml);
-            this._textureWidth = parseInt(fontData.font.common.$scaleW);
-            this._textureHeight = parseInt(fontData.font.common.$scaleH);
-            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
-            var charsJson = fontData.font.chars.char;
-            for (var i = 0; i < charsJson.length; i++) {
-                var charJson = charsJson[i];
-                var char = new RenderFontCharData();
-                char.id = parseInt(charJson.$id);
-                char.width = parseInt(charJson.$width);
-                char.height = parseInt(charJson.$height);
-                char.x = parseInt(charJson.$x);
-                char.y = parseInt(charJson.$y);
-                char.xadvance = parseInt(charJson.$xadvance);
-                char.xoffset = parseInt(charJson.$xoffset);
-                char.yoffset = parseInt(charJson.$yoffset);
-                this._chars[char.id] = char;
-            }
-            return fontData;
-        };
-        RenderFont.prototype.onXMLLoadComplete = function () {
-            var fontData = this.parseFontXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
-        };
-        return RenderFont;
-    }());
-    s2d.RenderFont = RenderFont;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var RenderTexture = (function () {
-        function RenderTexture(hasAlpha) {
-            this._texture = null;
-            this._image = null;
-            this._hasAlpha = false;
-            var gl = s2d.renderer.gl;
-            this._hasAlpha = hasAlpha;
-            this._texture = gl.createTexture();
-            var texture = this._texture;
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            // Fill the texture with a 1x1 white pixel.
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
-        }
-        Object.defineProperty(RenderTexture.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
-            get: function () {
-                return this._hasAlpha;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderTexture.prototype.loadFromUrl = function (imageUrl) {
-            var _this = this;
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = imageUrl;
-            return this;
-        };
-        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64) {
-            var _this = this;
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = "data:image/png;base64," + imageBase64;
-            return this;
-        };
-        RenderTexture.prototype.onImageLoadComplete = function () {
-            var gl = s2d.renderer.gl;
-            var texture = this._texture;
-            var image = this._image;
-            // Now that the image has loaded make copy it to the texture.
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.generateMipmap(gl.TEXTURE_2D);
-            this._image = null;
-        };
-        RenderTexture.prototype.clear = function () {
-            var gl = s2d.renderer.gl;
-            if (this._texture != null) {
-                gl.deleteTexture(this._texture);
-                this._texture = null;
-            }
-        };
-        RenderTexture.prototype.useTexture = function () {
-            var gl = s2d.renderer.gl;
-            gl.bindTexture(gl.TEXTURE_2D, this._texture);
-        };
-        return RenderTexture;
-    }());
-    s2d.RenderTexture = RenderTexture;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var RenderVertex = (function () {
-        function RenderVertex() {
-        }
-        RenderVertex.prototype.copyFrom = function (v) {
-            this.x = v.x;
-            this.y = v.y;
-            this.color = v.color;
-            this.u = v.u;
-            this.v = v.v;
-        };
-        RenderVertex.prototype.transformMat2d = function (m) {
-            var x = this.x, y = this.y;
-            this.x = m[0] * x + m[2] * y + m[4];
-            this.y = m[1] * x + m[3] * y + m[5];
-        };
-        return RenderVertex;
-    }());
-    s2d.RenderVertex = RenderVertex;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -4291,6 +4929,8 @@ var s2d;
             this.accumulatedUpdateTime = 0;
             this._lastFps = 0;
             this._lastUpdateTime = 0;
+            this._lastDrawcalls = 0;
+            this._drawcalls = 0;
         }
         Object.defineProperty(Stats.prototype, "lastFps", {
             get: function () {
@@ -4306,12 +4946,24 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Stats.prototype, "lastDrawcalls", {
+            get: function () {
+                return this._lastDrawcalls;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Stats.prototype.init = function () {
             this.lastFpsTime = performance.now();
         };
         Stats.prototype.startFrame = function () {
+            this._drawcalls = 0;
+        };
+        Stats.prototype.incrmentDrawcalls = function () {
+            this._drawcalls++;
         };
         Stats.prototype.endFrame = function () {
+            this._lastDrawcalls = this._drawcalls;
         };
         Stats.prototype.startUpdate = function () {
             this.updateStartTime = performance.now();

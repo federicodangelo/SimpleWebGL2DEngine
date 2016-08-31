@@ -9,6 +9,9 @@ module s2d {
         private accumulatedUpdateTime = 0;
         private _lastFps = 0;
         private _lastUpdateTime = 0;
+        private _lastDrawcalls = 0;
+
+        private _drawcalls = 0;
 
         public get lastFps() {
             return this._lastFps;
@@ -18,14 +21,24 @@ module s2d {
             return this._lastUpdateTime;
         }
 
+        public get lastDrawcalls() {
+            return this._lastDrawcalls;
+        }
+
         public init() : void {
             this.lastFpsTime = performance.now();
         }
 
         public startFrame() : void {
+            this._drawcalls = 0;
+        }
+
+        public incrmentDrawcalls() : void {
+            this._drawcalls++;
         }
 
         public endFrame() : void {
+            this._lastDrawcalls = this._drawcalls;
         }
 
         private updateStartTime : number;
