@@ -2,11 +2,24 @@ module s2d {
     export class RenderTexture {
 
         private _texture: WebGLTexture = null;
-        private _image: HTMLImageElement = null;
         private _hasAlpha: boolean = false;
+        private _width: number = 0;
+        private _height: number = 0;
+
+        private _image: HTMLImageElement = null;
+        private _loadCompleteCallback: (texture:RenderTexture) => void = null;
+        private _loadCompleteCallbackThis: any = null;
 
         public get texture() {
             return this._texture;
+        }
+
+        public get width() {
+            return this._width;
+        }
+
+        public get height() {
+            return this._height;
         }
 
         public get hasAlpha() {
@@ -28,7 +41,10 @@ module s2d {
                 new Uint8Array([255, 255, 255, 255]));
         }
 
-        public loadFromUrl(imageUrl: string) {
+        public loadFromUrl(imageUrl: string, onLoadComplete:(texture:RenderTexture) => void = null, onLoadCompleteThis:any = null) {
+
+            this._loadCompleteCallback = onLoadComplete;
+            this._loadCompleteCallbackThis = onLoadCompleteThis;
 
             // Asynchronously load an image
             this._image = new Image();
@@ -39,7 +55,10 @@ module s2d {
             return this;
         }
 
-        public loadFromEmbeddedData(imageBase64: string) {
+        public loadFromEmbeddedData(imageBase64: string, onLoadComplete:(texture:RenderTexture) => void = null, onLoadCompleteThis:any = null) {
+
+            this._loadCompleteCallback = onLoadComplete;
+            this._loadCompleteCallbackThis = onLoadCompleteThis;
 
             // Asynchronously load an image
             this._image = new Image();
@@ -53,6 +72,9 @@ module s2d {
             let gl = renderer.gl;
             let texture = this._texture;
             let image = this._image;
+
+            this._width = image.width;
+            this._height = image.height;
 
             // Now that the image has loaded make copy it to the texture.
             gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -70,6 +92,12 @@ module s2d {
             gl.generateMipmap(gl.TEXTURE_2D);
 
             this._image = null;
+            var tmpCallback = this._loadCompleteCallback;
+            var tmpThis = this._loadCompleteCallbackThis;
+            this._loadCompleteCallback = null;
+            this._loadCompleteCallbackThis = null;
+            if (tmpCallback)
+                tmpCallback.call(tmpThis, this);
         }
 
         public clear() {

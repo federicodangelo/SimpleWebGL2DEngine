@@ -1,6 +1,4 @@
-/// <reference path="Component.ts" />
-/// <reference path="../Math/Matrix3.ts" />
-/// <reference path="../Math/Vector2.ts" />
+/// <reference path="Drawer.ts" />
 
 module s2d {
 
@@ -8,7 +6,7 @@ module s2d {
 
         private _font: RenderFont = EmbeddedAssets.defaultFont;
         private _color: Color = Color.fromRgba(255, 255, 255, 255);
-        private _text: string = "Nice FPS drawing!!";
+        private _text: string = "Text";
         private _fontScale: number = 1;
         private _textVertexGenerator: TextVertextGenerator = new TextVertextGenerator();
 
@@ -25,7 +23,7 @@ module s2d {
         }
 
         public set color(value: Color) {
-            this._color = value;
+            this._color.copyFrom(value);
         }
 
         public get text(): string {

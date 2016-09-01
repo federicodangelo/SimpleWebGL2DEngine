@@ -437,7 +437,7 @@ var s2d;
             this.vertexOffset = 0;
             this.indexesOffset = 0;
         };
-        RenderCommands.prototype.drawRectSimple = function (mat, size, pivot, texture, uvTopLeft, uvBottomRight, color) {
+        RenderCommands.prototype.drawRectSimple = function (mat, size, pivot, texture, uvRect, color) {
             var tmpV1 = this.tmpV1;
             var tmpV2 = this.tmpV2;
             var tmpV3 = this.tmpV3;
@@ -446,35 +446,119 @@ var s2d;
             var halfSizeY = size[1] * 0.5;
             var dx = -pivot[0] * halfSizeX;
             var dy = -pivot[1] * halfSizeY;
+            var u0 = uvRect[0];
+            var v0 = uvRect[1];
+            var u1 = uvRect[0] + uvRect[2];
+            var v1 = uvRect[1] + uvRect[3];
             //Top left
             tmpV1.x = -halfSizeX + dx;
             tmpV1.y = -halfSizeY + dy;
             tmpV1.color = color.abgrHex;
-            tmpV1.u = uvTopLeft[0];
-            tmpV1.v = uvTopLeft[1];
+            tmpV1.u = u0;
+            tmpV1.v = v0;
             //Top right
             tmpV2.x = halfSizeX + dx;
             tmpV2.y = -halfSizeY + dy;
             tmpV2.color = color.abgrHex;
-            tmpV2.u = uvBottomRight[0];
-            tmpV2.v = uvTopLeft[1];
+            tmpV2.u = u1;
+            tmpV2.v = v0;
             //Bottom right
             tmpV3.x = halfSizeX + dx;
             tmpV3.y = halfSizeY + dy;
             tmpV3.color = color.abgrHex;
-            tmpV3.u = uvBottomRight[0];
-            tmpV3.v = uvBottomRight[1];
+            tmpV3.u = u1;
+            tmpV3.v = v1;
             //Bottom left
             tmpV4.x = -halfSizeX + dx;
             tmpV4.y = halfSizeY + dy;
             tmpV4.color = color.abgrHex;
-            tmpV4.u = uvTopLeft[0];
-            tmpV4.v = uvBottomRight[1];
+            tmpV4.u = u0;
+            tmpV4.v = v1;
             tmpV1.transformMat2d(mat);
             tmpV2.transformMat2d(mat);
             tmpV3.transformMat2d(mat);
             tmpV4.transformMat2d(mat);
             this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
+        };
+        RenderCommands.prototype.drawRect9Slice = function (mat, size, pivot, texture, uvRect, innerUvRect, color) {
+            var tmpV1 = this.tmpV1;
+            var tmpV2 = this.tmpV2;
+            var tmpV3 = this.tmpV3;
+            var tmpV4 = this.tmpV4;
+            var halfSizeX = size[0] * 0.5;
+            var halfSizeY = size[1] * 0.5;
+            var dx = -pivot[0] * halfSizeX;
+            var dy = -pivot[1] * halfSizeY;
+            var u0 = uvRect[0];
+            var v0 = uvRect[1];
+            var u1 = uvRect[0] + uvRect[2];
+            var v1 = uvRect[1] + uvRect[3];
+            var iu0 = innerUvRect[0];
+            var iv0 = innerUvRect[1];
+            var iu1 = innerUvRect[0] + innerUvRect[2];
+            var iv1 = innerUvRect[1] + innerUvRect[3];
+            //Draws a total of 9 rects
+            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = color.abgrHex;
+            var x0 = -halfSizeX + dx;
+            var y0 = -halfSizeY + dy;
+            var x1 = halfSizeX + dx;
+            var y1 = halfSizeY + dy;
+            var leftWidth = iu0 - u0;
+            var rightWidth = u1 - iu1;
+            var topHeight = iv0 - v0;
+            var bottomHeight = v1 - iv1;
+            var ix0 = x0 + leftWidth;
+            var iy0 = y0 + topHeight;
+            var ix1 = x1 - rightWidth;
+            var iy1 = y1 - bottomHeight;
+            iu0 /= texture.width;
+            iv0 /= texture.height;
+            iu1 /= texture.width;
+            iv1 /= texture.height;
+            u0 /= texture.width;
+            v0 /= texture.height;
+            u1 /= texture.width;
+            v1 /= texture.height;
+            /**
+             * Reference:
+             *
+             *  x0,y0                             x1,y0
+             *   /----------------------------------\
+             *   |                                  |
+             *   |  ix0,iy0               ix1,iy0   |
+             *   |   /-----------------------\      |
+             *   |   |                       |      |
+             *   |   |                       |      |
+             *   |   |                       |      |
+             *   |   \-----------------------/      |
+             *   |  ix0,iy1               ix1,iy1   |
+             *   |                                  |
+             *   \----------------------------------/
+             *  x0,y1                             x1,y1
+             *
+             *
+             *
+             */
+            //TODO: OPTIMIZE!!!
+            //This can be done with only 16 vertexes, since all vertexes share uv / colors 
+            //Top left corner
+            this.drawRect(tmpV1.setXYUV(x0, y0, u0, v0).transformMat2d(mat), tmpV2.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV4.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat), texture);
+            //Top middle
+            this.drawRect(tmpV1.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV2.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), texture);
+            //Top right corner
+            this.drawRect(tmpV1.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV2.setXYUV(x1, y0, u1, v0).transformMat2d(mat), tmpV3.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), texture);
+            //Center left
+            this.drawRect(tmpV1.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV4.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat), texture);
+            //Center middle
+            this.drawRect(tmpV1.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), texture);
+            //Center right
+            this.drawRect(tmpV1.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV2.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV3.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), texture);
+            //Bottom left corner
+            this.drawRect(tmpV1.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV3.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat), tmpV4.setXYUV(x0, y1, u0, v1).transformMat2d(mat), texture);
+            //Bottom middle
+            this.drawRect(tmpV1.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV3.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat), tmpV4.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat), texture);
+            //Bottom right corner
+            this.drawRect(tmpV1.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV2.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV3.setXYUV(x1, y1, u1, v1).transformMat2d(mat), tmpV4.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat), texture);
         };
         RenderCommands.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4, texture) {
             if (this.vertexOffset + 4 >= RenderCommands.MAX_VERTEX || this.indexesOffset + 6 >= RenderCommands.MAX_INDEXES || texture !== this.currentTexture) {
@@ -3153,7 +3237,41 @@ var s2d;
         function Button() {
             _super.apply(this, arguments);
             this._onClick = new s2d.SyncEvent();
+            this._buttonSprite = null;
+            this._buttonSpriteDown = null;
+            this._spriteDrawer = null;
         }
+        Object.defineProperty(Button.prototype, "buttonSprite", {
+            get: function () {
+                return this._buttonSprite;
+            },
+            set: function (value) {
+                this._buttonSprite = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Button.prototype, "buttonSpriteDown", {
+            get: function () {
+                return this._buttonSpriteDown;
+            },
+            set: function (value) {
+                this._buttonSpriteDown = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Button.prototype.onInit = function () {
+            this._buttonSprite = s2d.EmbeddedAssets.defaultSkinAtlas.getSprite("button");
+            this._buttonSpriteDown = s2d.EmbeddedAssets.defaultSkinAtlas.getSprite("button_down");
+            if (!(this.entity.firstDrawer instanceof s2d.SpriteDrawer)) {
+                s2d.EngineConsole.error("Missing SpriteDrawer", this);
+            }
+            else {
+                this._spriteDrawer = this.entity.firstDrawer;
+                this._spriteDrawer.sprite = this._buttonSprite;
+            }
+        };
         Object.defineProperty(Button.prototype, "onClick", {
             get: function () {
                 return this._onClick;
@@ -3161,7 +3279,13 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Button.prototype.onPointerDown = function (pointer) {
+            if (this._spriteDrawer !== null && this._buttonSpriteDown !== null)
+                this._spriteDrawer.sprite = this._buttonSpriteDown;
+        };
         Button.prototype.onPointerUp = function (pointer) {
+            if (this._spriteDrawer !== null)
+                this._spriteDrawer.sprite = this._buttonSprite;
             this._onClick.post(this);
         };
         return Button;
@@ -3302,9 +3426,57 @@ var s2d;
     }(s2d.Component));
     s2d.Layout = Layout;
 })(s2d || (s2d = {}));
-/// <reference path="Component.ts" />
-/// <reference path="../Math/Matrix3.ts" />
-/// <reference path="../Math/Vector2.ts" />
+/// <reference path="Drawer.ts" />
+var s2d;
+(function (s2d) {
+    var SpriteDrawer = (function (_super) {
+        __extends(SpriteDrawer, _super);
+        function SpriteDrawer() {
+            _super.apply(this, arguments);
+            this._sprite = null;
+            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
+        }
+        Object.defineProperty(SpriteDrawer.prototype, "sprite", {
+            get: function () {
+                return this._sprite;
+            },
+            set: function (value) {
+                this._sprite = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(SpriteDrawer.prototype, "color", {
+            get: function () {
+                return this._color;
+            },
+            set: function (value) {
+                this._color.copyFrom(value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        SpriteDrawer.prototype.draw = function (commands) {
+            var sprite = this._sprite;
+            if (sprite !== null && sprite.texture !== null) {
+                var trans = this.entity.transform;
+                trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
+                var color = this._color;
+                switch (sprite.drawMode) {
+                    case s2d.RenderSpriteDrawMode.Normal:
+                        commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, this._color);
+                        break;
+                    case s2d.RenderSpriteDrawMode.Slice9:
+                        commands.drawRect9Slice(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, sprite.innerUvRect, this._color);
+                        break;
+                }
+            }
+        };
+        return SpriteDrawer;
+    }(s2d.Drawer));
+    s2d.SpriteDrawer = SpriteDrawer;
+})(s2d || (s2d = {}));
+/// <reference path="Drawer.ts" />
 var s2d;
 (function (s2d) {
     var TextDrawer = (function (_super) {
@@ -3313,7 +3485,7 @@ var s2d;
             _super.apply(this, arguments);
             this._font = s2d.EmbeddedAssets.defaultFont;
             this._color = s2d.Color.fromRgba(255, 255, 255, 255);
-            this._text = "Nice FPS drawing!!";
+            this._text = "Text";
             this._fontScale = 1;
             this._textVertexGenerator = new s2d.TextVertextGenerator();
         }
@@ -3332,7 +3504,7 @@ var s2d;
                 return this._color;
             },
             set: function (value) {
-                this._color = value;
+                this._color.copyFrom(value);
             },
             enumerable: true,
             configurable: true
@@ -3412,18 +3584,16 @@ var s2d;
     }(s2d.Drawer));
     s2d.TextDrawer = TextDrawer;
 })(s2d || (s2d = {}));
-/// <reference path="Component.ts" />
-/// <reference path="../Math/Matrix3.ts" />
-/// <reference path="../Math/Vector2.ts" />
+/// <reference path="Drawer.ts" />
 var s2d;
 (function (s2d) {
     var TextureDrawer = (function (_super) {
         __extends(TextureDrawer, _super);
         function TextureDrawer() {
             _super.apply(this, arguments);
+            this._texture = null;
             this._color = s2d.Color.fromRgba(255, 255, 255, 255);
-            this._uvTopLeft = s2d.Vector2.fromValues(0, 0);
-            this._uvBottomRight = s2d.Vector2.fromValues(1, 1);
+            this._uvRect = s2d.Rect.fromValues(0, 0, 1, 1);
         }
         Object.defineProperty(TextureDrawer.prototype, "texture", {
             get: function () {
@@ -3440,35 +3610,27 @@ var s2d;
                 return this._color;
             },
             set: function (value) {
-                this._color = value;
+                this._color.copyFrom(value);
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(TextureDrawer.prototype, "uvTopLeft", {
+        Object.defineProperty(TextureDrawer.prototype, "uvRect", {
             get: function () {
-                return this._uvTopLeft;
+                return this._uvRect;
             },
             set: function (value) {
-                this._uvTopLeft = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TextureDrawer.prototype, "uvBottomRight", {
-            get: function () {
-                return this._uvBottomRight;
-            },
-            set: function (value) {
-                this._uvBottomRight = value;
+                s2d.Rect.copy(this._uvRect, value);
             },
             enumerable: true,
             configurable: true
         });
         TextureDrawer.prototype.draw = function (commands) {
-            var trans = this.entity.transform;
-            trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
-            commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvTopLeft, this._uvBottomRight, this._color);
+            if (this._texture !== null) {
+                var trans = this.entity.transform;
+                trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
+                commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvRect, this._color);
+            }
         };
         return TextureDrawer;
     }(s2d.Drawer));
@@ -3638,10 +3800,9 @@ var s2d;
         };
         EntityFactory.buildTextButton = function (texture, text) {
             var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
             var button = entity.addComponent(s2d.Button);
-            var textureDrawer = entity.addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            entity.transform.setPivot(-1, -1);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
             //Layout used to make the button match the size of the text inside
             var layout = entity.addComponent(s2d.Layout);
             layout.sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
@@ -3649,6 +3810,8 @@ var s2d;
             //Text drawer
             var textDrawer = EntityFactory.buildTextDrawer();
             textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
             textDrawer.text = text;
             textDrawer.entity.transform.parent = entity.transform;
             return button;
@@ -3707,6 +3870,9 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Color.prototype.copyFrom = function (c) {
+            this.abgrHex = c.abgrHex;
+        };
         Color.prototype.setFromRgba = function (r, g, b, a) {
             if (a === void 0) { a = 255; }
             r = s2d.SMath.clamp(r, 0, 255);
@@ -4714,8 +4880,8 @@ var s2d;
             }
         };
         RenderFont.prototype.loadFromEmbeddedData = function (fontXml, textureBase64) {
-            this.parseFontXml(fontXml);
             this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64);
+            this.parseFontXml(fontXml);
             return this;
         };
         RenderFont.prototype.loadFromUrl = function (fontXmlURL) {
@@ -4725,6 +4891,11 @@ var s2d;
             this._xhttp.open("GET", fontXmlURL, true);
             this._xhttp.send(null);
             return this;
+        };
+        RenderFont.prototype.onXMLLoadComplete = function () {
+            var fontData = this.parseFontXml(this._xhttp.responseText);
+            this._xhttp = null;
+            this._texture = new s2d.RenderTexture(true).loadFromUrl("assets/" + fontData.font.pages.page.$file);
         };
         RenderFont.prototype.parseFontXml = function (xml) {
             var fontData = JXON.stringToJs(xml);
@@ -4747,11 +4918,6 @@ var s2d;
             }
             return fontData;
         };
-        RenderFont.prototype.onXMLLoadComplete = function () {
-            var fontData = this.parseFontXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
-        };
         return RenderFont;
     }());
     s2d.RenderFont = RenderFont;
@@ -4761,8 +4927,12 @@ var s2d;
     var RenderTexture = (function () {
         function RenderTexture(hasAlpha) {
             this._texture = null;
-            this._image = null;
             this._hasAlpha = false;
+            this._width = 0;
+            this._height = 0;
+            this._image = null;
+            this._loadCompleteCallback = null;
+            this._loadCompleteCallbackThis = null;
             var gl = s2d.renderer.gl;
             this._hasAlpha = hasAlpha;
             this._texture = gl.createTexture();
@@ -4778,6 +4948,20 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(RenderTexture.prototype, "width", {
+            get: function () {
+                return this._width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderTexture.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
             get: function () {
                 return this._hasAlpha;
@@ -4785,8 +4969,12 @@ var s2d;
             enumerable: true,
             configurable: true
         });
-        RenderTexture.prototype.loadFromUrl = function (imageUrl) {
+        RenderTexture.prototype.loadFromUrl = function (imageUrl, onLoadComplete, onLoadCompleteThis) {
             var _this = this;
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
+            this._loadCompleteCallback = onLoadComplete;
+            this._loadCompleteCallbackThis = onLoadCompleteThis;
             // Asynchronously load an image
             this._image = new Image();
             this._image.setAttribute('crossOrigin', 'anonymous');
@@ -4794,8 +4982,12 @@ var s2d;
             this._image.src = imageUrl;
             return this;
         };
-        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64) {
+        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64, onLoadComplete, onLoadCompleteThis) {
             var _this = this;
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
+            this._loadCompleteCallback = onLoadComplete;
+            this._loadCompleteCallbackThis = onLoadCompleteThis;
             // Asynchronously load an image
             this._image = new Image();
             this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
@@ -4806,6 +4998,8 @@ var s2d;
             var gl = s2d.renderer.gl;
             var texture = this._texture;
             var image = this._image;
+            this._width = image.width;
+            this._height = image.height;
             // Now that the image has loaded make copy it to the texture.
             gl.bindTexture(gl.TEXTURE_2D, texture);
             gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
@@ -4817,6 +5011,12 @@ var s2d;
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.generateMipmap(gl.TEXTURE_2D);
             this._image = null;
+            var tmpCallback = this._loadCompleteCallback;
+            var tmpThis = this._loadCompleteCallbackThis;
+            this._loadCompleteCallback = null;
+            this._loadCompleteCallbackThis = null;
+            if (tmpCallback)
+                tmpCallback.call(tmpThis, this);
         };
         RenderTexture.prototype.clear = function () {
             var gl = s2d.renderer.gl;
@@ -4833,6 +5033,206 @@ var s2d;
     }());
     s2d.RenderTexture = RenderTexture;
 })(s2d || (s2d = {}));
+/// <reference path="RenderTexture.ts" />
+var s2d;
+(function (s2d) {
+    (function (RenderSpriteDrawMode) {
+        RenderSpriteDrawMode[RenderSpriteDrawMode["Normal"] = 0] = "Normal";
+        RenderSpriteDrawMode[RenderSpriteDrawMode["Slice9"] = 1] = "Slice9";
+    })(s2d.RenderSpriteDrawMode || (s2d.RenderSpriteDrawMode = {}));
+    var RenderSpriteDrawMode = s2d.RenderSpriteDrawMode;
+    var RenderSprite = (function () {
+        function RenderSprite(id, texture, uvRect, drawMode, innerUvRect) {
+            if (drawMode === void 0) { drawMode = RenderSpriteDrawMode.Normal; }
+            if (innerUvRect === void 0) { innerUvRect = null; }
+            this._id = null;
+            this._texture = null;
+            this._uvRect = s2d.Rect.create();
+            this._innerUvRect = null;
+            this._drawMode = RenderSpriteDrawMode.Normal;
+            this._id = id;
+            this._texture = texture;
+            s2d.Rect.copy(this._uvRect, uvRect);
+            this._drawMode = drawMode;
+            if (innerUvRect !== null) {
+                this._innerUvRect = s2d.Rect.create();
+                s2d.Rect.copy(this._innerUvRect, innerUvRect);
+            }
+            if (drawMode !== RenderSpriteDrawMode.Normal && this._innerUvRect === null)
+                s2d.EngineConsole.error("Missing innerUvRect for draw mode " + drawMode, this);
+        }
+        Object.defineProperty(RenderSprite.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "uvRect", {
+            get: function () {
+                return this._uvRect;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "drawMode", {
+            get: function () {
+                return this._drawMode;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "innerUvRect", {
+            get: function () {
+                return this._innerUvRect;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return RenderSprite;
+    }());
+    s2d.RenderSprite = RenderSprite;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var StringDictionary = (function () {
+        function StringDictionary() {
+            this._data = {};
+        }
+        Object.defineProperty(StringDictionary.prototype, "data", {
+            get: function () {
+                return this._data;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        StringDictionary.prototype.add = function (key, value) {
+            this._data[key] = value;
+        };
+        StringDictionary.prototype.remove = function (key) {
+            delete this._data[key];
+        };
+        StringDictionary.prototype.has = function (key) {
+            return this._data[key] === undefined;
+        };
+        StringDictionary.prototype.get = function (key) {
+            var v = this._data[key];
+            if (v === undefined)
+                v = null;
+            return v;
+        };
+        return StringDictionary;
+    }());
+    s2d.StringDictionary = StringDictionary;
+})(s2d || (s2d = {}));
+/// <reference path="RenderSprite.ts" />
+/// <reference path="../Util/Dictionary.ts" />
+var s2d;
+(function (s2d) {
+    var RenderSpriteAtlas = (function () {
+        function RenderSpriteAtlas() {
+            this._texture = null;
+            this._sprites = new s2d.StringDictionary();
+            this._xhttp = null;
+            this._loadCompleteCallback = null;
+            this._loadCompleteCallbackThis = null;
+        }
+        Object.defineProperty(RenderSpriteAtlas.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderSpriteAtlas.prototype.sprites = function () {
+            return this._sprites;
+        };
+        RenderSpriteAtlas.prototype.getSprite = function (id) {
+            return this._sprites.get(id);
+        };
+        RenderSpriteAtlas.prototype.clear = function () {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+        };
+        RenderSpriteAtlas.prototype.loadFromEmbeddedData = function (textureAtlasXml, textureBase64, onLoadComplete, onLoadCompleteThis) {
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
+            this._loadCompleteCallback = onLoadComplete;
+            this._loadCompleteCallbackThis = onLoadCompleteThis;
+            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64, this.onTextureLoadComplete, this);
+            this.parseTextureAtlasXml(textureAtlasXml);
+            return this;
+        };
+        RenderSpriteAtlas.prototype.loadFromUrl = function (textureAtlasXmlURL, onLoadComplete, onLoadCompleteThis) {
+            var _this = this;
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
+            this._loadCompleteCallback = onLoadComplete;
+            this._loadCompleteCallbackThis = onLoadCompleteThis;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", textureAtlasXmlURL, true);
+            this._xhttp.send(null);
+            return this;
+        };
+        RenderSpriteAtlas.prototype.onXMLLoadComplete = function () {
+            //Create the texture before parsing the texture atlas, so every sprite already
+            //has a reference to the texture
+            this._texture = new s2d.RenderTexture(true);
+            var atlasData = this.parseTextureAtlasXml(this._xhttp.responseText);
+            this._xhttp = null;
+            this._texture.loadFromUrl("assets/" + atlasData.atlas.info.$file, this.onTextureLoadComplete, this);
+        };
+        RenderSpriteAtlas.prototype.onTextureLoadComplete = function () {
+            var tmpCallback = this._loadCompleteCallback;
+            var tmpThis = this._loadCompleteCallbackThis;
+            this._loadCompleteCallback = null;
+            this._loadCompleteCallbackThis = null;
+            if (tmpCallback)
+                tmpCallback.call(tmpThis, this);
+        };
+        RenderSpriteAtlas.prototype.parseTextureAtlasXml = function (xml) {
+            var atlasData = JXON.stringToJs(xml);
+            var spritesJson = atlasData.atlas.sprites.sprite;
+            for (var i = 0; i < spritesJson.length; i++) {
+                var spriteJson = spritesJson[i];
+                var id = spriteJson.$id;
+                var rect = RenderSpriteAtlas.parseRectString(spriteJson.$rect);
+                var innerRect = RenderSpriteAtlas.parseRectString(spriteJson.$innerRect);
+                if (id && rect) {
+                    var sprite = null;
+                    if (innerRect)
+                        sprite = new s2d.RenderSprite(id, this._texture, rect, s2d.RenderSpriteDrawMode.Slice9, innerRect);
+                    else
+                        sprite = new s2d.RenderSprite(id, this._texture, rect);
+                    this._sprites.add(sprite.id, sprite);
+                }
+            }
+            return atlasData;
+        };
+        RenderSpriteAtlas.parseRectString = function (str) {
+            var rect = null;
+            if (str && str.length > 0) {
+                var strs = str.split(",");
+                if (strs.length === 4) {
+                    rect = s2d.Rect.fromValues(parseInt(strs[0]), parseInt(strs[1]), parseInt(strs[2]), parseInt(strs[3]));
+                }
+            }
+            return rect;
+        };
+        return RenderSpriteAtlas;
+    }());
+    s2d.RenderSpriteAtlas = RenderSpriteAtlas;
+})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     var RenderVertex = (function () {
@@ -4844,11 +5244,20 @@ var s2d;
             this.color = v.color;
             this.u = v.u;
             this.v = v.v;
+            return this;
         };
         RenderVertex.prototype.transformMat2d = function (m) {
             var x = this.x, y = this.y;
             this.x = m[0] * x + m[2] * y + m[4];
             this.y = m[1] * x + m[3] * y + m[5];
+            return this;
+        };
+        RenderVertex.prototype.setXYUV = function (x, y, u, v) {
+            this.x = x;
+            this.y = y;
+            this.u = u;
+            this.v = v;
+            return this;
         };
         return RenderVertex;
     }());
@@ -4861,13 +5270,24 @@ var s2d;
         }
         Object.defineProperty(EmbeddedAssets, "defaultFont", {
             get: function () {
-                if (!EmbeddedAssets._defaultFont)
+                if (EmbeddedAssets._defaultFont === null)
                     EmbeddedAssets._defaultFont = new s2d.RenderFont().loadFromEmbeddedData(window.atob(s2d.EmbeddedData.fontXmlBase64), s2d.EmbeddedData.fontTextureBase64);
                 return EmbeddedAssets._defaultFont;
             },
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
+            get: function () {
+                if (EmbeddedAssets._defaultSkinAtlas === null)
+                    EmbeddedAssets._defaultSkinAtlas = new s2d.RenderSpriteAtlas().loadFromEmbeddedData(window.atob(s2d.EmbeddedData.guiSkinAtlasXmlBase64), s2d.EmbeddedData.guiSkinTextureBase64);
+                return EmbeddedAssets._defaultSkinAtlas;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        EmbeddedAssets._defaultFont = null;
+        EmbeddedAssets._defaultSkinAtlas = null;
         return EmbeddedAssets;
     }());
     s2d.EmbeddedAssets = EmbeddedAssets;
@@ -4882,6 +5302,10 @@ var s2d;
         EmbeddedData.fontTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAFjElEQVR4nO2c627rIBCEcZX3f2WfH6eOyGavgB2nM58U1V5gwWaABSXd9n1vrbW9vbL9/t0N29bZdyX/lrRr/jy71h7PLtM3cR3ly7Y34z/z3mba7z2X5Wfb9v8KyHSAlU9Lz1z3DTrI+u/vq+3M+B/1McKq9g/V+3AyyEZEI25r7x3q2a0OzPqP7JafrH+rPX2ZO9Tb+ygPEE8AVYerRujZ9c7az26n5T+yD/GzytEAvfKtEUBOxpsBVmJ1sBVsZafEq8hOxVb+qt2b6j17mUfT16DVQYgX+FXyV/2swnofo+u+Z6/WO8UxA3hr0Vns4vrKusnv+34IQ98R1ajbi8bNBrT5zr+inWfOkJb/WXv0vM9zgNYbio0nX46cASy8k6jsCZdEC/ysa61sVCZTXku3ziQyW9eRYM7aGkq8s4dq/mddD1Gp1TDr2rtfccKV6eAV5T0BV+rUxLM59oovrZzn38v/tP90GeSD9k724F6rHIVPLp3T9R4zgHQobVpwmB2B1v0d4g0pYmvUeWnW6OvLeIPCmr5Ht4+ZQP5Jfw4w0sERs0vA2XjPqsUR0ZJg+crGFe56HdhH7j96FPxNRDHSai5bRq86Cj6QCpe7ikzE3TNb3mqX9NffR761iL96jlDd04/6eZ4DzE4ld1vbSZLMDCDXP209XD0qRvbTms3dAin5KoFXtv3V/EeaFxxWnsu197sAq4Ojfb/3EL0fjUyDZXpkH12fRwRzRv4m8p4abxy7AK1iD2uk3CHq5xJU4FgCqlPf2R1dXQJkWrT/XhWzVP2sCOyquP77o+CDzFRmsepBMkuGlVY9QJkRsFdO8zuyt5/F7cfKl0Kl06jMHQ9+rsQK5M6uL7td3VqzvxEkkQ69CNZq2FvlLTclyvoi/5dOoQvyrzoj6NOyy9HL9wFeEgbuqw9CboAWA0iyHVndHsq00f1y1s7zAcWuLQGyI73p32twtD1ctV/m+cAYzxhANsCqUDZQMvrCrwqUuCQpRNtAyehLjIKibMTM84HFVLaBe2f3ZoHIl1Y2OwvwfGAdzxggnbm7t0RQ2R5qZRC41fnASBCoOY6o7vd5PnD++cDWWmvR7wKyx79RlEtuiveVsGoHRsvB8ZF1WPYm7DKfNo1q5TL5NSxfss3Ze6+8TNPKWW3JtNlMj74TuLf3Bkusju4r29r79N7bV6yLMnia8ef5kgFa/2xWehPp2vRs5fXoy0bPrwaX3i+DrMqt7WE0Y3jbS82/JaDeZt1n2/QtaDOf7Gzv+c338NN0pchKZcX9ZzXRCKrEGiMzgfcyP0X/rq3BEI14tf2zXws/Y4RpM4BXn9c5I+2LXuadsDo5ek/pGCBb+cq81gywi2u5Ln9Lp80QLdPWrGmme+cA3r6y2qF9h2X8jxCteVp90bNb29sm0vuyVrqXX5ZtStopaP8nsHrfRNqL/+kWklMZXQKs7aEXIFpr+4q/2qdaxrNLPhkQLmXkp2HRqPamuDPwfFvxRLRGztT5VWhfCYuQa6Ncw+R69mde1l/kiAHe7N21NoIrcQG5Mdovg3q8UZ492SM3xpsBOMoBGIkByB+C/yEEHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAnH8AfKNa7b1P4gAAAABJRU5ErkJggg==";
         //XML encoded using https://www.base64encode.org/
         EmbeddedData.fontXmlBase64 = "PD94bWwgdmVyc2lvbj0iMS4wIj8+DQo8Zm9udD4NCiAgPGluZm8gZmFjZT0iS2VuUGl4ZWwiIHNpemU9IjEyIiBib2xkPSIwIiBpdGFsaWM9IjAiIGNoYXJzZXQ9IkFOU0kiIHVuaWNvZGU9IjAiIHN0cmV0Y2hIPSIxMDAiIHNtb290aD0iMCIgYWE9IjEiIHBhZGRpbmc9IjAsMCwwLDAiIHNwYWNpbmc9IjEsMSIgb3V0bGluZT0iMCIvPg0KICA8Y29tbW9uIGxpbmVIZWlnaHQ9IjEyIiBiYXNlPSI5IiBzY2FsZVc9IjEyOCIgc2NhbGVIPSIxMjgiIHBhZ2VzPSIxIiBwYWNrZWQ9IjAiIGFscGhhQ2hubD0iMCIgcmVkQ2hubD0iNCIgZ3JlZW5DaG5sPSI0IiBibHVlQ2hubD0iNCIvPg0KICA8cGFnZXM+DQogICAgPHBhZ2UgaWQ9IjAiIGZpbGU9ImZvbnRfMC5wbmciIC8+DQogIDwvcGFnZXM+DQogIDxjaGFycyBjb3VudD0iMTM0Ij4NCiAgICA8Y2hhciBpZD0iMzIiIHg9IjczIiB5PSI0MiIgd2lkdGg9IjMiIGhlaWdodD0iMSIgeG9mZnNldD0iLTEiIHlvZmZzZXQ9IjExIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjMzIiB4PSIxMjYiIHk9IjE4IiB3aWR0aD0iMSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjM0IiB4PSIyNiIgeT0iNDIiIHdpZHRoPSIzIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMzUiIHg9IjM2IiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIzNiIgeD0iMzAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjEiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMzciIHg9IjQyIiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIzOCIgeD0iNzAiIHk9IjEwIiB3aWR0aD0iNiIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNyIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjM5IiB4PSI0MiIgeT0iNDIiIHdpZHRoPSIxIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDAiIHg9IjEyNSIgeT0iMTAiIHdpZHRoPSIyIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIzIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDEiIHg9Ijk2IiB5PSIzNCIgd2lkdGg9IjIiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0MiIgeD0iMTIiIHk9IjQ0IiB3aWR0aD0iMyIgaGVpZ2h0PSIzIiB4b2Zmc2V0PSIxIiB5b2Zmc2V0PSI0IiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQzIiB4PSIxMDUiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQ0IiB4PSI0MCIgeT0iNDIiIHdpZHRoPSIxIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjgiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDUiIHg9IjYxIiB5PSI0MiIgd2lkdGg9IjUiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNSIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0NiIgeD0iNzciIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSI4IiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQ3IiB4PSI3NyIgeT0iMTAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDgiIHg9IjMwIiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0OSIgeD0iODgiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjUwIiB4PSI4MyIgeT0iMTAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNTEiIHg9Ijg5IiB5PSIxMCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1MiIgeD0iOTUiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjUzIiB4PSIxMDEiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU0IiB4PSIxMDciIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU1IiB4PSIxMTMiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU2IiB4PSIxMTkiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU3IiB4PSIwIiB5PSIyMSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1OCIgeD0iMTI1IiB5PSIzNCIgd2lkdGg9IjEiIGhlaWdodD0iNSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1OSIgeD0iMTI2IiB5PSIyNiIgd2lkdGg9IjEiIGhlaWdodD0iNiIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2MCIgeD0iNDgiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjYxIiB4PSIwIiB5PSI0NSIgd2lkdGg9IjUiIGhlaWdodD0iMyIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2MiIgeD0iNTMiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjYzIiB4PSI2IiB5PSIyMSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2NCIgeD0iMzAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjY1IiB4PSIxMiIgeT0iMjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNjYiIHg9IjE4IiB5PSIxOSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2NyIgeD0iMjQiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjY4IiB4PSIzMCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNjkiIHg9IjM2IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3MCIgeD0iNDIiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjcxIiB4PSI0OCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzIiIHg9IjU0IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3MyIgeD0iNzYiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijc0IiB4PSI5MiIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzUiIHg9IjYwIiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3NiIgeD0iNjMiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijc3IiB4PSI1NSIgeT0iMTAiIHdpZHRoPSI3IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI4IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzgiIHg9IjY2IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3OSIgeD0iNzIiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjgwIiB4PSI3OCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODEiIHg9Ijg0IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4MiIgeD0iOTAiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjgzIiB4PSI5NiIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODQiIHg9IjEwMiIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODUiIHg9IjEwOCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODYiIHg9IjExNCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODciIHg9IjQ3IiB5PSIxMCIgd2lkdGg9IjciIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjgiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4OCIgeD0iMTIwIiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4OSIgeD0iMCIgeT0iMjkiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTAiIHg9IjYiIHk9IjI5IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjkxIiB4PSIxMDIiIHk9IjM0IiB3aWR0aD0iMiIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMyIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjkyIiB4PSIxMiIgeT0iMjgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTMiIHg9Ijk5IiB5PSIzNCIgd2lkdGg9IjIiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5NCIgeD0iNiIgeT0iNDUiIHdpZHRoPSI1IiBoZWlnaHQ9IjMiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTUiIHg9IjY3IiB5PSI0MiIgd2lkdGg9IjUiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iOCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5NiIgeD0iNDYiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSI0IiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijk3IiB4PSIxOCIgeT0iMjciIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTgiIHg9IjI0IiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5OSIgeD0iMTgiIHk9IjM1IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMCIgeD0iMzYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMSIgeD0iNDIiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMiIgeD0iNDgiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMyIgeD0iNTQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNCIgeD0iNjAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNSIgeD0iODQiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNiIgeD0iODAiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNyIgeD0iNjYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwOCIgeD0iNTgiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwOSIgeD0iMzkiIHk9IjEwIiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iOCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMCIgeD0iNzIiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMSIgeD0iNzgiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMiIgeD0iODQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMyIgeD0iOTAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExNCIgeD0iOTYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExNSIgeD0iMTAyIiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMTYiIHg9IjEwOCIgeT0iMjYiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTE3IiB4PSIxMTQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExOCIgeD0iMTIwIiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMTkiIHg9IjMxIiB5PSIxMCIgd2lkdGg9IjciIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjgiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMjAiIHg9IjAiIHk9IjM3IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEyMSIgeD0iNiIgeT0iMzciIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTIyIiB4PSIxMiIgeT0iMzYiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTIzIiB4PSI2OCIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI0IiB4PSIxMjYiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI1IiB4PSI3MiIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI2IiB4PSIxOSIgeT0iNDMiIHdpZHRoPSI2IiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjQiIHhhZHZhbmNlPSI3IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTMzIiB4PSI1NSIgeT0iNDIiIHdpZHRoPSI1IiBoZWlnaHQ9IjEiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjgiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTM5IiB4PSIxMjEiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NSIgeD0iMzgiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NiIgeD0iNDQiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NyIgeD0iMzQiIHk9IjQyIiB3aWR0aD0iMyIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0OCIgeD0iMzAiIHk9IjQyIiB3aWR0aD0iMyIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE1MSIgeD0iNDgiIHk9IjQyIiB3aWR0aD0iNiIgaGVpZ2h0PSIxIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSI1IiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE1NSIgeD0iMTE3IiB5PSIzNCIgd2lkdGg9IjMiIGhlaWdodD0iNSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMyIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxODMiIHg9IjEyNiIgeT0iOCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNSIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxODQiIHg9IjE2IiB5PSI0NCIgd2lkdGg9IjIiIGhlaWdodD0iMyIgeG9mZnNldD0iMCIgeW9mZnNldD0iOCIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTIiIHg9Ijg0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE5MyIgeD0iNzgiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTk0IiB4PSI0MiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTUiIHg9IjI0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE5NiIgeD0iOTAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTk3IiB4PSIzNiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTgiIHg9IjIyIiB5PSIxMCIgd2lkdGg9IjgiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjkiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTkiIHg9IjAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjEwIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMCIgeD0iMTA4IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMSIgeD0iMTAyIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMiIgeD0iOTYiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjAzIiB4PSI3MiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDQiIHg9IjEyIiB5PSIxMCIgd2lkdGg9IjMiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjQiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDUiIHg9IjgiIHk9IjEwIiB3aWR0aD0iMyIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwNiIgeD0iNCIgeT0iMTEiIHdpZHRoPSIzIiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjA3IiB4PSIwIiB5PSIxMSIgd2lkdGg9IjMiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjQiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDgiIHg9IjYzIiB5PSIxMCIgd2lkdGg9IjYiIGhlaWdodD0iNyIgeG9mZnNldD0iLTEiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjA5IiB4PSI2NiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMTAiIHg9IjYwIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxMSIgeD0iNTQiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjEyIiB4PSI0OCIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMTMiIHg9IjE4IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNCIgeD0iMTIiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjE1IiB4PSIxMTEiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNiIgeD0iMjQiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNyIgeD0iMTE0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxOCIgeD0iMTIwIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxOSIgeD0iNiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMjAiIHg9IjE2IiB5PSIxMCIgd2lkdGg9IjUiIGhlaWdodD0iOCIgeG9mZnNldD0iMCIgeW9mZnNldD0iMSIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICA8L2NoYXJzPg0KPC9mb250Pg0K";
+        //GUI skin texture encoded using https://www.base64-image.de/
+        EmbeddedData.guiSkinTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwAAADsABataJCQAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMK0KCsAAAADYSURBVHhe7dCxCYRAAEVB+2/OyNwKbGEP4U4UJjH0ngsD+thk/zTGSGMsufwsyzLkfOfOvSc4Pr4P4Dk/bv9e15WeOMLx8Rtg27aL/WiAeZ4v3gHeAd4B/mMAHQ0gjx5gtz9Aznfu3HsCxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsaOMX0AIggfRSo5pWIAAAAASUVORK5CYII=";
+        //XML encoded using https://www.base64encode.org/
+        EmbeddedData.guiSkinAtlasXmlBase64 = "PD94bWwgdmVyc2lvbj0iMS4wIj8+DQo8YXRsYXM+DQogIDxpbmZvIGZpbGU9Imd1aV9za2luLnBuZyIvPg0KDQogIDxzcHJpdGVzPg0KICAgIDxzcHJpdGUgaWQ9ImJ1dHRvbiIgcmVjdD0iMiwyLDgsOCIgaW5uZXJSZWN0PSI0LDQsNCw0IiAvPg0KICAgIDxzcHJpdGUgaWQ9ImJ1dHRvbl9kb3duIiByZWN0PSIxMiwyLDgsOCIgaW5uZXJSZWN0PSIxNCw0LDQsNCIgLz4NCiAgPC9zcHJpdGVzPg0KDQo8L2F0bGFzPg0K";
         return EmbeddedData;
     }());
     s2d.EmbeddedData = EmbeddedData;

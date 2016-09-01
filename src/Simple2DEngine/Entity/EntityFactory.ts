@@ -32,10 +32,9 @@ module s2d {
         public static buildTextButton(texture: RenderTexture, text:string) : Button {
 
             var entity = new Entity("Button");
+            entity.addComponent(SpriteDrawer);
             var button = entity.addComponent(Button);
-            var textureDrawer = entity.addComponent(TextureDrawer);
-            textureDrawer.texture = texture;
-            entity.transform.setPivot(-1, -1);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
 
             //Layout used to make the button match the size of the text inside
             var layout = entity.addComponent(Layout);
@@ -45,6 +44,8 @@ module s2d {
             //Text drawer
             var textDrawer = EntityFactory.buildTextDrawer();
             textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
 
             textDrawer.text = text;
             textDrawer.entity.transform.parent = entity.transform;

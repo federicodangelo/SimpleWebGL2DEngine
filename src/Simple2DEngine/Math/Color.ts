@@ -19,6 +19,10 @@ module s2d {
             return (this.abgrHex >> 24) & 0xFF;
         }
 
+        public copyFrom(c:Color) {
+            this.abgrHex = c.abgrHex;
+        }
+
         public setFromRgba(r:number, g:number, b:number, a:number=255) { 
             r = SMath.clamp(r, 0, 255);
             g = SMath.clamp(g, 0, 255);

@@ -61,8 +61,8 @@ module s2d {
         }
 
         public loadFromEmbeddedData(fontXml: string, textureBase64: string) {
-            this.parseFontXml(fontXml);
             this._texture = new RenderTexture(true).loadFromEmbeddedData(textureBase64);
+            this.parseFontXml(fontXml);
             return this;
         }
 
@@ -72,6 +72,12 @@ module s2d {
             this._xhttp.open("GET", fontXmlURL, true);
             this._xhttp.send(null);
             return this;
+        }
+
+        private onXMLLoadComplete(): void {
+            let fontData = this.parseFontXml(this._xhttp.responseText);
+            this._xhttp = null;
+            this._texture = new RenderTexture(true).loadFromUrl("assets/" + fontData.font.pages.page.$file);
         }
 
         private parseFontXml(xml: string): any {
@@ -104,12 +110,6 @@ module s2d {
             }
 
             return fontData;
-        }
-
-        private onXMLLoadComplete(): void {
-            let fontData = this.parseFontXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture = new RenderTexture(true).loadFromEmbeddedData("assets/" + fontData.font.pages.page.$file);
         }
     }
 }

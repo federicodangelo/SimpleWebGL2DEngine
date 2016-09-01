@@ -1,16 +1,12 @@
-/// <reference path="Component.ts" />
-/// <reference path="../Math/Matrix3.ts" />
-/// <reference path="../Math/Vector2.ts" />
+/// <reference path="Drawer.ts" />
 
 module s2d {
 
     export class TextureDrawer extends Drawer {
 
-        private _texture: RenderTexture;
+        private _texture: RenderTexture = null;
         private _color: Color = Color.fromRgba(255, 255, 255, 255);
-
-        private _uvTopLeft: Vector2 = Vector2.fromValues(0, 0);
-        private _uvBottomRight: Vector2 = Vector2.fromValues(1, 1);
+        private _uvRect: Rect = Rect.fromValues(0, 0, 1, 1);
 
         public get texture(): RenderTexture {
             return this._texture;
@@ -25,29 +21,23 @@ module s2d {
         }
 
         public set color(value: Color) {
-            this._color = value;
+            this._color.copyFrom(value);
         }
 
-        public get uvTopLeft(): Vector2 {
-            return this._uvTopLeft;
+        public get uvRect(): Rect {
+            return this._uvRect;
         }
 
-        public set uvTopLeft(value: Vector2) {
-            this._uvTopLeft = value;
-        }
-
-        public get uvBottomRight(): Vector2 {
-            return this._uvBottomRight;
-        }
-
-        public set uvBottomRight(value: Vector2) {
-            this._uvBottomRight = value;
+        public set uvRect(value: Rect) {
+            Rect.copy(this._uvRect, value);
         }
 
         public draw(commands: RenderCommands): void {
-            var trans = this.entity.transform;
-            trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
-            commands.drawRectSimple(Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvTopLeft, this._uvBottomRight, this._color);
+            if (this._texture !== null) {
+                let trans = this.entity.transform;
+                trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
+                commands.drawRectSimple(Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvRect, this._color);
+            }
         }
     }
 }
