@@ -2741,6 +2741,691 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
+    var RenderTexture = (function () {
+        function RenderTexture(image, hasAlpha) {
+            this._texture = null;
+            this._hasAlpha = false;
+            this._width = 0;
+            this._height = 0;
+            this._image = null;
+            this._loadCompleteCallback = null;
+            this._loadCompleteCallbackThis = null;
+            var gl = s2d.renderer.gl;
+            this._hasAlpha = hasAlpha;
+            this._texture = gl.createTexture();
+            var texture = this._texture;
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            this._width = image.width;
+            this._height = image.height;
+            // Now that the image has loaded make copy it to the texture.
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.generateMipmap(gl.TEXTURE_2D);
+        }
+        Object.defineProperty(RenderTexture.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderTexture.prototype, "width", {
+            get: function () {
+                return this._width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderTexture.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
+            get: function () {
+                return this._hasAlpha;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderTexture.prototype.clear = function () {
+            var gl = s2d.renderer.gl;
+            if (this._texture != null) {
+                gl.deleteTexture(this._texture);
+                this._texture = null;
+            }
+        };
+        RenderTexture.prototype.useTexture = function () {
+            var gl = s2d.renderer.gl;
+            gl.bindTexture(gl.TEXTURE_2D, this._texture);
+        };
+        return RenderTexture;
+    }());
+    s2d.RenderTexture = RenderTexture;
+})(s2d || (s2d = {}));
+/// <reference path="RenderTexture.ts" />
+var s2d;
+(function (s2d) {
+    (function (RenderSpriteDrawMode) {
+        RenderSpriteDrawMode[RenderSpriteDrawMode["Normal"] = 0] = "Normal";
+        RenderSpriteDrawMode[RenderSpriteDrawMode["Slice9"] = 1] = "Slice9";
+    })(s2d.RenderSpriteDrawMode || (s2d.RenderSpriteDrawMode = {}));
+    var RenderSpriteDrawMode = s2d.RenderSpriteDrawMode;
+    var RenderSprite = (function () {
+        function RenderSprite(id, texture, uvRect, drawMode, innerUvRect) {
+            if (drawMode === void 0) { drawMode = RenderSpriteDrawMode.Normal; }
+            if (innerUvRect === void 0) { innerUvRect = null; }
+            this._id = null;
+            this._texture = null;
+            this._uvRect = s2d.Rect.create();
+            this._innerUvRect = null;
+            this._drawMode = RenderSpriteDrawMode.Normal;
+            this._id = id;
+            this._texture = texture;
+            s2d.Rect.copy(this._uvRect, uvRect);
+            this._drawMode = drawMode;
+            if (innerUvRect !== null) {
+                this._innerUvRect = s2d.Rect.create();
+                s2d.Rect.copy(this._innerUvRect, innerUvRect);
+            }
+            if (drawMode !== RenderSpriteDrawMode.Normal && this._innerUvRect === null)
+                s2d.EngineConsole.error("Missing innerUvRect for draw mode " + drawMode, this);
+        }
+        Object.defineProperty(RenderSprite.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "uvRect", {
+            get: function () {
+                return this._uvRect;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "drawMode", {
+            get: function () {
+                return this._drawMode;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "innerUvRect", {
+            get: function () {
+                return this._innerUvRect;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return RenderSprite;
+    }());
+    s2d.RenderSprite = RenderSprite;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var StringDictionary = (function () {
+        function StringDictionary() {
+            this._data = {};
+            this._keysCount = 0;
+        }
+        Object.defineProperty(StringDictionary.prototype, "data", {
+            get: function () {
+                return this._data;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(StringDictionary.prototype, "empty", {
+            get: function () {
+                return this._keysCount === 0;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        StringDictionary.prototype.add = function (key, value) {
+            if (!this.has(key))
+                this._keysCount++;
+            this._data[key] = value;
+        };
+        StringDictionary.prototype.remove = function (key) {
+            if (this.has(key)) {
+                this._keysCount--;
+                delete this._data[key];
+            }
+        };
+        StringDictionary.prototype.has = function (key) {
+            return this._data[key] !== undefined;
+        };
+        StringDictionary.prototype.get = function (key) {
+            var v = this._data[key];
+            if (v === undefined)
+                v = null;
+            return v;
+        };
+        return StringDictionary;
+    }());
+    s2d.StringDictionary = StringDictionary;
+})(s2d || (s2d = {}));
+/// <reference path="RenderSprite.ts" />
+/// <reference path="../Util/StringDictionary.ts" />
+var s2d;
+(function (s2d) {
+    var RenderSpriteAtlas = (function () {
+        function RenderSpriteAtlas(texture, atlasJson) {
+            this._texture = null;
+            this._sprites = new s2d.StringDictionary();
+            this._xhttp = null;
+            this._loadCompleteCallback = null;
+            this._loadCompleteCallbackThis = null;
+            this._texture = texture;
+            this.parseAtlasJson(atlasJson);
+        }
+        Object.defineProperty(RenderSpriteAtlas.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderSpriteAtlas.prototype.sprites = function () {
+            return this._sprites;
+        };
+        RenderSpriteAtlas.prototype.getSprite = function (id) {
+            return this._sprites.get(id);
+        };
+        RenderSpriteAtlas.prototype.clear = function () {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+        };
+        RenderSpriteAtlas.prototype.parseAtlasJson = function (atlasJson) {
+            var spritesJson = atlasJson.atlas.sprites.sprite;
+            for (var i = 0; i < spritesJson.length; i++) {
+                var spriteJson = spritesJson[i];
+                var id = spriteJson.$id;
+                var rect = RenderSpriteAtlas.parseRectString(spriteJson.$rect);
+                var innerRect = RenderSpriteAtlas.parseRectString(spriteJson.$innerRect);
+                if (id && rect) {
+                    var sprite = null;
+                    if (innerRect)
+                        sprite = new s2d.RenderSprite(id, this._texture, rect, s2d.RenderSpriteDrawMode.Slice9, innerRect);
+                    else
+                        sprite = new s2d.RenderSprite(id, this._texture, rect);
+                    this._sprites.add(sprite.id, sprite);
+                }
+            }
+        };
+        RenderSpriteAtlas.parseRectString = function (str) {
+            var rect = null;
+            if (str && str.length > 0) {
+                var strs = str.split(",");
+                if (strs.length === 4) {
+                    rect = s2d.Rect.fromValues(parseInt(strs[0]), parseInt(strs[1]), parseInt(strs[2]), parseInt(strs[3]));
+                }
+            }
+            return rect;
+        };
+        return RenderSpriteAtlas;
+    }());
+    s2d.RenderSpriteAtlas = RenderSpriteAtlas;
+})(s2d || (s2d = {}));
+/// <reference path="../Util/JXON.d.ts" />
+var s2d;
+(function (s2d) {
+    var RenderFontCharData = (function () {
+        function RenderFontCharData() {
+            this.id = 0;
+            this.width = 0;
+            this.height = 0;
+            this.x = 0;
+            this.y = 0;
+            this.xadvance = 0;
+            this.xoffset = 0;
+            this.yoffset = 0;
+        }
+        return RenderFontCharData;
+    }());
+    s2d.RenderFontCharData = RenderFontCharData;
+    var RenderFont = (function () {
+        function RenderFont(texture, fontJson) {
+            this._texture = null;
+            this._textureWidth = 0;
+            this._textureHeight = 0;
+            this._lineHeight = 0;
+            this._chars = new Array();
+            this._texture = texture;
+            this.parseFontJson(fontJson);
+        }
+        Object.defineProperty(RenderFont.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureWidth", {
+            get: function () {
+                return this._textureWidth;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "textureHeight", {
+            get: function () {
+                return this._textureHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "lineHeight", {
+            get: function () {
+                return this._lineHeight;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderFont.prototype, "chars", {
+            get: function () {
+                return this._chars;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderFont.prototype.clear = function () {
+            if (this._texture != null) {
+                this._texture.clear();
+                this._texture = null;
+            }
+        };
+        RenderFont.prototype.parseFontJson = function (fontJson) {
+            this._textureWidth = parseInt(fontJson.font.common.$scaleW);
+            this._textureHeight = parseInt(fontJson.font.common.$scaleH);
+            this._lineHeight = parseInt(fontJson.font.common.$lineHeight);
+            var charsJson = fontJson.font.chars.char;
+            for (var i = 0; i < charsJson.length; i++) {
+                var charJson = charsJson[i];
+                var char = new RenderFontCharData();
+                char.id = parseInt(charJson.$id);
+                char.width = parseInt(charJson.$width);
+                char.height = parseInt(charJson.$height);
+                char.x = parseInt(charJson.$x);
+                char.y = parseInt(charJson.$y);
+                char.xadvance = parseInt(charJson.$xadvance);
+                char.xoffset = parseInt(charJson.$xoffset);
+                char.yoffset = parseInt(charJson.$yoffset);
+                this._chars[char.id] = char;
+            }
+        };
+        return RenderFont;
+    }());
+    s2d.RenderFont = RenderFont;
+})(s2d || (s2d = {}));
+// C# like event dispatcher, based on ts-event library by Rogier Schouten<github@workingcode.ninja>
+// original source code: https://github.com/rogierschouten/ts-events
+var s2d;
+(function (s2d) {
+    var Listener = (function () {
+        function Listener(handler, boundTo, fireOnlyOnce) {
+            this.deleted = false;
+            this.handler = null;
+            this.boundTo = null;
+            this.fireOnlyOnce = false;
+            this.handler = handler;
+            this.boundTo = boundTo;
+            this.fireOnlyOnce = fireOnlyOnce;
+        }
+        Listener.prototype.equals = function (handler, boundTo) {
+            return handler === this.handler && boundTo === this.boundTo;
+        };
+        return Listener;
+    }());
+    var Event = (function () {
+        function Event() {
+            /**
+             * Recursive post() invocations
+             */
+            this._recursion = 0;
+            /**
+             * Attached listeners. NOTE: do not modify.
+             * Instead, replace with a new array with possibly the same elements. This ensures
+             * that any references to the array by events that are underway remain the same.
+             */
+            this._listeners = null;
+        }
+        Object.defineProperty(Event.prototype, "listenerCount", {
+            /**
+             * The number of attached listeners
+             */
+            get: function () {
+                return (this._listeners !== null ? this._listeners.length : 0);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        /**
+         * Attach an event handler that will be called every time that this event is triggered.
+         * @param handler The function to call. The this argument of the function will be this object.
+         * @param boundTo The "this" context of the function. Can be null.
+         */
+        Event.prototype.attach = function (handler, boundTo) {
+            if (boundTo === void 0) { boundTo = null; }
+            if (this._listeners === null) {
+                this._listeners = new Array();
+            }
+            else {
+                if (this._recursion > 0) {
+                    // make a copy of the array so events that are underway have a stable local copy
+                    // of the listeners array at the time of post()
+                    this._listeners = this._listeners.slice();
+                }
+            }
+            this._listeners.push(new Listener(handler, boundTo, false));
+        };
+        /**
+         * Attach an event handler that will be called only once.
+         * @param handler The function to call. The this argument of the function will be this object.
+         * @param boundTo The "this" context of the function. Can be null.
+         */
+        Event.prototype.attachOnlyOnce = function (handler, boundTo) {
+            if (boundTo === void 0) { boundTo = null; }
+            if (this._listeners === null) {
+                this._listeners = new Array();
+            }
+            else {
+                if (this._recursion > 0) {
+                    // make a copy of the array so events that are underway have a stable local copy
+                    // of the listeners array at the time of post()
+                    this._listeners = this._listeners.slice();
+                }
+            }
+            this._listeners.push(new Listener(handler, boundTo, true));
+        };
+        /**
+         * Detach all listeners with the given handler function
+         */
+        Event.prototype.detach = function (handler, boundTo) {
+            if (boundTo === void 0) { boundTo = null; }
+            if (this.listenerCount === 0)
+                return;
+            // remove listeners AND mark them as deleted so subclasses don't send any more events to them
+            var listeners = this._listeners;
+            if (this._recursion > 0) {
+                // make a copy of the array so events that are underway have a stable local copy
+                // of the listeners array at the time of post()
+                this._listeners = listeners.filter(function (listener) {
+                    if (listener.equals(handler, boundTo)) {
+                        listener.deleted = true;
+                        return false;
+                    }
+                    return true;
+                });
+            }
+            else {
+                //Not posting, no need to make a copy of the array
+                for (var i = listeners.length - 1; i >= 0; i--) {
+                    var listener = listeners[i];
+                    if (listener.equals(handler, boundTo)) {
+                        //listener.deleted = true; //no one is posting, no need to mark as deleted sine there is no other reference
+                        listeners.splice(i, 1);
+                    }
+                }
+            }
+            if (this._listeners.length === 0)
+                this._listeners = null;
+        };
+        /**
+         * Send the event. Handlers are called immediately and synchronously.
+         */
+        Event.prototype.post = function (data) {
+            if (this.listenerCount === 0)
+                return;
+            if (Event.MAX_RECURSION_DEPTH > 0 && this._recursion + 1 > Event.MAX_RECURSION_DEPTH) {
+                s2d.EngineConsole.error("Max recursion depth reached");
+                return;
+            }
+            this._recursion++;
+            var listeners = this._listeners;
+            var listenersToRemove = null;
+            for (var i = 0; i < listeners.length; i++) {
+                var listener = listeners[i];
+                if (!listener.deleted) {
+                    if (listener.fireOnlyOnce) {
+                        listener.deleted = true; //mark as deleted so it won be fired again by another nested call
+                        if (listenersToRemove === null)
+                            listenersToRemove = new Array();
+                        listenersToRemove.push(listener);
+                    }
+                    listener.handler.call(listener.boundTo, data);
+                }
+            }
+            this._recursion--;
+            //Remove any listener that was set a "fireOnlyOnce"
+            if (listenersToRemove != null) {
+                //Update listeners reference, could have been be updated in any of the callbacks
+                listeners = this._listeners;
+                if (this._recursion > 0 || listenersToRemove.length > 1) {
+                    //Make a copy of the array so events that are underway have a stable local copy
+                    //of the listeners array at the time of post()
+                    //We also use this method if we need to remove more than one listener, to prevent multiple calls to splice()
+                    this._listeners = listeners.filter(function (listener) {
+                        if (listenersToRemove.indexOf(listener) >= 0) {
+                            listener.deleted = true;
+                            return false;
+                        }
+                        return true;
+                    });
+                }
+                else {
+                    //Not posting, no need to make a copy of the array
+                    for (var i = listeners.length - 1; i >= 0; i--) {
+                        var listener = listeners[i];
+                        if (listenersToRemove.indexOf(listener) >= 0) {
+                            //listener.deleted = true; //no one is posting, no need to mark as deleted sine there is no other reference
+                            listeners.splice(i, 1);
+                        }
+                    }
+                }
+            }
+        };
+        /**
+         * Maximum number of times that an event handler may cause the same event
+         * recursively.
+         */
+        Event.MAX_RECURSION_DEPTH = 10;
+        return Event;
+    }());
+    s2d.Event = Event;
+    /**
+     * Convenience class for events without data
+     */
+    var VoidEvent = (function (_super) {
+        __extends(VoidEvent, _super);
+        function VoidEvent() {
+            _super.apply(this, arguments);
+        }
+        /**
+         * Send the event.
+         */
+        VoidEvent.prototype.post = function () {
+            _super.prototype.post.call(this, undefined);
+        };
+        return VoidEvent;
+    }(Event));
+    s2d.VoidEvent = VoidEvent;
+    /**
+     * Similar to 'error' event on EventEmitter: throws when a post() occurs while no handlers set.
+     */
+    var ErrorEvent = (function (_super) {
+        __extends(ErrorEvent, _super);
+        function ErrorEvent() {
+            _super.apply(this, arguments);
+        }
+        ErrorEvent.prototype.post = function (data) {
+            if (this.listenerCount === 0) {
+                s2d.EngineConsole.error("error event posted while no listeners attached. Error: " + data.message);
+                return;
+            }
+            _super.prototype.post.call(this, data);
+        };
+        return ErrorEvent;
+    }(Event));
+    s2d.ErrorEvent = ErrorEvent;
+})(s2d || (s2d = {}));
+/// <reference path="../Render/RenderTexture.ts" />
+/// <reference path="../Render/RenderSprite.ts" />
+/// <reference path="../Render/RenderSpriteAtlas.ts" />
+/// <reference path="../Render/RenderFont.ts" />
+/// <reference path="../Event/Event.ts" />
+var s2d;
+(function (s2d) {
+    var AssetsLoader = (function () {
+        function AssetsLoader() {
+            this._onLoadComplete = new s2d.VoidEvent();
+            this._loaders = new s2d.StringDictionary();
+            this._assets = new s2d.StringDictionary();
+            this._dispatchComplete = false;
+        }
+        Object.defineProperty(AssetsLoader.prototype, "onLoadComplete", {
+            get: function () {
+                return this._onLoadComplete;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        AssetsLoader.prototype.init = function () {
+        };
+        AssetsLoader.prototype.getAsset = function (id) {
+            return this._assets.get(id);
+        };
+        AssetsLoader.prototype.loadRenderTextureFromUrl = function (id, url, hasAlpha, onLoadComplete, onLoadCompleteBoundTo) {
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
+            if (!this.validateId(id))
+                return;
+            var loader = new s2d.RenderTextureLoader(id, url, hasAlpha);
+            loader.onLoadComplete.attach(this.onLoaderComplete, this);
+            if (onLoadComplete !== null)
+                loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
+            this._loaders.add(id, loader);
+            loader.start();
+        };
+        AssetsLoader.prototype.loadRenderTextureFromBase64 = function (id, base64, hasAlpha, onLoadComplete, onLoadCompleteBoundTo) {
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
+            if (!this.validateId(id))
+                return;
+            var url = "data:image/png;base64," + base64;
+            var loader = new s2d.RenderTextureLoader(id, url, hasAlpha);
+            loader.onLoadComplete.attach(this.onLoaderComplete, this);
+            if (onLoadComplete !== null)
+                loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
+            this._loaders.add(id, loader);
+            loader.start();
+        };
+        AssetsLoader.prototype.loadXmlFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
+            if (!this.validateId(id))
+                return;
+            var loader = new s2d.XmlLoader(id, url);
+            loader.onLoadComplete.attach(this.onLoaderComplete, this);
+            if (onLoadComplete !== null)
+                loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
+            this._loaders.add(id, loader);
+            loader.start();
+        };
+        AssetsLoader.prototype.loadRenderSpriteAtlasFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
+            if (!this.validateId(id))
+                return;
+            var loader = new s2d.RenderSpriteAtlasLoader(id, url);
+            loader.onLoadComplete.attach(this.onLoaderComplete, this);
+            if (onLoadComplete !== null)
+                loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
+            this._loaders.add(id, loader);
+            loader.start();
+        };
+        AssetsLoader.prototype.loadRenderFontFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
+            if (!this.validateId(id))
+                return;
+            var loader = new s2d.RenderFontLoader(id, url);
+            loader.onLoadComplete.attach(this.onLoaderComplete, this);
+            if (onLoadComplete !== null)
+                loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
+            this._loaders.add(id, loader);
+            loader.start();
+        };
+        AssetsLoader.prototype.loadImageFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
+            if (onLoadComplete === void 0) { onLoadComplete = null; }
+            if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
+            if (!this.validateId(id))
+                return;
+            var loader = new s2d.ImageLoader(id, url);
+            loader.onLoadComplete.attach(this.onLoaderComplete, this);
+            if (onLoadComplete !== null)
+                loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
+            this._loaders.add(id, loader);
+            loader.start();
+        };
+        AssetsLoader.prototype.validateId = function (id) {
+            if (this._loaders.has(id)) {
+                s2d.EngineConsole.error("Asset with id " + id + " is already loading");
+                return false;
+            }
+            if (this._assets.has(id)) {
+                s2d.EngineConsole.error("Asset with id " + id + " is already loaded");
+                return false;
+            }
+            return true;
+        };
+        AssetsLoader.prototype.onLoaderComplete = function (loader) {
+            this._loaders.remove(loader.id);
+            this._assets.add(loader.id, loader.asset);
+            this.dispatchCompleteIfFinished();
+        };
+        AssetsLoader.prototype.dispatchCompleteIfFinished = function () {
+            if (this._loaders.empty) {
+                //Real event dispatch is delayed to update() method, to have a
+                //predictable dispatch order
+                this._dispatchComplete = true;
+            }
+        };
+        AssetsLoader.prototype.update = function () {
+            if (this._dispatchComplete) {
+                this._dispatchComplete = false;
+                //We validate if it's still empty, just in case that some asset was added to download
+                //between the time when _dispatchComplete was set true and the call to update()
+                if (this._loaders.empty)
+                    this.onLoadComplete.post();
+            }
+        };
+        return AssetsLoader;
+    }());
+    s2d.AssetsLoader = AssetsLoader;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var Time = (function () {
         function Time() {
         }
@@ -2754,11 +3439,14 @@ var s2d;
 /// <reference path="Input/InputManager.ts" />
 /// <reference path="Render/RenderManager.ts" />
 /// <reference path="Entity/EntityManager.ts" />
+/// <reference path="Assets/AssetsLoader.ts" />
 /// <reference path="Util/Time.ts" />
 var s2d;
 (function (s2d) {
     var Engine = (function () {
         function Engine() {
+            this._onInitCompleteCallback = null;
+            this._initialized = false;
             this.lastUpdateTime = 0;
         }
         Object.defineProperty(Engine.prototype, "renderer", {
@@ -2789,7 +3477,16 @@ var s2d;
             enumerable: true,
             configurable: true
         });
-        Engine.prototype.init = function () {
+        Object.defineProperty(Engine.prototype, "loader", {
+            get: function () {
+                return this._loader;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Engine.prototype.init = function (onInitCompleteCallback) {
+            if (onInitCompleteCallback === void 0) { onInitCompleteCallback = null; }
+            this._onInitCompleteCallback = onInitCompleteCallback;
             s2d.Drawer.initStatic();
             s2d.TextDrawer.initStatic();
             s2d.Time.initStatic();
@@ -2799,15 +3496,29 @@ var s2d;
             this._input = new s2d.InputManager();
             this._entities = new s2d.EntityManager();
             this._stats = new s2d.Stats();
+            this._loader = new s2d.AssetsLoader();
             //Global vars initialization
             s2d.input = this._input;
             s2d.renderer = this._renderer;
             s2d.entities = this._entities;
+            s2d.loader = this._loader;
             //Manager initialization
             this._renderer.init();
             this._input.init();
             this._entities.init();
             this._stats.init();
+            this._loader.init();
+            //Embedded assets loading
+            s2d.EmbeddedAssets.init();
+            s2d.loader.onLoadComplete.attachOnlyOnce(this.onEmbeddedAssetsLoadComplete, this);
+        };
+        Engine.prototype.onEmbeddedAssetsLoadComplete = function () {
+            this._initialized = true;
+            if (this._onInitCompleteCallback !== null) {
+                var tmp = this._onInitCompleteCallback;
+                this._onInitCompleteCallback = null;
+                tmp.call(undefined);
+            }
         };
         Engine.prototype.update = function () {
             var now = Date.now() / 1000;
@@ -2816,6 +3527,11 @@ var s2d;
             else
                 s2d.Time.deltaTime = now - this.lastUpdateTime;
             this.lastUpdateTime = now;
+            this._loader.update();
+            if (!this._initialized) {
+                //Initialization not finished, don't do anything else
+                return;
+            }
             if (this._renderer.contextLost) {
                 //Context lost, don't do anything else
                 return;
@@ -2838,11 +3554,14 @@ var s2d;
 })(s2d || (s2d = {}));
 /// <reference path="Simple2DEngine/Engine.ts" />
 window.onload = function () {
-    s2d.engine.init();
-    //Creat main game logic entity
-    s2d.EntityFactory.buildWithComponent(GameLogic, "GameLogic");
+    s2d.engine.init(onInitComplete);
     requestAnimationFrame(update);
 };
+function onInitComplete() {
+    //Creat main game logic entity
+    s2d.EntityFactory.buildWithComponent(GameLogic, "GameLogic");
+}
+;
 function update() {
     s2d.engine.update();
     requestAnimationFrame(update);
@@ -2870,10 +3589,12 @@ var GameLogic = (function (_super) {
         this.lastUpdateTime = 0;
         this.lastEntitiesCount = 0;
         this.lastDrawcalls = 0;
+        this.loadCompleted = false;
     }
     GameLogic.prototype.onInit = function () {
         var _this = this;
-        this.texture = new s2d.RenderTexture(false).loadFromUrl("assets/test.png");
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.onLoadComplete.attachOnlyOnce(this.onLoadComplete, this);
         this.cam = s2d.EntityFactory.buildCamera();
         this.uiContainer = new s2d.Entity("UI Container").transform;
         this.textFPS = s2d.EntityFactory.buildTextDrawer();
@@ -2881,10 +3602,10 @@ var GameLogic = (function (_super) {
         this.textFPS.color.setFromRgba(0, 255, 0);
         var resetButton = s2d.EntityFactory.buildTextButton(this.texture, "Reset");
         resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
-        resetButton.onClick.attach(this, this.onResetButtonClicked);
+        resetButton.onClick.attach(this.onResetButtonClicked, this);
         var clearButton = s2d.EntityFactory.buildTextButton(this.texture, "Clear");
         clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
-        clearButton.onClick.attach(this, this.onClearButtonClicked);
+        clearButton.onClick.attach(this.onClearButtonClicked, this);
         var addMore = s2d.EntityFactory.buildTextButton(this.texture, "Add\nMore");
         addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
         addMore.onClick.attach(function () { _this.initTest(); });
@@ -2894,6 +3615,10 @@ var GameLogic = (function (_super) {
         var toggleNestingButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nNesting");
         toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
         toggleNestingButton.onClick.attach(function () { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; _this.clear(); _this.initTest(); });
+    };
+    GameLogic.prototype.onLoadComplete = function () {
+        this.texture = s2d.loader.getAsset("test.png");
+        this.loadCompleted = true;
         this.initTest();
     };
     GameLogic.prototype.onResetButtonClicked = function (button) {
@@ -2914,6 +3639,8 @@ var GameLogic = (function (_super) {
         this.entities.length = 0;
     };
     GameLogic.prototype.initTestSimple = function () {
+        if (!this.loadCompleted)
+            return;
         var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
         var e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
         var e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
@@ -2928,6 +3655,8 @@ var GameLogic = (function (_super) {
         this.entities.push(e3);
     };
     GameLogic.prototype.initTestComplex = function () {
+        if (!this.loadCompleted)
+            return;
         var sWidth = s2d.engine.renderer.screenWidth;
         var sHeight = s2d.engine.renderer.screenHeight;
         for (var i = 0; i < GameLogic.RECTS_COUNT; i++) {
@@ -2973,227 +3702,211 @@ var GameLogic = (function (_super) {
     GameLogic.RECTS_COUNT = 1024;
     return GameLogic;
 }(s2d.Behavior));
-// Copyright (c) 2015 Rogier Schouten<github@workingcode.ninja>
-// License: ISC
 var s2d;
 (function (s2d) {
-    /**
-     * Base class for events.
-     * Handles attaching and detaching listeners
-     */
-    var BaseEvent = (function () {
-        function BaseEvent() {
+    (function (LoaderState) {
+        LoaderState[LoaderState["WaitingStart"] = 0] = "WaitingStart";
+        LoaderState[LoaderState["Loading"] = 1] = "Loading";
+        LoaderState[LoaderState["Complete"] = 2] = "Complete";
+    })(s2d.LoaderState || (s2d.LoaderState = {}));
+    var LoaderState = s2d.LoaderState;
+    var Loader = (function () {
+        function Loader(id) {
+            this._id = null;
+            this._onLoadComplete = new s2d.Event();
+            this._state = LoaderState.WaitingStart;
+            this._asset = null;
+            this._id = id;
         }
-        /**
-         * Attach an event handler
-         * @param boundTo (Optional) The this argument of the handler
-         * @param handler The function to call.
-         */
-        BaseEvent.prototype.attach = function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            var boundTo;
-            var handler;
-            var event;
-            if (typeof args[0] === 'function') {
-                handler = args[0];
-            }
-            else if (args.length === 1 && typeof args[0].post === 'function') {
-                event = args[0];
-            }
-            else {
-                if (typeof args[0] !== 'object') {
-                    throw new Error('Expect a function or object as first argument');
-                }
-                ;
-                if (typeof args[1] !== 'function') {
-                    throw new Error('Expect a function as second argument');
-                }
-                boundTo = args[0];
-                handler = args[1];
-            }
-            if (!this._listeners) {
-                this._listeners = [];
-            }
-            else {
-                // make a copy of the array so events that are underway have a stable local copy
-                // of the listeners array at the time of post()
-                this._listeners = this._listeners.map(function (listener) {
-                    return listener;
-                });
-            }
-            this._listeners.push({
-                deleted: false,
-                boundTo: boundTo,
-                handler: handler,
-                event: event
-            });
-        };
-        /**
-         * Detach implementation. See the overloads for description.
-         */
-        BaseEvent.prototype.detach = function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            if (!this._listeners || this._listeners.length === 0) {
-                return;
-            }
-            var boundTo;
-            var handler;
-            var event;
-            if (args.length >= 1) {
-                if (typeof (args[0]) === 'function') {
-                    handler = args[0];
-                }
-                else if (args.length === 1 && typeof args[0].post === 'function') {
-                    event = args[0];
-                }
-                else {
-                    boundTo = args[0];
-                }
-            }
-            if (args.length >= 2) {
-                handler = args[1];
-            }
-            // remove listeners AND mark them as deleted so subclasses don't send any more events to them
-            this._listeners = this._listeners.filter(function (listener) {
-                if ((typeof handler === 'undefined' || listener.handler === handler)
-                    && (typeof event === 'undefined' || listener.event === event)
-                    && (typeof boundTo === 'undefined' || listener.boundTo === boundTo)) {
-                    listener.deleted = true;
-                    return false;
-                }
-                return true;
-            });
-            if (this._listeners.length === 0) {
-                delete this._listeners;
+        Object.defineProperty(Loader.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "state", {
+            get: function () {
+                return this._state;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "asset", {
+            get: function () {
+                return this._asset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "onLoadComplete", {
+            get: function () {
+                return this._onLoadComplete;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Loader.prototype.start = function () {
+            if (this._state == LoaderState.WaitingStart) {
+                this._state = LoaderState.Loading;
+                this.onStart();
             }
         };
-        /**
-         * Abstract post() method to be able to connect any type of event to any other directly
-         * @abstract
-         */
-        BaseEvent.prototype.post = function (data) {
-            throw new Error('abstract');
+        Loader.prototype.onStart = function () {
+            //Must be overriden in subclass to start downloading
         };
-        /**
-         * The number of attached listeners
-         */
-        BaseEvent.prototype.listenerCount = function () {
-            return (this._listeners ? this._listeners.length : 0);
+        //Must be called by subclass when the asset has finished downloading
+        Loader.prototype.setAsset = function (asset) {
+            this._asset = asset;
+            this._onLoadComplete.post(this);
         };
-        /**
-         * Call the given listener, if it is not marked as 'deleted'
-         * @param listener The listener to call
-         * @param args The arguments to the handler
-         */
-        BaseEvent.prototype._call = function (listener, args) {
-            if (!listener.deleted) {
-                if (listener.event) {
-                    listener.event.post.apply(listener.event, args);
-                }
-                else {
-                    listener.handler.apply((typeof listener.boundTo === 'object' ? listener.boundTo : this), args);
-                }
-            }
-        };
-        return BaseEvent;
+        return Loader;
     }());
-    s2d.BaseEvent = BaseEvent;
+    s2d.Loader = Loader;
 })(s2d || (s2d = {}));
-/// <reference path="base-event.ts" />
-// Copyright (c) 2015 Rogier Schouten<github@workingcode.ninja>
-// License: ISC
+/// <reference path="Loader.ts" />
 var s2d;
 (function (s2d) {
-    /**
-     * This is a true EventEmitter replacement: the handlers are called synchronously when
-     * you post the event.
-     * - Allows better error handling by aggregating any errors thrown by handlers.
-     * - Prevents livelock by throwing an error when recursion depth is above a maximum.
-     * - Handlers are called only for events posted after they were attached.
-     * - Handlers are not called anymore when they are detached, even if a post() is in progress
-     */
-    var SyncEvent = (function (_super) {
-        __extends(SyncEvent, _super);
-        function SyncEvent() {
-            _super.apply(this, arguments);
-            /**
-             * Recursive post() invocations
-             */
-            this._recursion = 0;
+    var ImageLoader = (function (_super) {
+        __extends(ImageLoader, _super);
+        function ImageLoader(id, url) {
+            _super.call(this, id);
+            this._image = null;
+            this._url = url;
         }
-        SyncEvent.prototype.post = function () {
-            var args = [];
-            for (var _i = 0; _i < arguments.length; _i++) {
-                args[_i - 0] = arguments[_i];
-            }
-            if (!this._listeners || this._listeners.length === 0) {
-                return;
-            }
-            this._recursion++;
-            if (SyncEvent.MAX_RECURSION_DEPTH > 0 &&
-                this._recursion > SyncEvent.MAX_RECURSION_DEPTH) {
-                throw new Error('event fired recursively');
-            }
-            // copy a reference to the array because this._listeners might be replaced during
-            // the handler calls
-            var listeners = this._listeners;
-            for (var i = 0; i < listeners.length; ++i) {
-                var listener = listeners[i];
-                this._call(listener, args);
-            }
-            this._recursion--;
+        ImageLoader.prototype.onStart = function () {
+            var _this = this;
+            this._image = new Image();
+            this._image.setAttribute('crossOrigin', 'anonymous');
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = this._url;
         };
-        /**
-         * Maximum number of times that an event handler may cause the same event
-         * recursively.
-         */
-        SyncEvent.MAX_RECURSION_DEPTH = 10;
-        return SyncEvent;
-    }(s2d.BaseEvent));
-    s2d.SyncEvent = SyncEvent;
-    /**
-     * Convenience class for events without data
-     */
-    var VoidSyncEvent = (function (_super) {
-        __extends(VoidSyncEvent, _super);
-        function VoidSyncEvent() {
-            _super.apply(this, arguments);
+        ImageLoader.prototype.onImageLoadComplete = function () {
+            var tmp = this._image;
+            this._image = null;
+            this.setAsset(tmp);
+        };
+        return ImageLoader;
+    }(s2d.Loader));
+    s2d.ImageLoader = ImageLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="ImageLoader.ts" />
+/// <reference path="../Render/RenderTexture.ts" />
+var s2d;
+(function (s2d) {
+    var RenderTextureLoader = (function (_super) {
+        __extends(RenderTextureLoader, _super);
+        function RenderTextureLoader(id, url, hasAlpha) {
+            _super.call(this, id);
+            this._url = null;
+            this._hasAlpha = false;
+            this._url = url;
+            this._hasAlpha = hasAlpha;
         }
-        /**
-         * Send the event.
-         */
-        VoidSyncEvent.prototype.post = function () {
-            _super.prototype.post.call(this, undefined);
+        RenderTextureLoader.prototype.onStart = function () {
+            s2d.loader.loadImageFromUrl(this.id + "_image", this._url, this.onImageLoadComplete, this);
         };
-        return VoidSyncEvent;
-    }(SyncEvent));
-    s2d.VoidSyncEvent = VoidSyncEvent;
-    /**
-     * Similar to 'error' event on EventEmitter: throws when a post() occurs while no handlers set.
-     */
-    var ErrorSyncEvent = (function (_super) {
-        __extends(ErrorSyncEvent, _super);
-        function ErrorSyncEvent() {
-            _super.apply(this, arguments);
+        RenderTextureLoader.prototype.onImageLoadComplete = function (imageLoader) {
+            var texture = new s2d.RenderTexture(imageLoader.asset, this._hasAlpha);
+            this.setAsset(texture);
+        };
+        return RenderTextureLoader;
+    }(s2d.Loader));
+    s2d.RenderTextureLoader = RenderTextureLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+var s2d;
+(function (s2d) {
+    var XmlLoader = (function (_super) {
+        __extends(XmlLoader, _super);
+        function XmlLoader(id, url) {
+            _super.call(this, id);
+            this._xhttp = null;
+            this._url = url;
         }
-        ErrorSyncEvent.prototype.post = function (data) {
-            if (this.listenerCount() === 0) {
-                throw new Error("error event posted while no listeners attached. Error: " + data.message);
-            }
-            _super.prototype.post.call(this, data);
+        XmlLoader.prototype.onStart = function () {
+            var _this = this;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", this._url, true);
+            this._xhttp.send(null);
         };
-        return ErrorSyncEvent;
-    }(SyncEvent));
-    s2d.ErrorSyncEvent = ErrorSyncEvent;
+        XmlLoader.prototype.onXMLLoadComplete = function () {
+            var tmp = this._xhttp;
+            this._xhttp = null;
+            this.setAsset(tmp.responseText);
+        };
+        return XmlLoader;
+    }(s2d.Loader));
+    s2d.XmlLoader = XmlLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="RenderTextureLoader.ts" />
+/// <reference path="XmlLoader.ts" />
+/// <reference path="../Render/RenderFont.ts" />
+var s2d;
+(function (s2d) {
+    var RenderFontLoader = (function (_super) {
+        __extends(RenderFontLoader, _super);
+        function RenderFontLoader(id, fontXmlUrl) {
+            _super.call(this, id);
+            this._fontXmlUrl = null;
+            this._fontJson = null;
+            this._fontXmlUrl = fontXmlUrl;
+        }
+        RenderFontLoader.prototype.onStart = function () {
+            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._fontXmlUrl, this.onXmlLoadComplete, this);
+        };
+        RenderFontLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
+            var xml = xmlLoader.asset;
+            this._fontJson = JXON.stringToJs(xml);
+            var url = "assets/" + this._fontJson.font.pages.page.$file;
+            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
+        };
+        RenderFontLoader.prototype.onTextureLoadComplete = function (loader) {
+            var font = new s2d.RenderFont(loader.asset, this._fontJson);
+            this._fontJson = null;
+            this.setAsset(font);
+        };
+        return RenderFontLoader;
+    }(s2d.Loader));
+    s2d.RenderFontLoader = RenderFontLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="RenderTextureLoader.ts" />
+/// <reference path="XmlLoader.ts" />
+/// <reference path="../Render/RenderSpriteAtlas.ts" />
+var s2d;
+(function (s2d) {
+    var RenderSpriteAtlasLoader = (function (_super) {
+        __extends(RenderSpriteAtlasLoader, _super);
+        function RenderSpriteAtlasLoader(id, spriteAtlasXmlUrl) {
+            _super.call(this, id);
+            this._spriteAtlasXmlUrl = null;
+            this._spriteAtlasJson = null;
+            this._spriteAtlasXmlUrl = spriteAtlasXmlUrl;
+        }
+        RenderSpriteAtlasLoader.prototype.onStart = function () {
+            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
+        };
+        RenderSpriteAtlasLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
+            var xml = xmlLoader.asset;
+            this._spriteAtlasJson = JXON.stringToJs(xml);
+            var url = "assets/" + this._spriteAtlasJson.atlas.info.$file;
+            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
+        };
+        RenderSpriteAtlasLoader.prototype.onTextureLoadComplete = function (textureLoader) {
+            var atlas = new s2d.RenderSpriteAtlas(textureLoader.asset, this._spriteAtlasJson);
+            this._spriteAtlasJson = null;
+            this.setAsset(atlas);
+        };
+        return RenderSpriteAtlasLoader;
+    }(s2d.Loader));
+    s2d.RenderSpriteAtlasLoader = RenderSpriteAtlasLoader;
 })(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
-/// <reference path="../Event/sync-event.ts" />
+/// <reference path="../Event/Event.ts" />
 var s2d;
 (function (s2d) {
     var Interactable = (function (_super) {
@@ -3236,7 +3949,7 @@ var s2d;
         __extends(Button, _super);
         function Button() {
             _super.apply(this, arguments);
-            this._onClick = new s2d.SyncEvent();
+            this._onClick = new s2d.Event();
             this._buttonSprite = null;
             this._buttonSpriteDown = null;
             this._spriteDrawer = null;
@@ -4812,427 +5525,6 @@ var s2d;
     }());
     s2d.SMath = SMath;
 })(s2d || (s2d = {}));
-/// <reference path="../Util/JXON.d.ts" />
-var s2d;
-(function (s2d) {
-    var RenderFontCharData = (function () {
-        function RenderFontCharData() {
-            this.id = 0;
-            this.width = 0;
-            this.height = 0;
-            this.x = 0;
-            this.y = 0;
-            this.xadvance = 0;
-            this.xoffset = 0;
-            this.yoffset = 0;
-        }
-        return RenderFontCharData;
-    }());
-    s2d.RenderFontCharData = RenderFontCharData;
-    var RenderFont = (function () {
-        function RenderFont() {
-            this._xhttp = null;
-            this._texture = null;
-            this._textureWidth = 0;
-            this._textureHeight = 0;
-            this._lineHeight = 0;
-            this._chars = new Array();
-        }
-        Object.defineProperty(RenderFont.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "textureWidth", {
-            get: function () {
-                return this._textureWidth;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "textureHeight", {
-            get: function () {
-                return this._textureHeight;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "lineHeight", {
-            get: function () {
-                return this._lineHeight;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderFont.prototype, "chars", {
-            get: function () {
-                return this._chars;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderFont.prototype.clear = function () {
-            if (this._texture != null) {
-                this._texture.clear();
-                this._texture = null;
-            }
-        };
-        RenderFont.prototype.loadFromEmbeddedData = function (fontXml, textureBase64) {
-            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64);
-            this.parseFontXml(fontXml);
-            return this;
-        };
-        RenderFont.prototype.loadFromUrl = function (fontXmlURL) {
-            var _this = this;
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
-            this._xhttp.open("GET", fontXmlURL, true);
-            this._xhttp.send(null);
-            return this;
-        };
-        RenderFont.prototype.onXMLLoadComplete = function () {
-            var fontData = this.parseFontXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture = new s2d.RenderTexture(true).loadFromUrl("assets/" + fontData.font.pages.page.$file);
-        };
-        RenderFont.prototype.parseFontXml = function (xml) {
-            var fontData = JXON.stringToJs(xml);
-            this._textureWidth = parseInt(fontData.font.common.$scaleW);
-            this._textureHeight = parseInt(fontData.font.common.$scaleH);
-            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
-            var charsJson = fontData.font.chars.char;
-            for (var i = 0; i < charsJson.length; i++) {
-                var charJson = charsJson[i];
-                var char = new RenderFontCharData();
-                char.id = parseInt(charJson.$id);
-                char.width = parseInt(charJson.$width);
-                char.height = parseInt(charJson.$height);
-                char.x = parseInt(charJson.$x);
-                char.y = parseInt(charJson.$y);
-                char.xadvance = parseInt(charJson.$xadvance);
-                char.xoffset = parseInt(charJson.$xoffset);
-                char.yoffset = parseInt(charJson.$yoffset);
-                this._chars[char.id] = char;
-            }
-            return fontData;
-        };
-        return RenderFont;
-    }());
-    s2d.RenderFont = RenderFont;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var RenderTexture = (function () {
-        function RenderTexture(hasAlpha) {
-            this._texture = null;
-            this._hasAlpha = false;
-            this._width = 0;
-            this._height = 0;
-            this._image = null;
-            this._loadCompleteCallback = null;
-            this._loadCompleteCallbackThis = null;
-            var gl = s2d.renderer.gl;
-            this._hasAlpha = hasAlpha;
-            this._texture = gl.createTexture();
-            var texture = this._texture;
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            // Fill the texture with a 1x1 white pixel.
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array([255, 255, 255, 255]));
-        }
-        Object.defineProperty(RenderTexture.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderTexture.prototype, "width", {
-            get: function () {
-                return this._width;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderTexture.prototype, "height", {
-            get: function () {
-                return this._height;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderTexture.prototype, "hasAlpha", {
-            get: function () {
-                return this._hasAlpha;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderTexture.prototype.loadFromUrl = function (imageUrl, onLoadComplete, onLoadCompleteThis) {
-            var _this = this;
-            if (onLoadComplete === void 0) { onLoadComplete = null; }
-            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = imageUrl;
-            return this;
-        };
-        RenderTexture.prototype.loadFromEmbeddedData = function (imageBase64, onLoadComplete, onLoadCompleteThis) {
-            var _this = this;
-            if (onLoadComplete === void 0) { onLoadComplete = null; }
-            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = "data:image/png;base64," + imageBase64;
-            return this;
-        };
-        RenderTexture.prototype.onImageLoadComplete = function () {
-            var gl = s2d.renderer.gl;
-            var texture = this._texture;
-            var image = this._image;
-            this._width = image.width;
-            this._height = image.height;
-            // Now that the image has loaded make copy it to the texture.
-            gl.bindTexture(gl.TEXTURE_2D, texture);
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-            gl.generateMipmap(gl.TEXTURE_2D);
-            this._image = null;
-            var tmpCallback = this._loadCompleteCallback;
-            var tmpThis = this._loadCompleteCallbackThis;
-            this._loadCompleteCallback = null;
-            this._loadCompleteCallbackThis = null;
-            if (tmpCallback)
-                tmpCallback.call(tmpThis, this);
-        };
-        RenderTexture.prototype.clear = function () {
-            var gl = s2d.renderer.gl;
-            if (this._texture != null) {
-                gl.deleteTexture(this._texture);
-                this._texture = null;
-            }
-        };
-        RenderTexture.prototype.useTexture = function () {
-            var gl = s2d.renderer.gl;
-            gl.bindTexture(gl.TEXTURE_2D, this._texture);
-        };
-        return RenderTexture;
-    }());
-    s2d.RenderTexture = RenderTexture;
-})(s2d || (s2d = {}));
-/// <reference path="RenderTexture.ts" />
-var s2d;
-(function (s2d) {
-    (function (RenderSpriteDrawMode) {
-        RenderSpriteDrawMode[RenderSpriteDrawMode["Normal"] = 0] = "Normal";
-        RenderSpriteDrawMode[RenderSpriteDrawMode["Slice9"] = 1] = "Slice9";
-    })(s2d.RenderSpriteDrawMode || (s2d.RenderSpriteDrawMode = {}));
-    var RenderSpriteDrawMode = s2d.RenderSpriteDrawMode;
-    var RenderSprite = (function () {
-        function RenderSprite(id, texture, uvRect, drawMode, innerUvRect) {
-            if (drawMode === void 0) { drawMode = RenderSpriteDrawMode.Normal; }
-            if (innerUvRect === void 0) { innerUvRect = null; }
-            this._id = null;
-            this._texture = null;
-            this._uvRect = s2d.Rect.create();
-            this._innerUvRect = null;
-            this._drawMode = RenderSpriteDrawMode.Normal;
-            this._id = id;
-            this._texture = texture;
-            s2d.Rect.copy(this._uvRect, uvRect);
-            this._drawMode = drawMode;
-            if (innerUvRect !== null) {
-                this._innerUvRect = s2d.Rect.create();
-                s2d.Rect.copy(this._innerUvRect, innerUvRect);
-            }
-            if (drawMode !== RenderSpriteDrawMode.Normal && this._innerUvRect === null)
-                s2d.EngineConsole.error("Missing innerUvRect for draw mode " + drawMode, this);
-        }
-        Object.defineProperty(RenderSprite.prototype, "id", {
-            get: function () {
-                return this._id;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderSprite.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderSprite.prototype, "uvRect", {
-            get: function () {
-                return this._uvRect;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderSprite.prototype, "drawMode", {
-            get: function () {
-                return this._drawMode;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderSprite.prototype, "innerUvRect", {
-            get: function () {
-                return this._innerUvRect;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return RenderSprite;
-    }());
-    s2d.RenderSprite = RenderSprite;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var StringDictionary = (function () {
-        function StringDictionary() {
-            this._data = {};
-        }
-        Object.defineProperty(StringDictionary.prototype, "data", {
-            get: function () {
-                return this._data;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        StringDictionary.prototype.add = function (key, value) {
-            this._data[key] = value;
-        };
-        StringDictionary.prototype.remove = function (key) {
-            delete this._data[key];
-        };
-        StringDictionary.prototype.has = function (key) {
-            return this._data[key] === undefined;
-        };
-        StringDictionary.prototype.get = function (key) {
-            var v = this._data[key];
-            if (v === undefined)
-                v = null;
-            return v;
-        };
-        return StringDictionary;
-    }());
-    s2d.StringDictionary = StringDictionary;
-})(s2d || (s2d = {}));
-/// <reference path="RenderSprite.ts" />
-/// <reference path="../Util/Dictionary.ts" />
-var s2d;
-(function (s2d) {
-    var RenderSpriteAtlas = (function () {
-        function RenderSpriteAtlas() {
-            this._texture = null;
-            this._sprites = new s2d.StringDictionary();
-            this._xhttp = null;
-            this._loadCompleteCallback = null;
-            this._loadCompleteCallbackThis = null;
-        }
-        Object.defineProperty(RenderSpriteAtlas.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderSpriteAtlas.prototype.sprites = function () {
-            return this._sprites;
-        };
-        RenderSpriteAtlas.prototype.getSprite = function (id) {
-            return this._sprites.get(id);
-        };
-        RenderSpriteAtlas.prototype.clear = function () {
-            if (this._texture != null) {
-                this._texture.clear();
-                this._texture = null;
-            }
-        };
-        RenderSpriteAtlas.prototype.loadFromEmbeddedData = function (textureAtlasXml, textureBase64, onLoadComplete, onLoadCompleteThis) {
-            if (onLoadComplete === void 0) { onLoadComplete = null; }
-            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
-            this._texture = new s2d.RenderTexture(true).loadFromEmbeddedData(textureBase64, this.onTextureLoadComplete, this);
-            this.parseTextureAtlasXml(textureAtlasXml);
-            return this;
-        };
-        RenderSpriteAtlas.prototype.loadFromUrl = function (textureAtlasXmlURL, onLoadComplete, onLoadCompleteThis) {
-            var _this = this;
-            if (onLoadComplete === void 0) { onLoadComplete = null; }
-            if (onLoadCompleteThis === void 0) { onLoadCompleteThis = null; }
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
-            this._xhttp.open("GET", textureAtlasXmlURL, true);
-            this._xhttp.send(null);
-            return this;
-        };
-        RenderSpriteAtlas.prototype.onXMLLoadComplete = function () {
-            //Create the texture before parsing the texture atlas, so every sprite already
-            //has a reference to the texture
-            this._texture = new s2d.RenderTexture(true);
-            var atlasData = this.parseTextureAtlasXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture.loadFromUrl("assets/" + atlasData.atlas.info.$file, this.onTextureLoadComplete, this);
-        };
-        RenderSpriteAtlas.prototype.onTextureLoadComplete = function () {
-            var tmpCallback = this._loadCompleteCallback;
-            var tmpThis = this._loadCompleteCallbackThis;
-            this._loadCompleteCallback = null;
-            this._loadCompleteCallbackThis = null;
-            if (tmpCallback)
-                tmpCallback.call(tmpThis, this);
-        };
-        RenderSpriteAtlas.prototype.parseTextureAtlasXml = function (xml) {
-            var atlasData = JXON.stringToJs(xml);
-            var spritesJson = atlasData.atlas.sprites.sprite;
-            for (var i = 0; i < spritesJson.length; i++) {
-                var spriteJson = spritesJson[i];
-                var id = spriteJson.$id;
-                var rect = RenderSpriteAtlas.parseRectString(spriteJson.$rect);
-                var innerRect = RenderSpriteAtlas.parseRectString(spriteJson.$innerRect);
-                if (id && rect) {
-                    var sprite = null;
-                    if (innerRect)
-                        sprite = new s2d.RenderSprite(id, this._texture, rect, s2d.RenderSpriteDrawMode.Slice9, innerRect);
-                    else
-                        sprite = new s2d.RenderSprite(id, this._texture, rect);
-                    this._sprites.add(sprite.id, sprite);
-                }
-            }
-            return atlasData;
-        };
-        RenderSpriteAtlas.parseRectString = function (str) {
-            var rect = null;
-            if (str && str.length > 0) {
-                var strs = str.split(",");
-                if (strs.length === 4) {
-                    rect = s2d.Rect.fromValues(parseInt(strs[0]), parseInt(strs[1]), parseInt(strs[2]), parseInt(strs[3]));
-                }
-            }
-            return rect;
-        };
-        return RenderSpriteAtlas;
-    }());
-    s2d.RenderSpriteAtlas = RenderSpriteAtlas;
-})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     var RenderVertex = (function () {
@@ -5268,10 +5560,14 @@ var s2d;
     var EmbeddedAssets = (function () {
         function EmbeddedAssets() {
         }
+        EmbeddedAssets.init = function () {
+            s2d.loader.loadRenderFontFromUrl("defaultFont", "assets/font.xml");
+            s2d.loader.loadRenderSpriteAtlasFromUrl("defaultSkinAtlas", "assets/gui_skin.xml");
+        };
         Object.defineProperty(EmbeddedAssets, "defaultFont", {
             get: function () {
                 if (EmbeddedAssets._defaultFont === null)
-                    EmbeddedAssets._defaultFont = new s2d.RenderFont().loadFromEmbeddedData(window.atob(s2d.EmbeddedData.fontXmlBase64), s2d.EmbeddedData.fontTextureBase64);
+                    EmbeddedAssets._defaultFont = s2d.loader.getAsset("defaultFont");
                 return EmbeddedAssets._defaultFont;
             },
             enumerable: true,
@@ -5280,12 +5576,13 @@ var s2d;
         Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
             get: function () {
                 if (EmbeddedAssets._defaultSkinAtlas === null)
-                    EmbeddedAssets._defaultSkinAtlas = new s2d.RenderSpriteAtlas().loadFromEmbeddedData(window.atob(s2d.EmbeddedData.guiSkinAtlasXmlBase64), s2d.EmbeddedData.guiSkinTextureBase64);
+                    EmbeddedAssets._defaultSkinAtlas = s2d.loader.getAsset("defaultSkinAtlas");
                 return EmbeddedAssets._defaultSkinAtlas;
             },
             enumerable: true,
             configurable: true
         });
+        //Default font is KenPixel.ttf at 12px height
         EmbeddedAssets._defaultFont = null;
         EmbeddedAssets._defaultSkinAtlas = null;
         return EmbeddedAssets;
@@ -5297,15 +5594,6 @@ var s2d;
     var EmbeddedData = (function () {
         function EmbeddedData() {
         }
-        //Embeded font is KenPixel.ttf at 12px height
-        //Font texture encoded using https://www.base64-image.de/
-        EmbeddedData.fontTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHLAAAFjElEQVR4nO2c627rIBCEcZX3f2WfH6eOyGavgB2nM58U1V5gwWaABSXd9n1vrbW9vbL9/t0N29bZdyX/lrRr/jy71h7PLtM3cR3ly7Y34z/z3mba7z2X5Wfb9v8KyHSAlU9Lz1z3DTrI+u/vq+3M+B/1McKq9g/V+3AyyEZEI25r7x3q2a0OzPqP7JafrH+rPX2ZO9Tb+ygPEE8AVYerRujZ9c7az26n5T+yD/GzytEAvfKtEUBOxpsBVmJ1sBVsZafEq8hOxVb+qt2b6j17mUfT16DVQYgX+FXyV/2swnofo+u+Z6/WO8UxA3hr0Vns4vrKusnv+34IQ98R1ajbi8bNBrT5zr+inWfOkJb/WXv0vM9zgNYbio0nX46cASy8k6jsCZdEC/ysa61sVCZTXku3ziQyW9eRYM7aGkq8s4dq/mddD1Gp1TDr2rtfccKV6eAV5T0BV+rUxLM59oovrZzn38v/tP90GeSD9k724F6rHIVPLp3T9R4zgHQobVpwmB2B1v0d4g0pYmvUeWnW6OvLeIPCmr5Ht4+ZQP5Jfw4w0sERs0vA2XjPqsUR0ZJg+crGFe56HdhH7j96FPxNRDHSai5bRq86Cj6QCpe7ikzE3TNb3mqX9NffR761iL96jlDd04/6eZ4DzE4ld1vbSZLMDCDXP209XD0qRvbTms3dAin5KoFXtv3V/EeaFxxWnsu197sAq4Ojfb/3EL0fjUyDZXpkH12fRwRzRv4m8p4abxy7AK1iD2uk3CHq5xJU4FgCqlPf2R1dXQJkWrT/XhWzVP2sCOyquP77o+CDzFRmsepBMkuGlVY9QJkRsFdO8zuyt5/F7cfKl0Kl06jMHQ9+rsQK5M6uL7td3VqzvxEkkQ69CNZq2FvlLTclyvoi/5dOoQvyrzoj6NOyy9HL9wFeEgbuqw9CboAWA0iyHVndHsq00f1y1s7zAcWuLQGyI73p32twtD1ctV/m+cAYzxhANsCqUDZQMvrCrwqUuCQpRNtAyehLjIKibMTM84HFVLaBe2f3ZoHIl1Y2OwvwfGAdzxggnbm7t0RQ2R5qZRC41fnASBCoOY6o7vd5PnD++cDWWmvR7wKyx79RlEtuiveVsGoHRsvB8ZF1WPYm7DKfNo1q5TL5NSxfss3Ze6+8TNPKWW3JtNlMj74TuLf3Bkusju4r29r79N7bV6yLMnia8ef5kgFa/2xWehPp2vRs5fXoy0bPrwaX3i+DrMqt7WE0Y3jbS82/JaDeZt1n2/QtaDOf7Gzv+c338NN0pchKZcX9ZzXRCKrEGiMzgfcyP0X/rq3BEI14tf2zXws/Y4RpM4BXn9c5I+2LXuadsDo5ek/pGCBb+cq81gywi2u5Ln9Lp80QLdPWrGmme+cA3r6y2qF9h2X8jxCteVp90bNb29sm0vuyVrqXX5ZtStopaP8nsHrfRNqL/+kWklMZXQKs7aEXIFpr+4q/2qdaxrNLPhkQLmXkp2HRqPamuDPwfFvxRLRGztT5VWhfCYuQa6Ncw+R69mde1l/kiAHe7N21NoIrcQG5Mdovg3q8UZ492SM3xpsBOMoBGIkByB+C/yEEHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAHAoAnH8AfKNa7b1P4gAAAABJRU5ErkJggg==";
-        //XML encoded using https://www.base64encode.org/
-        EmbeddedData.fontXmlBase64 = "PD94bWwgdmVyc2lvbj0iMS4wIj8+DQo8Zm9udD4NCiAgPGluZm8gZmFjZT0iS2VuUGl4ZWwiIHNpemU9IjEyIiBib2xkPSIwIiBpdGFsaWM9IjAiIGNoYXJzZXQ9IkFOU0kiIHVuaWNvZGU9IjAiIHN0cmV0Y2hIPSIxMDAiIHNtb290aD0iMCIgYWE9IjEiIHBhZGRpbmc9IjAsMCwwLDAiIHNwYWNpbmc9IjEsMSIgb3V0bGluZT0iMCIvPg0KICA8Y29tbW9uIGxpbmVIZWlnaHQ9IjEyIiBiYXNlPSI5IiBzY2FsZVc9IjEyOCIgc2NhbGVIPSIxMjgiIHBhZ2VzPSIxIiBwYWNrZWQ9IjAiIGFscGhhQ2hubD0iMCIgcmVkQ2hubD0iNCIgZ3JlZW5DaG5sPSI0IiBibHVlQ2hubD0iNCIvPg0KICA8cGFnZXM+DQogICAgPHBhZ2UgaWQ9IjAiIGZpbGU9ImZvbnRfMC5wbmciIC8+DQogIDwvcGFnZXM+DQogIDxjaGFycyBjb3VudD0iMTM0Ij4NCiAgICA8Y2hhciBpZD0iMzIiIHg9IjczIiB5PSI0MiIgd2lkdGg9IjMiIGhlaWdodD0iMSIgeG9mZnNldD0iLTEiIHlvZmZzZXQ9IjExIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjMzIiB4PSIxMjYiIHk9IjE4IiB3aWR0aD0iMSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjM0IiB4PSIyNiIgeT0iNDIiIHdpZHRoPSIzIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMzUiIHg9IjM2IiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIzNiIgeD0iMzAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjEiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMzciIHg9IjQyIiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIzOCIgeD0iNzAiIHk9IjEwIiB3aWR0aD0iNiIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNyIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjM5IiB4PSI0MiIgeT0iNDIiIHdpZHRoPSIxIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDAiIHg9IjEyNSIgeT0iMTAiIHdpZHRoPSIyIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIzIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDEiIHg9Ijk2IiB5PSIzNCIgd2lkdGg9IjIiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0MiIgeD0iMTIiIHk9IjQ0IiB3aWR0aD0iMyIgaGVpZ2h0PSIzIiB4b2Zmc2V0PSIxIiB5b2Zmc2V0PSI0IiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQzIiB4PSIxMDUiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQ0IiB4PSI0MCIgeT0iNDIiIHdpZHRoPSIxIiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjgiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDUiIHg9IjYxIiB5PSI0MiIgd2lkdGg9IjUiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNSIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0NiIgeD0iNzciIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIxIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSI4IiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjQ3IiB4PSI3NyIgeT0iMTAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNDgiIHg9IjMwIiB5PSIzNCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI0OSIgeD0iODgiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjUwIiB4PSI4MyIgeT0iMTAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNTEiIHg9Ijg5IiB5PSIxMCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1MiIgeD0iOTUiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjUzIiB4PSIxMDEiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU0IiB4PSIxMDciIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU1IiB4PSIxMTMiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU2IiB4PSIxMTkiIHk9IjEwIiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjU3IiB4PSIwIiB5PSIyMSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1OCIgeD0iMTI1IiB5PSIzNCIgd2lkdGg9IjEiIGhlaWdodD0iNSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI1OSIgeD0iMTI2IiB5PSIyNiIgd2lkdGg9IjEiIGhlaWdodD0iNiIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2MCIgeD0iNDgiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjYxIiB4PSIwIiB5PSI0NSIgd2lkdGg9IjUiIGhlaWdodD0iMyIgeG9mZnNldD0iMCIgeW9mZnNldD0iNCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2MiIgeD0iNTMiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjYzIiB4PSI2IiB5PSIyMSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2NCIgeD0iMzAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjY1IiB4PSIxMiIgeT0iMjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNjYiIHg9IjE4IiB5PSIxOSIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI2NyIgeD0iMjQiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjY4IiB4PSIzMCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNjkiIHg9IjM2IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3MCIgeD0iNDIiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjcxIiB4PSI0OCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzIiIHg9IjU0IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3MyIgeD0iNzYiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijc0IiB4PSI5MiIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzUiIHg9IjYwIiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3NiIgeD0iNjMiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijc3IiB4PSI1NSIgeT0iMTAiIHdpZHRoPSI3IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI4IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iNzgiIHg9IjY2IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI3OSIgeD0iNzIiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjgwIiB4PSI3OCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODEiIHg9Ijg0IiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4MiIgeD0iOTAiIHk9IjE4IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjgzIiB4PSI5NiIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODQiIHg9IjEwMiIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODUiIHg9IjEwOCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODYiIHg9IjExNCIgeT0iMTgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iODciIHg9IjQ3IiB5PSIxMCIgd2lkdGg9IjciIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjgiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4OCIgeD0iMTIwIiB5PSIxOCIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI4OSIgeD0iMCIgeT0iMjkiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTAiIHg9IjYiIHk9IjI5IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjkxIiB4PSIxMDIiIHk9IjM0IiB3aWR0aD0iMiIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMyIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjkyIiB4PSIxMiIgeT0iMjgiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTMiIHg9Ijk5IiB5PSIzNCIgd2lkdGg9IjIiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5NCIgeD0iNiIgeT0iNDUiIHdpZHRoPSI1IiBoZWlnaHQ9IjMiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTUiIHg9IjY3IiB5PSI0MiIgd2lkdGg9IjUiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iOCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5NiIgeD0iNDYiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSI0IiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9Ijk3IiB4PSIxOCIgeT0iMjciIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iOTgiIHg9IjI0IiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSI5OSIgeD0iMTgiIHk9IjM1IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMCIgeD0iMzYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMSIgeD0iNDIiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMiIgeD0iNDgiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwMyIgeD0iNTQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNCIgeD0iNjAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNSIgeD0iODQiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNiIgeD0iODAiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwNyIgeD0iNjYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwOCIgeD0iNTgiIHk9IjM0IiB3aWR0aD0iNCIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNSIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEwOSIgeD0iMzkiIHk9IjEwIiB3aWR0aD0iNyIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iOCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMCIgeD0iNzIiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMSIgeD0iNzgiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMiIgeD0iODQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExMyIgeD0iOTAiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExNCIgeD0iOTYiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExNSIgeD0iMTAyIiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMTYiIHg9IjEwOCIgeT0iMjYiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTE3IiB4PSIxMTQiIHk9IjI2IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjExOCIgeD0iMTIwIiB5PSIyNiIgd2lkdGg9IjUiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMTkiIHg9IjMxIiB5PSIxMCIgd2lkdGg9IjciIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjgiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxMjAiIHg9IjAiIHk9IjM3IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjEyMSIgeD0iNiIgeT0iMzciIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTIyIiB4PSIxMiIgeT0iMzYiIHdpZHRoPSI1IiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTIzIiB4PSI2OCIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI0IiB4PSIxMjYiIHk9IjAiIHdpZHRoPSIxIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI1IiB4PSI3MiIgeT0iMzQiIHdpZHRoPSIzIiBoZWlnaHQ9IjciIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTI2IiB4PSIxOSIgeT0iNDMiIHdpZHRoPSI2IiBoZWlnaHQ9IjIiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjQiIHhhZHZhbmNlPSI3IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTMzIiB4PSI1NSIgeT0iNDIiIHdpZHRoPSI1IiBoZWlnaHQ9IjEiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjgiIHhhZHZhbmNlPSIyIiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTM5IiB4PSIxMjEiIHk9IjM0IiB3aWR0aD0iMyIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NSIgeD0iMzgiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NiIgeD0iNDQiIHk9IjQyIiB3aWR0aD0iMSIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0NyIgeD0iMzQiIHk9IjQyIiB3aWR0aD0iMyIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE0OCIgeD0iMzAiIHk9IjQyIiB3aWR0aD0iMyIgaGVpZ2h0PSIyIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE1MSIgeD0iNDgiIHk9IjQyIiB3aWR0aD0iNiIgaGVpZ2h0PSIxIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSI1IiB4YWR2YW5jZT0iMiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE1NSIgeD0iMTE3IiB5PSIzNCIgd2lkdGg9IjMiIGhlaWdodD0iNSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMyIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxODMiIHg9IjEyNiIgeT0iOCIgd2lkdGg9IjEiIGhlaWdodD0iMSIgeG9mZnNldD0iMCIgeW9mZnNldD0iNSIgeGFkdmFuY2U9IjIiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxODQiIHg9IjE2IiB5PSI0NCIgd2lkdGg9IjIiIGhlaWdodD0iMyIgeG9mZnNldD0iMCIgeW9mZnNldD0iOCIgeGFkdmFuY2U9IjMiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTIiIHg9Ijg0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE5MyIgeD0iNzgiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTk0IiB4PSI0MiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTUiIHg9IjI0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjE5NiIgeD0iOTAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMTk3IiB4PSIzNiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTgiIHg9IjIyIiB5PSIxMCIgd2lkdGg9IjgiIGhlaWdodD0iNyIgeG9mZnNldD0iMCIgeW9mZnNldD0iMiIgeGFkdmFuY2U9IjkiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIxOTkiIHg9IjAiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjEwIiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMCIgeD0iMTA4IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMSIgeD0iMTAyIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwMiIgeD0iOTYiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjAzIiB4PSI3MiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDQiIHg9IjEyIiB5PSIxMCIgd2lkdGg9IjMiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjQiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDUiIHg9IjgiIHk9IjEwIiB3aWR0aD0iMyIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNCIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIwNiIgeD0iNCIgeT0iMTEiIHdpZHRoPSIzIiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI0IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjA3IiB4PSIwIiB5PSIxMSIgd2lkdGg9IjMiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjQiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMDgiIHg9IjYzIiB5PSIxMCIgd2lkdGg9IjYiIGhlaWdodD0iNyIgeG9mZnNldD0iLTEiIHlvZmZzZXQ9IjIiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjA5IiB4PSI2NiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMTAiIHg9IjYwIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxMSIgeD0iNTQiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjEyIiB4PSI0OCIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMTMiIHg9IjE4IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNCIgeD0iMTIiIHk9IjAiIHdpZHRoPSI1IiBoZWlnaHQ9IjkiIHhvZmZzZXQ9IjAiIHlvZmZzZXQ9IjAiIHhhZHZhbmNlPSI2IiBwYWdlPSIwIiBjaG5sPSIxNSIgLz4NCiAgICA8Y2hhciBpZD0iMjE1IiB4PSIxMTEiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI1IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIzIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNiIgeD0iMjQiIHk9IjM0IiB3aWR0aD0iNSIgaGVpZ2h0PSI3IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIyIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxNyIgeD0iMTE0IiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxOCIgeD0iMTIwIiB5PSIwIiB3aWR0aD0iNSIgaGVpZ2h0PSI5IiB4b2Zmc2V0PSIwIiB5b2Zmc2V0PSIwIiB4YWR2YW5jZT0iNiIgcGFnZT0iMCIgY2hubD0iMTUiIC8+DQogICAgPGNoYXIgaWQ9IjIxOSIgeD0iNiIgeT0iMCIgd2lkdGg9IjUiIGhlaWdodD0iOSIgeG9mZnNldD0iMCIgeW9mZnNldD0iMCIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICAgIDxjaGFyIGlkPSIyMjAiIHg9IjE2IiB5PSIxMCIgd2lkdGg9IjUiIGhlaWdodD0iOCIgeG9mZnNldD0iMCIgeW9mZnNldD0iMSIgeGFkdmFuY2U9IjYiIHBhZ2U9IjAiIGNobmw9IjE1IiAvPg0KICA8L2NoYXJzPg0KPC9mb250Pg0K";
-        //GUI skin texture encoded using https://www.base64-image.de/
-        EmbeddedData.guiSkinTextureBase64 = "iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAABGdBTUEAALGPC/xhBQAAAAlwSFlzAAAOwAAADsABataJCQAAABl0RVh0U29mdHdhcmUAcGFpbnQubmV0IDQuMC4xMK0KCsAAAADYSURBVHhe7dCxCYRAAEVB+2/OyNwKbGEP4U4UJjH0ngsD+thk/zTGSGMsufwsyzLkfOfOvSc4Pr4P4Dk/bv9e15WeOMLx8Rtg27aL/WiAeZ4v3gHeAd4B/mMAHQ0gjx5gtz9Aznfu3HsCxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsYSxhLGEsaOMX0AIggfRSo5pWIAAAAASUVORK5CYII=";
-        //XML encoded using https://www.base64encode.org/
-        EmbeddedData.guiSkinAtlasXmlBase64 = "PD94bWwgdmVyc2lvbj0iMS4wIj8+DQo8YXRsYXM+DQogIDxpbmZvIGZpbGU9Imd1aV9za2luLnBuZyIvPg0KDQogIDxzcHJpdGVzPg0KICAgIDxzcHJpdGUgaWQ9ImJ1dHRvbiIgcmVjdD0iMiwyLDgsOCIgaW5uZXJSZWN0PSI0LDQsNCw0IiAvPg0KICAgIDxzcHJpdGUgaWQ9ImJ1dHRvbl9kb3duIiByZWN0PSIxMiwyLDgsOCIgaW5uZXJSZWN0PSIxNCw0LDQsNCIgLz4NCiAgPC9zcHJpdGVzPg0KDQo8L2F0bGFzPg0K";
         return EmbeddedData;
     }());
     s2d.EmbeddedData = EmbeddedData;
@@ -5327,6 +5615,7 @@ var s2d;
         function EngineConsole() {
         }
         EngineConsole.error = function (message, target) {
+            if (target === void 0) { target = null; }
             var prefix = "";
             if (target instanceof s2d.Component) {
                 var componentClassName = EngineConsole.getClassName(target);

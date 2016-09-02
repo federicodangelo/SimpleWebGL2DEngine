@@ -21,8 +21,6 @@ module s2d {
 
     export class RenderFont {
 
-        private _xhttp: XMLHttpRequest = null;
-
         private _texture: RenderTexture = null;
 
         private _textureWidth: number = 0;
@@ -50,7 +48,9 @@ module s2d {
             return this._chars;
         }
 
-        public constructor() {
+        public constructor(texture:RenderTexture, fontJson:any) {
+            this._texture = texture;
+            this.parseFontJson(fontJson);
         }
 
         public clear() {
@@ -60,34 +60,13 @@ module s2d {
             }
         }
 
-        public loadFromEmbeddedData(fontXml: string, textureBase64: string) {
-            this._texture = new RenderTexture(true).loadFromEmbeddedData(textureBase64);
-            this.parseFontXml(fontXml);
-            return this;
-        }
+        private parseFontJson(fontJson: any) {
 
-        public loadFromUrl(fontXmlURL: string) {
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', () => this.onXMLLoadComplete());
-            this._xhttp.open("GET", fontXmlURL, true);
-            this._xhttp.send(null);
-            return this;
-        }
+            this._textureWidth = parseInt(fontJson.font.common.$scaleW);
+            this._textureHeight = parseInt(fontJson.font.common.$scaleH);
+            this._lineHeight = parseInt(fontJson.font.common.$lineHeight);
 
-        private onXMLLoadComplete(): void {
-            let fontData = this.parseFontXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture = new RenderTexture(true).loadFromUrl("assets/" + fontData.font.pages.page.$file);
-        }
-
-        private parseFontXml(xml: string): any {
-            var fontData = JXON.stringToJs(xml);
-
-            this._textureWidth = parseInt(fontData.font.common.$scaleW);
-            this._textureHeight = parseInt(fontData.font.common.$scaleH);
-            this._lineHeight = parseInt(fontData.font.common.$lineHeight);
-
-            let charsJson: Array<any> = fontData.font.chars.char;
+            let charsJson: Array<any> = fontJson.font.chars.char;
 
             for (let i = 0; i < charsJson.length; i++) {
                 let charJson = charsJson[i];
@@ -108,8 +87,6 @@ module s2d {
 
                 this._chars[char.id] = char;
             }
-
-            return fontData;
         }
     }
 }

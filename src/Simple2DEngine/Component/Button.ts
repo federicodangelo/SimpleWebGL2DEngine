@@ -2,7 +2,7 @@
 
 module s2d {
     export class Button extends Interactable {
-        private _onClick: SyncEvent<Button> = new SyncEvent<Button>();
+        private _onClick: Event<Button> = new Event<Button>();
         private _buttonSprite: RenderSprite = null;
         private _buttonSpriteDown: RenderSprite = null;
 

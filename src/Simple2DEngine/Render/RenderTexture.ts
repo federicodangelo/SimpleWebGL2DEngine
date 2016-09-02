@@ -26,52 +26,16 @@ module s2d {
             return this._hasAlpha;
         }
 
-        public constructor(hasAlpha: boolean) {
+        public constructor(image:HTMLImageElement, hasAlpha: boolean) {
 
             let gl = renderer.gl;
+
             this._hasAlpha = hasAlpha;
             this._texture = gl.createTexture();
 
             let texture = this._texture;
 
             gl.bindTexture(gl.TEXTURE_2D, texture);
-
-            // Fill the texture with a 1x1 white pixel.
-            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE,
-                new Uint8Array([255, 255, 255, 255]));
-        }
-
-        public loadFromUrl(imageUrl: string, onLoadComplete:(texture:RenderTexture) => void = null, onLoadCompleteThis:any = null) {
-
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
-
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.addEventListener('load', () => this.onImageLoadComplete());
-            this._image.src = imageUrl;
-
-            return this;
-        }
-
-        public loadFromEmbeddedData(imageBase64: string, onLoadComplete:(texture:RenderTexture) => void = null, onLoadCompleteThis:any = null) {
-
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
-
-            // Asynchronously load an image
-            this._image = new Image();
-            this._image.addEventListener('load', () => this.onImageLoadComplete());
-            this._image.src = "data:image/png;base64," + imageBase64;
-            
-            return this;
-        }
-
-        private onImageLoadComplete() {
-            let gl = renderer.gl;
-            let texture = this._texture;
-            let image = this._image;
 
             this._width = image.width;
             this._height = image.height;
@@ -90,14 +54,6 @@ module s2d {
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
             gl.generateMipmap(gl.TEXTURE_2D);
-
-            this._image = null;
-            var tmpCallback = this._loadCompleteCallback;
-            var tmpThis = this._loadCompleteCallbackThis;
-            this._loadCompleteCallback = null;
-            this._loadCompleteCallbackThis = null;
-            if (tmpCallback)
-                tmpCallback.call(tmpThis, this);
         }
 
         public clear() {

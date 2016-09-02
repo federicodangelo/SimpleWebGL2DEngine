@@ -18,9 +18,12 @@ class GameLogic extends s2d.Behavior {
     private lastEntitiesCount: number = 0;
     private lastDrawcalls:number = 0;
 
-    public onInit(): void {
+    private loadCompleted:boolean = false;
 
-        this.texture = new s2d.RenderTexture(false).loadFromUrl("assets/test.png");
+    public onInit(): void {
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.onLoadComplete.attachOnlyOnce(this.onLoadComplete, this);
+
         this.cam = s2d.EntityFactory.buildCamera();
 
         this.uiContainer = new s2d.Entity("UI Container").transform;
@@ -31,11 +34,11 @@ class GameLogic extends s2d.Behavior {
 
         let resetButton = s2d.EntityFactory.buildTextButton(this.texture, "Reset");
         resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
-        resetButton.onClick.attach(this, this.onResetButtonClicked);
+        resetButton.onClick.attach(this.onResetButtonClicked, this);
 
         let clearButton = s2d.EntityFactory.buildTextButton(this.texture, "Clear");
         clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
-        clearButton.onClick.attach(this, this.onClearButtonClicked);
+        clearButton.onClick.attach(this.onClearButtonClicked, this);
 
         let addMore = s2d.EntityFactory.buildTextButton(this.texture, "Add\nMore");
         addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
@@ -47,8 +50,12 @@ class GameLogic extends s2d.Behavior {
 
         let toggleNestingButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nNesting");
         toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
-        toggleNestingButton.onClick.attach(() => { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; this.clear(); this.initTest(); } );
+        toggleNestingButton.onClick.attach(() => { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; this.clear(); this.initTest(); } );        
+    }
 
+    private onLoadComplete() {
+        this.texture = s2d.loader.getAsset("test.png");
+        this.loadCompleted = true;
         this.initTest();
     }
 
@@ -75,6 +82,8 @@ class GameLogic extends s2d.Behavior {
     }
 
     private initTestSimple() {
+        if (!this.loadCompleted)
+            return;
 
         let e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
         let e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
@@ -95,6 +104,9 @@ class GameLogic extends s2d.Behavior {
     }
 
     private initTestComplex() {
+        if (!this.loadCompleted)
+            return;
+        
         let sWidth = s2d.engine.renderer.screenWidth;
         let sHeight = s2d.engine.renderer.screenHeight;
 

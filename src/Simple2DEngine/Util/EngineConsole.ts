@@ -1,6 +1,6 @@
 module s2d {
     export class EngineConsole {
-        public static error(message:string, target:any) {
+        public static error(message:string, target:any = null) {
 
             let prefix = "";
 

@@ -1,5 +1,5 @@
 /// <reference path="RenderSprite.ts" />
-/// <reference path="../Util/Dictionary.ts" />
+/// <reference path="../Util/StringDictionary.ts" />
 
 module s2d {
     export class RenderSpriteAtlas {
@@ -20,8 +20,9 @@ module s2d {
             return this._sprites;
         }
 
-        public constructor() {
-
+        public constructor(texture:RenderTexture, atlasJson:any) {
+            this._texture = texture;
+            this.parseAtlasJson(atlasJson);
         }
 
         public getSprite(id: string) {
@@ -35,49 +36,9 @@ module s2d {
             }
         }
 
-        public loadFromEmbeddedData(textureAtlasXml: string, textureBase64: string, onLoadComplete:(texture:RenderSpriteAtlas) => void = null, onLoadCompleteThis:any = null) {
-
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
-            this._texture = new RenderTexture(true) .loadFromEmbeddedData(textureBase64, this.onTextureLoadComplete, this);
-            this.parseTextureAtlasXml(textureAtlasXml);
-            return this;
-        }
-
-        public loadFromUrl(textureAtlasXmlURL: string, onLoadComplete:(texture:RenderSpriteAtlas) => void = null, onLoadCompleteThis:any = null) {
-
-            this._loadCompleteCallback = onLoadComplete;
-            this._loadCompleteCallbackThis = onLoadCompleteThis;
+        private parseAtlasJson(atlasJson: any): void {
             
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', () => this.onXMLLoadComplete());
-            this._xhttp.open("GET", textureAtlasXmlURL, true);
-            this._xhttp.send(null);
-            return this;
-        }
-
-        private onXMLLoadComplete(): void {
-            //Create the texture before parsing the texture atlas, so every sprite already
-            //has a reference to the texture
-            this._texture = new RenderTexture(true);
-            let atlasData = this.parseTextureAtlasXml(this._xhttp.responseText);
-            this._xhttp = null;
-            this._texture.loadFromUrl("assets/" + atlasData.atlas.info.$file, this.onTextureLoadComplete, this);
-        }
-
-        private onTextureLoadComplete() {
-            var tmpCallback = this._loadCompleteCallback;
-            var tmpThis = this._loadCompleteCallbackThis;
-            this._loadCompleteCallback = null;
-            this._loadCompleteCallbackThis = null;
-            if (tmpCallback)
-                tmpCallback.call(tmpThis, this);
-        }
-
-        private parseTextureAtlasXml(xml: string): any {
-            var atlasData = JXON.stringToJs(xml);
-
-            let spritesJson: Array<any> = atlasData.atlas.sprites.sprite;
+            let spritesJson: Array<any> = atlasJson.atlas.sprites.sprite;
 
             for (let i = 0; i < spritesJson.length; i++) {
                 let spriteJson = spritesJson[i];
@@ -97,8 +58,6 @@ module s2d {
                     this._sprites.add(sprite.id, sprite);
                 }
             }
-
-            return atlasData;
         }
 
         private static parseRectString(str: string): Rect {
