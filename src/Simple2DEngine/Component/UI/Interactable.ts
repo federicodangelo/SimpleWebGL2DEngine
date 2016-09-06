@@ -1,5 +1,5 @@
-/// <reference path="Component.ts" />
-/// <reference path="../Event/Event.ts" />
+/// <reference path="../Component.ts" />
+/// <reference path="../../Event/Event.ts" />
 
 module s2d {
     export class Interactable extends Component {

@@ -1,6 +1,7 @@
 /// <reference path="Input/InputManager.ts" />
 /// <reference path="Render/RenderManager.ts" />
 /// <reference path="Entity/EntityManager.ts" />
+/// <reference path="Component/UI/UIManager.ts" />
 /// <reference path="Assets/AssetsLoader.ts" />
 /// <reference path="Util/Time.ts" />
 
@@ -15,6 +16,7 @@ module s2d {
         private _loader: AssetsLoader;
         private _onInitCompleteCallback:() => void = null;
         private _initialized:boolean = false;
+        private _ui: UIManager;
 
         public get renderer() {
             return this._renderer;
@@ -65,9 +67,13 @@ module s2d {
             this._stats.init();
             this._loader.init();
 
+            //UI Manager needs to be initialized last because it depends on EntityManager
+            this._ui = EntityFactory.buildWithComponent(UIManager, "UI Manager");
+            ui = this._ui;
+
             //Embedded assets loading
             EmbeddedAssets.init();
-            loader.onLoadComplete.attachOnlyOnce(this.onEmbeddedAssetsLoadComplete, this);
+            loader.attachOnLoadCompleteListener(this.onEmbeddedAssetsLoadComplete, this);
         }
 
         private onEmbeddedAssetsLoadComplete() {
@@ -114,6 +120,9 @@ module s2d {
             //Call update() on all Behaviors
             this._entities.update();
 
+            //Move UI to last drawing order
+            this._ui.root.moveToBottom();
+
             //Render
             this._renderer.draw();
 
@@ -128,4 +137,5 @@ module s2d {
     export var renderer: RenderManager;
     export var entities: EntityManager;
     export var loader: AssetsLoader;
+    export var ui: UIManager;
 }

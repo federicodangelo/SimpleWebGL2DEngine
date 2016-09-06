@@ -19,7 +19,7 @@ module s2d {
             return textDrawer;
         }
 
-        public static buildButton(texture: RenderTexture) : Button {
+        public static buildButton() : Button {
             var entity = new Entity("Button");
             entity.addComponent(SpriteDrawer);
             var button = entity.addComponent(Button);
@@ -27,7 +27,7 @@ module s2d {
             return button;
         }
 
-        public static buildTextButton(texture: RenderTexture, text:string) : Button {
+        public static buildTextButton(text:string) : Button {
 
             var entity = new Entity("Button");
             entity.addComponent(SpriteDrawer);

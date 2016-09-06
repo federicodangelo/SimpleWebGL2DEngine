@@ -2724,18 +2724,18 @@ var s2d;
             configurable: true
         });
         EntityManager.prototype.init = function () {
-            this._root.pivotX = -1;
-            this._root.pivotY = -1;
-            this._root.sizeX = s2d.renderer.screenWidth;
-            this._root.sizeY = s2d.renderer.screenHeight;
+            //this._root.pivotX = -1;
+            //this._root.pivotY = -1;
+            //this._root.sizeX = renderer.screenWidth;
+            //this._root.sizeY = renderer.screenHeight;
         };
         EntityManager.prototype.getComponentsInChildren = function (clazz, toReturn, includeInactive) {
             if (includeInactive === void 0) { includeInactive = false; }
             return this._root.getComponentsInChildren(clazz, toReturn, includeInactive);
         };
         EntityManager.prototype.update = function () {
-            this._root.sizeX = s2d.renderer.screenWidth;
-            this._root.sizeY = s2d.renderer.screenHeight;
+            //this._root.sizeX = renderer.screenWidth;
+            //this._root.sizeY = renderer.screenHeight;
             var behaviors = this.tmpBehaviors;
             var behaviorsLen = this.getComponentsInChildren(s2d.Behavior, behaviors);
             for (var i = 0; i < behaviorsLen; i++) {
@@ -2776,6 +2776,50 @@ var s2d;
         return EntityManager;
     }());
     s2d.EntityManager = EntityManager;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var Behavior = (function (_super) {
+        __extends(Behavior, _super);
+        function Behavior() {
+            _super.apply(this, arguments);
+        }
+        Behavior.prototype.update = function () {
+        };
+        return Behavior;
+    }(s2d.Component));
+    s2d.Behavior = Behavior;
+})(s2d || (s2d = {}));
+/// <reference path="../Behavior.ts" />
+var s2d;
+(function (s2d) {
+    var UIManager = (function (_super) {
+        __extends(UIManager, _super);
+        function UIManager() {
+            _super.apply(this, arguments);
+            this._root = null;
+        }
+        Object.defineProperty(UIManager.prototype, "root", {
+            get: function () {
+                return this._root;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        UIManager.prototype.onInit = function () {
+            this._root = this.entity.transform;
+            this._root.pivotX = -1;
+            this._root.pivotY = -1;
+            this._root.sizeX = s2d.renderer.screenWidth;
+            this._root.sizeY = s2d.renderer.screenHeight;
+            this._root = this.entity.transform;
+        };
+        UIManager.prototype.update = function () {
+            this._root.setSize(s2d.renderer.screenWidth, s2d.renderer.screenHeight);
+        };
+        return UIManager;
+    }(s2d.Behavior));
+    s2d.UIManager = UIManager;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -3255,7 +3299,7 @@ var s2d;
                 }
             }
             this._recursion--;
-            //Remove any listener that was set a "fireOnlyOnce"
+            //Remove any listener that was set as "fireOnlyOnce"
             if (listenersToRemove != null) {
                 //Update listeners reference, could have been be updated in any of the callbacks
                 listeners = this._listeners;
@@ -3339,19 +3383,15 @@ var s2d;
             this._onLoadComplete = new s2d.VoidEvent();
             this._loaders = new s2d.StringDictionary();
             this._assets = new s2d.StringDictionary();
-            this._dispatchComplete = false;
         }
-        Object.defineProperty(AssetsLoader.prototype, "onLoadComplete", {
-            get: function () {
-                return this._onLoadComplete;
-            },
-            enumerable: true,
-            configurable: true
-        });
         AssetsLoader.prototype.init = function () {
         };
         AssetsLoader.prototype.getAsset = function (id) {
             return this._assets.get(id);
+        };
+        AssetsLoader.prototype.attachOnLoadCompleteListener = function (handler, boundTo) {
+            if (boundTo === void 0) { boundTo = null; }
+            this._onLoadComplete.attachOnlyOnce(handler, boundTo);
         };
         AssetsLoader.prototype.loadRenderTextureFromUrl = function (id, url, hasAlpha, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
@@ -3440,22 +3480,10 @@ var s2d;
         AssetsLoader.prototype.onLoaderComplete = function (loader) {
             this._loaders.remove(loader.id);
             this._assets.add(loader.id, loader.asset);
-            this.dispatchCompleteIfFinished();
-        };
-        AssetsLoader.prototype.dispatchCompleteIfFinished = function () {
-            if (this._loaders.empty) {
-                //Real event dispatch is delayed to update() method, to have a
-                //predictable dispatch order
-                this._dispatchComplete = true;
-            }
         };
         AssetsLoader.prototype.update = function () {
-            if (this._dispatchComplete) {
-                this._dispatchComplete = false;
-                //We validate if it's still empty, just in case that some asset was added to download
-                //between the time when _dispatchComplete was set true and the call to update()
-                if (this._loaders.empty)
-                    this.onLoadComplete.post();
+            if (this._loaders.empty && this._onLoadComplete.listenerCount > 0) {
+                this._onLoadComplete.post();
             }
         };
         return AssetsLoader;
@@ -3477,6 +3505,7 @@ var s2d;
 /// <reference path="Input/InputManager.ts" />
 /// <reference path="Render/RenderManager.ts" />
 /// <reference path="Entity/EntityManager.ts" />
+/// <reference path="Component/UI/UIManager.ts" />
 /// <reference path="Assets/AssetsLoader.ts" />
 /// <reference path="Util/Time.ts" />
 var s2d;
@@ -3546,9 +3575,12 @@ var s2d;
             this._entities.init();
             this._stats.init();
             this._loader.init();
+            //UI Manager needs to be initialized last because it depends on EntityManager
+            this._ui = s2d.EntityFactory.buildWithComponent(s2d.UIManager, "UI Manager");
+            s2d.ui = this._ui;
             //Embedded assets loading
             s2d.EmbeddedAssets.init();
-            s2d.loader.onLoadComplete.attachOnlyOnce(this.onEmbeddedAssetsLoadComplete, this);
+            s2d.loader.attachOnLoadCompleteListener(this.onEmbeddedAssetsLoadComplete, this);
         };
         Engine.prototype.onEmbeddedAssetsLoadComplete = function () {
             this._initialized = true;
@@ -3580,6 +3612,8 @@ var s2d;
             this._input.update();
             //Call update() on all Behaviors
             this._entities.update();
+            //Move UI to last drawing order
+            this._ui.root.moveToBottom();
             //Render
             this._renderer.draw();
             this._stats.endUpdate();
@@ -3604,86 +3638,268 @@ function update() {
     s2d.engine.update();
     requestAnimationFrame(update);
 }
-var s2d;
-(function (s2d) {
-    var Behavior = (function (_super) {
-        __extends(Behavior, _super);
-        function Behavior() {
-            _super.apply(this, arguments);
-        }
-        Behavior.prototype.update = function () {
-        };
-        return Behavior;
-    }(s2d.Component));
-    s2d.Behavior = Behavior;
-})(s2d || (s2d = {}));
 /// <reference path="../Simple2DEngine/Component/Behavior.ts" />
 var GameLogic = (function (_super) {
     __extends(GameLogic, _super);
     function GameLogic() {
         _super.apply(this, arguments);
-        this.entities = new Array();
-        this.lastFps = 0;
-        this.lastUpdateTime = 0;
-        this.lastEntitiesCount = 0;
-        this.lastDrawcalls = 0;
-        this.loadCompleted = false;
+        this.cam = null;
+        this.activeTest = null;
+        this.gameScreen = null;
     }
     GameLogic.prototype.onInit = function () {
-        var _this = this;
+        GameLogic.instance = this;
         this.cam = s2d.EntityFactory.buildCamera();
-        this.rectsContainer = new s2d.Entity("Rects Container").transform;
-        this.uiContainer = new s2d.Entity("UI Container").transform;
+        this.gameScreen = s2d.EntityFactory.buildWithComponent(GameScreen, "Game Screen");
+        s2d.EntityFactory.buildWithComponent(GameStats, "Game Stats");
+    };
+    GameLogic.prototype.update = function () {
+        if (this.activeTest !== null)
+            this.activeTest.update();
+    };
+    GameLogic.prototype.setActiveTest = function (test) {
+        if (this.activeTest !== null) {
+            this.activeTest.destroy();
+            this.activeTest = null;
+        }
+        this.activeTest = test;
+        if (this.activeTest !== null) {
+            this.activeTest.init(this);
+            this.gameScreen.entity.active = false;
+        }
+        else {
+            this.gameScreen.entity.active = true;
+        }
+    };
+    return GameLogic;
+}(s2d.Behavior));
+/// <reference path="../Behavior.ts" />
+var s2d;
+(function (s2d) {
+    var Screen = (function (_super) {
+        __extends(Screen, _super);
+        function Screen() {
+            _super.apply(this, arguments);
+            this.trans = null;
+        }
+        Screen.prototype.onInit = function () {
+            this.trans = this.entity.transform;
+            this.trans.parent = s2d.ui.root;
+            this.trans.pivotX = -1;
+            this.trans.pivotY = -1;
+            this.trans.sizeX = s2d.renderer.screenWidth;
+            this.trans.sizeY = s2d.renderer.screenHeight;
+            this.onScreenInit();
+        };
+        Screen.prototype.onScreenInit = function () {
+        };
+        Screen.prototype.update = function () {
+            //Always match parent size!!
+            this.trans.size = this.trans.parent.size;
+            this.onScreenUpdate();
+        };
+        Screen.prototype.onScreenUpdate = function () {
+        };
+        return Screen;
+    }(s2d.Behavior));
+    s2d.Screen = Screen;
+})(s2d || (s2d = {}));
+/// <reference path="../Simple2DEngine/Component/UI/Screen.ts" />
+var GameScreen = (function (_super) {
+    __extends(GameScreen, _super);
+    function GameScreen() {
+        _super.apply(this, arguments);
+        this.lastButtonY = 100;
+    }
+    GameScreen.prototype.onScreenInit = function () {
+        this.addTestButton("Test Simple", TestSimple);
+        this.addTestButton("Test Moving Triangles", TestMovingTriangles);
+    };
+    GameScreen.prototype.addTestButton = function (name, testClazz) {
+        var button = s2d.EntityFactory.buildTextButton(name);
+        button.entity.transform.setLocalPosition(300, this.lastButtonY).setParent(this.trans);
+        button.onClick.attach(function () {
+            GameLogic.instance.setActiveTest(new testClazz());
+        });
+        this.lastButtonY += 100;
+    };
+    return GameScreen;
+}(s2d.Screen));
+/// <reference path="../Simple2DEngine/Component/Behavior.ts" />
+var GameStats = (function (_super) {
+    __extends(GameStats, _super);
+    function GameStats() {
+        _super.apply(this, arguments);
+        this.lastFps = 0;
+        this.lastUpdateTime = 0;
+        this.lastDrawcalls = 0;
+    }
+    GameStats.prototype.onInit = function () {
         this.textFPS = s2d.EntityFactory.buildTextDrawer();
-        this.textFPS.entity.transform.setPivot(-1, -1).setLocalPosition(8, 8).setParent(this.uiContainer);
+        this.textFPS.entity.transform.setPivot(-1, -1).setLocalPosition(8, 8).setParent(this.entity.transform);
         this.textFPS.color.setFromRgba(0, 255, 0);
-        var resetButton = s2d.EntityFactory.buildTextButton(this.texture, "Reset");
+        this.entity.transform.parent = s2d.ui.root;
+    };
+    GameStats.prototype.update = function () {
+        var stats = s2d.engine.stats;
+        if (stats.lastFps !== this.lastFps ||
+            stats.lastUpdateTime !== this.lastUpdateTime ||
+            stats.lastDrawcalls !== this.lastDrawcalls) {
+            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms\nDraw Calls: " + stats.lastDrawcalls; // + "\nEntities: " + this.entities.length;
+            this.lastFps = stats.lastFps;
+            this.lastUpdateTime = stats.lastUpdateTime;
+            this.lastDrawcalls = stats.lastDrawcalls;
+        }
+    };
+    return GameStats;
+}(s2d.Behavior));
+/// <reference path="../../Simple2DEngine/Component/Behavior.ts" />
+var Test = (function () {
+    function Test() {
+    }
+    Test.prototype.init = function (gameLogic) {
+        this.gameLogic = gameLogic;
+        this.testContainer = new s2d.Entity("Test Container").transform;
+        this.uiContainer = new s2d.Entity("UI Container").transform;
+        this.uiContainer.entity.transform.parent = s2d.ui.root;
+        var exitButton = s2d.EntityFactory.buildTextButton("Exit Test");
+        exitButton.entity.transform.setLocalPosition(8, 128).setParent(this.uiContainer);
+        exitButton.onClick.attach(this.onExitButtonClicked, this);
+        this.onInit();
+    };
+    Test.prototype.onExitButtonClicked = function () {
+        this.gameLogic.setActiveTest(null);
+    };
+    Test.prototype.onInit = function () {
+    };
+    Test.prototype.update = function () {
+        this.onUpdate();
+    };
+    Test.prototype.onUpdate = function () {
+    };
+    Test.prototype.destroy = function () {
+        this.onDestroy();
+        this.uiContainer.entity.destroy();
+        this.testContainer.entity.destroy();
+    };
+    Test.prototype.onDestroy = function () {
+    };
+    return Test;
+}());
+var TestMovingTriangles = (function (_super) {
+    __extends(TestMovingTriangles, _super);
+    function TestMovingTriangles() {
+        _super.apply(this, arguments);
+        this.entities = new Array();
+        this.loadCompleted = false;
+        this.lastEntitiesCount = 0;
+    }
+    TestMovingTriangles.prototype.onInit = function () {
+        var _this = this;
+        var resetButton = s2d.EntityFactory.buildTextButton("Reset");
         resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
         resetButton.onClick.attach(this.onResetButtonClicked, this);
-        var clearButton = s2d.EntityFactory.buildTextButton(this.texture, "Clear");
+        var clearButton = s2d.EntityFactory.buildTextButton("Clear");
         clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
         clearButton.onClick.attach(this.onClearButtonClicked, this);
-        var addMore = s2d.EntityFactory.buildTextButton(this.texture, "Add\nMore");
+        var addMore = s2d.EntityFactory.buildTextButton("Add\nMore");
         addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
         addMore.onClick.attach(this.initTest, this);
-        var toggleRotationButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nRotation");
+        var toggleRotationButton = s2d.EntityFactory.buildTextButton("Toggle\nRotation");
         toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
-        toggleRotationButton.onClick.attach(function () { return GameLogic.TEST_MOVING = !GameLogic.TEST_MOVING; });
-        var toggleNestingButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nNesting");
+        toggleRotationButton.onClick.attach(function () { return TestMovingTriangles.TEST_MOVING = !TestMovingTriangles.TEST_MOVING; });
+        var toggleNestingButton = s2d.EntityFactory.buildTextButton("Toggle\nNesting");
         toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
-        toggleNestingButton.onClick.attach(function () { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; _this.clear(); _this.initTest(); });
-        var toggleActiveButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nActive");
+        toggleNestingButton.onClick.attach(function () { TestMovingTriangles.TEST_NESTING = !TestMovingTriangles.TEST_NESTING; _this.clear(); _this.initTest(); });
+        var toggleActiveButton = s2d.EntityFactory.buildTextButton("Toggle\nActive");
         toggleActiveButton.entity.transform.setLocalPosition(800, 100).setParent(this.uiContainer);
         toggleActiveButton.onClick.attach(this.toggleActive, this);
         s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
-        s2d.loader.onLoadComplete.attachOnlyOnce(this.onLoadComplete, this);
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
     };
-    GameLogic.prototype.toggleActive = function () {
-        this.rectsContainer.entity.active = !this.rectsContainer.entity.active;
+    TestMovingTriangles.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
     };
-    GameLogic.prototype.onLoadComplete = function () {
+    TestMovingTriangles.prototype.onLoadComplete = function () {
         this.texture = s2d.loader.getAsset("test.png");
         this.loadCompleted = true;
         this.initTest();
     };
-    GameLogic.prototype.onResetButtonClicked = function (button) {
+    TestMovingTriangles.prototype.onResetButtonClicked = function (button) {
         this.clear();
         this.initTest();
     };
-    GameLogic.prototype.onClearButtonClicked = function (button) {
+    TestMovingTriangles.prototype.onClearButtonClicked = function (button) {
         this.clear();
     };
-    GameLogic.prototype.initTest = function () {
-        this.initTestComplex();
-        //this.initTestSimple();
-        this.uiContainer.moveToBottom();
-    };
-    GameLogic.prototype.clear = function () {
+    TestMovingTriangles.prototype.clear = function () {
         for (var i = 0; i < this.entities.length; i++)
             this.entities[i].destroy();
         this.entities.length = 0;
     };
-    GameLogic.prototype.initTestSimple = function () {
+    TestMovingTriangles.prototype.initTest = function () {
+        if (!this.loadCompleted)
+            return;
+        this.testContainer.entity.active = true;
+        var sWidth = s2d.engine.renderer.screenWidth;
+        var sHeight = s2d.engine.renderer.screenHeight;
+        for (var i = 0; i < TestMovingTriangles.RECTS_COUNT; i++) {
+            var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+            e.name = "Entity " + i;
+            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
+            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
+            if (TestMovingTriangles.TEST_NESTING) {
+                if (i > 0 && i % 3 == 0)
+                    e.transform.parent = this.entities[i - 2].transform;
+                else if (i > 0 && i % 5 == 0)
+                    e.transform.parent = this.entities[i - 4].transform;
+                else if (i > 0 && i % 7 == 0)
+                    e.transform.parent = this.entities[i - 6].transform;
+                else
+                    e.transform.parent = this.testContainer;
+            }
+            else {
+                e.transform.parent = this.testContainer;
+            }
+            this.entities.push(e);
+        }
+    };
+    TestMovingTriangles.prototype.onUpdate = function () {
+        if (TestMovingTriangles.TEST_MOVING) {
+            var entities = this.entities;
+            for (var i = 0; i < entities.length; i++)
+                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
+        }
+        //if (s2d.input.pointerDown)
+        //    this.cam.clearColor.setFromRgba(255, 0, 0); //red
+        //else
+        //    this.cam.clearColor.setFromRgba(0, 0, 0); //black        
+    };
+    TestMovingTriangles.TEST_NESTING = true;
+    TestMovingTriangles.TEST_MOVING = true;
+    TestMovingTriangles.RECTS_COUNT = 1024;
+    return TestMovingTriangles;
+}(Test));
+var TestSimple = (function (_super) {
+    __extends(TestSimple, _super);
+    function TestSimple() {
+        _super.apply(this, arguments);
+        this.entities = new Array();
+        this.loadCompleted = false;
+    }
+    TestSimple.prototype.onInit = function () {
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestSimple.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestSimple.prototype.onLoadComplete = function () {
+        this.texture = s2d.loader.getAsset("test.png");
+        this.loadCompleted = true;
+        this.initTestSimple();
+    };
+    TestSimple.prototype.initTestSimple = function () {
         if (!this.loadCompleted)
             return;
         var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
@@ -3699,57 +3915,135 @@ var GameLogic = (function (_super) {
         this.entities.push(e2);
         this.entities.push(e3);
     };
-    GameLogic.prototype.initTestComplex = function () {
-        if (!this.loadCompleted)
-            return;
-        this.rectsContainer.entity.active = true;
-        var sWidth = s2d.engine.renderer.screenWidth;
-        var sHeight = s2d.engine.renderer.screenHeight;
-        for (var i = 0; i < GameLogic.RECTS_COUNT; i++) {
-            var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-            e.name = "Entity " + i;
-            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
-            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
-            if (GameLogic.TEST_NESTING) {
-                if (i > 0 && i % 3 == 0)
-                    e.transform.parent = this.entities[i - 2].transform;
-                else if (i > 0 && i % 5 == 0)
-                    e.transform.parent = this.entities[i - 4].transform;
-                else if (i > 0 && i % 7 == 0)
-                    e.transform.parent = this.entities[i - 6].transform;
-                else
-                    e.transform.parent = this.rectsContainer;
+    TestSimple.prototype.onUpdate = function () {
+        var entities = this.entities;
+        for (var i = 0; i < entities.length; i++)
+            entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
+    };
+    TestSimple.prototype.onDestroy = function () {
+        for (var i = 0; i < this.entities.length; i++)
+            this.entities[i].destroy();
+        this.entities.length = 0;
+    };
+    return TestSimple;
+}(Test));
+/// <reference path="Component.ts" />
+var s2d;
+(function (s2d) {
+    var Camera = (function (_super) {
+        __extends(Camera, _super);
+        function Camera() {
+            _super.apply(this, arguments);
+            this.clearDepthBuffer = false;
+            this.clearColorBuffer = true;
+            this.clearColor = s2d.Color.fromRgba(0, 0, 0, 255);
+        }
+        return Camera;
+    }(s2d.Component));
+    s2d.Camera = Camera;
+})(s2d || (s2d = {}));
+/// <reference path="Drawer.ts" />
+var s2d;
+(function (s2d) {
+    var SpriteDrawer = (function (_super) {
+        __extends(SpriteDrawer, _super);
+        function SpriteDrawer() {
+            _super.apply(this, arguments);
+            this._sprite = null;
+            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
+        }
+        Object.defineProperty(SpriteDrawer.prototype, "sprite", {
+            get: function () {
+                return this._sprite;
+            },
+            set: function (value) {
+                this._sprite = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(SpriteDrawer.prototype, "color", {
+            get: function () {
+                return this._color;
+            },
+            set: function (value) {
+                this._color.copyFrom(value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        SpriteDrawer.prototype.draw = function (commands) {
+            var sprite = this._sprite;
+            if (sprite !== null && sprite.texture !== null) {
+                var trans = this.entity.transform;
+                trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
+                var color = this._color;
+                switch (sprite.drawMode) {
+                    case s2d.RenderSpriteDrawMode.Normal:
+                        commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, this._color);
+                        break;
+                    case s2d.RenderSpriteDrawMode.Slice9:
+                        commands.drawRect9Slice(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, sprite.innerUvRect, this._color);
+                        break;
+                }
             }
-            this.entities.push(e);
+        };
+        return SpriteDrawer;
+    }(s2d.Drawer));
+    s2d.SpriteDrawer = SpriteDrawer;
+})(s2d || (s2d = {}));
+/// <reference path="Drawer.ts" />
+var s2d;
+(function (s2d) {
+    var TextureDrawer = (function (_super) {
+        __extends(TextureDrawer, _super);
+        function TextureDrawer() {
+            _super.apply(this, arguments);
+            this._texture = null;
+            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
+            this._uvRect = s2d.Rect.fromValues(0, 0, 1, 1);
         }
-    };
-    GameLogic.prototype.update = function () {
-        if (GameLogic.TEST_MOVING) {
-            var entities = this.entities;
-            for (var i = 0; i < entities.length; i++)
-                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
-        }
-        //if (s2d.input.pointerDown)
-        //    this.cam.clearColor.setFromRgba(255, 0, 0); //red
-        //else
-        //    this.cam.clearColor.setFromRgba(0, 0, 0); //black
-        var stats = s2d.engine.stats;
-        if (stats.lastFps !== this.lastFps ||
-            stats.lastUpdateTime !== this.lastUpdateTime ||
-            stats.lastDrawcalls !== this.lastDrawcalls ||
-            this.entities.length !== this.lastEntitiesCount) {
-            this.textFPS.text = "fps: " + Math.round(s2d.engine.stats.lastFps) + "\nupdate: " + s2d.engine.stats.lastUpdateTime.toFixed(2) + " ms\nDraw Calls: " + stats.lastDrawcalls + "\nEntities: " + this.entities.length;
-            this.lastFps = stats.lastFps;
-            this.lastUpdateTime = stats.lastUpdateTime;
-            this.lastDrawcalls = stats.lastDrawcalls;
-            this.lastEntitiesCount = this.entities.length;
-        }
-    };
-    GameLogic.TEST_NESTING = true;
-    GameLogic.TEST_MOVING = true;
-    GameLogic.RECTS_COUNT = 1024;
-    return GameLogic;
-}(s2d.Behavior));
+        Object.defineProperty(TextureDrawer.prototype, "texture", {
+            get: function () {
+                return this._texture;
+            },
+            set: function (value) {
+                this._texture = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextureDrawer.prototype, "color", {
+            get: function () {
+                return this._color;
+            },
+            set: function (value) {
+                this._color.copyFrom(value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextureDrawer.prototype, "uvRect", {
+            get: function () {
+                return this._uvRect;
+            },
+            set: function (value) {
+                s2d.Rect.copy(this._uvRect, value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        TextureDrawer.prototype.draw = function (commands) {
+            if (this._texture !== null) {
+                var trans = this.entity.transform;
+                trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
+                commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvRect, this._color);
+            }
+        };
+        return TextureDrawer;
+    }(s2d.Drawer));
+    s2d.TextureDrawer = TextureDrawer;
+})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     (function (LoaderState) {
@@ -3953,583 +4247,6 @@ var s2d;
     }(s2d.Loader));
     s2d.RenderSpriteAtlasLoader = RenderSpriteAtlasLoader;
 })(s2d || (s2d = {}));
-/// <reference path="Component.ts" />
-/// <reference path="../Event/Event.ts" />
-var s2d;
-(function (s2d) {
-    var Interactable = (function (_super) {
-        __extends(Interactable, _super);
-        function Interactable() {
-            _super.apply(this, arguments);
-            this._enabled = true;
-        }
-        Object.defineProperty(Interactable.prototype, "enabled", {
-            get: function () {
-                return this._enabled;
-            },
-            set: function (value) {
-                this._enabled = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Interactable.prototype.getBounds = function (out) {
-            return this.entity.transform.getBounds(out);
-        };
-        Interactable.prototype.onPointerOver = function (pointer) {
-        };
-        Interactable.prototype.onPointerOut = function (pointer) {
-        };
-        Interactable.prototype.onPointerMove = function (pointer) {
-        };
-        Interactable.prototype.onPointerDown = function (pointer) {
-        };
-        Interactable.prototype.onPointerUp = function (pointer) {
-        };
-        return Interactable;
-    }(s2d.Component));
-    s2d.Interactable = Interactable;
-})(s2d || (s2d = {}));
-/// <reference path="Interactable.ts" />
-var s2d;
-(function (s2d) {
-    var Button = (function (_super) {
-        __extends(Button, _super);
-        function Button() {
-            _super.apply(this, arguments);
-            this._onClick = new s2d.Event();
-            this._buttonSprite = null;
-            this._buttonSpriteDown = null;
-            this._spriteDrawer = null;
-        }
-        Object.defineProperty(Button.prototype, "buttonSprite", {
-            get: function () {
-                return this._buttonSprite;
-            },
-            set: function (value) {
-                this._buttonSprite = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Button.prototype, "buttonSpriteDown", {
-            get: function () {
-                return this._buttonSpriteDown;
-            },
-            set: function (value) {
-                this._buttonSpriteDown = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Button.prototype.onInit = function () {
-            this._buttonSprite = s2d.EmbeddedAssets.defaultSkinAtlas.getSprite("button");
-            this._buttonSpriteDown = s2d.EmbeddedAssets.defaultSkinAtlas.getSprite("button_down");
-            if (!(this.entity.firstDrawer instanceof s2d.SpriteDrawer)) {
-                s2d.EngineConsole.error("Missing SpriteDrawer", this);
-            }
-            else {
-                this._spriteDrawer = this.entity.firstDrawer;
-                this._spriteDrawer.sprite = this._buttonSprite;
-            }
-        };
-        Object.defineProperty(Button.prototype, "onClick", {
-            get: function () {
-                return this._onClick;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Button.prototype.onPointerDown = function (pointer) {
-            if (this._spriteDrawer !== null && this._buttonSpriteDown !== null)
-                this._spriteDrawer.sprite = this._buttonSpriteDown;
-        };
-        Button.prototype.onPointerUp = function (pointer) {
-            if (this._spriteDrawer !== null)
-                this._spriteDrawer.sprite = this._buttonSprite;
-            this._onClick.post(this);
-        };
-        return Button;
-    }(s2d.Interactable));
-    s2d.Button = Button;
-})(s2d || (s2d = {}));
-/// <reference path="Component.ts" />
-var s2d;
-(function (s2d) {
-    var Camera = (function (_super) {
-        __extends(Camera, _super);
-        function Camera() {
-            _super.apply(this, arguments);
-            this.clearDepthBuffer = false;
-            this.clearColorBuffer = true;
-            this.clearColor = s2d.Color.fromRgba(0, 0, 0, 255);
-        }
-        return Camera;
-    }(s2d.Component));
-    s2d.Camera = Camera;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    (function (LayoutSizeMode) {
-        LayoutSizeMode[LayoutSizeMode["None"] = 0] = "None";
-        LayoutSizeMode[LayoutSizeMode["MatchDrawerBest"] = 1] = "MatchDrawerBest";
-        LayoutSizeMode[LayoutSizeMode["MatchChildrenBest"] = 2] = "MatchChildrenBest";
-    })(s2d.LayoutSizeMode || (s2d.LayoutSizeMode = {}));
-    var LayoutSizeMode = s2d.LayoutSizeMode;
-    (function (LayoutAnchorMode) {
-        LayoutAnchorMode[LayoutAnchorMode["None"] = 0] = "None";
-        LayoutAnchorMode[LayoutAnchorMode["RelativeToParent"] = 1] = "RelativeToParent";
-    })(s2d.LayoutAnchorMode || (s2d.LayoutAnchorMode = {}));
-    var LayoutAnchorMode = s2d.LayoutAnchorMode;
-    var LayoutRectOffset = (function () {
-        function LayoutRectOffset() {
-            this.top = 0;
-            this.left = 0;
-            this.bottom = 0;
-            this.right = 0;
-        }
-        Object.defineProperty(LayoutRectOffset.prototype, "all", {
-            set: function (offset) {
-                this.left = this.right = this.top = this.bottom = offset;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return LayoutRectOffset;
-    }());
-    s2d.LayoutRectOffset = LayoutRectOffset;
-    var Layout = (function (_super) {
-        __extends(Layout, _super);
-        function Layout() {
-            _super.apply(this, arguments);
-            this._widthSizeMode = LayoutSizeMode.None;
-            this._heightSizeMode = LayoutSizeMode.None;
-            this._sizeOffset = s2d.Vector2.create();
-        }
-        Object.defineProperty(Layout.prototype, "widthSizeMode", {
-            //private _xAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
-            //private _yAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
-            get: function () {
-                return this._widthSizeMode;
-            },
-            set: function (value) {
-                this._widthSizeMode = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Layout.prototype, "heightSizeMode", {
-            get: function () {
-                return this._heightSizeMode;
-            },
-            set: function (value) {
-                this._heightSizeMode = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Layout.prototype, "sizeMode", {
-            set: function (value) {
-                this._heightSizeMode = this._widthSizeMode = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Layout.prototype, "sizeOffset", {
-            get: function () {
-                return this._sizeOffset;
-            },
-            set: function (value) {
-                s2d.Vector2.copy(this._sizeOffset, value);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Layout.prototype.updateLayout = function () {
-            if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest ||
-                this._heightSizeMode === LayoutSizeMode.MatchDrawerBest) {
-                var drawer = this.entity.firstDrawer;
-                if (drawer !== null) {
-                    //DON'T MUTATE THIS VECTOR!!
-                    var bestSize = drawer.getBestSize();
-                    if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest)
-                        this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
-                    if (this._heightSizeMode === LayoutSizeMode.MatchDrawerBest)
-                        this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
-                }
-                else {
-                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchThisDrawerBest' but drawer is missing", this);
-                }
-            }
-            if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest ||
-                this._heightSizeMode === LayoutSizeMode.MatchChildrenBest) {
-                var firstChild = this.entity.transform.getFirstChild();
-                if (firstChild !== null) {
-                    var firstChildDrawer = firstChild.entity.firstDrawer;
-                    if (firstChildDrawer !== null) {
-                        //DON'T MUTATE THIS VECTOR!!
-                        var bestSize = firstChildDrawer.getBestSize();
-                        if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest)
-                            this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
-                        if (this._heightSizeMode === LayoutSizeMode.MatchChildrenBest)
-                            this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
-                    }
-                    else {
-                        s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but children with drawer is missing", this);
-                    }
-                }
-                else {
-                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but not children found", this);
-                }
-            }
-        };
-        return Layout;
-    }(s2d.Component));
-    s2d.Layout = Layout;
-})(s2d || (s2d = {}));
-/// <reference path="Drawer.ts" />
-var s2d;
-(function (s2d) {
-    var SpriteDrawer = (function (_super) {
-        __extends(SpriteDrawer, _super);
-        function SpriteDrawer() {
-            _super.apply(this, arguments);
-            this._sprite = null;
-            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
-        }
-        Object.defineProperty(SpriteDrawer.prototype, "sprite", {
-            get: function () {
-                return this._sprite;
-            },
-            set: function (value) {
-                this._sprite = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(SpriteDrawer.prototype, "color", {
-            get: function () {
-                return this._color;
-            },
-            set: function (value) {
-                this._color.copyFrom(value);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        SpriteDrawer.prototype.draw = function (commands) {
-            var sprite = this._sprite;
-            if (sprite !== null && sprite.texture !== null) {
-                var trans = this.entity.transform;
-                trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
-                var color = this._color;
-                switch (sprite.drawMode) {
-                    case s2d.RenderSpriteDrawMode.Normal:
-                        commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, this._color);
-                        break;
-                    case s2d.RenderSpriteDrawMode.Slice9:
-                        commands.drawRect9Slice(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, sprite.innerUvRect, this._color);
-                        break;
-                }
-            }
-        };
-        return SpriteDrawer;
-    }(s2d.Drawer));
-    s2d.SpriteDrawer = SpriteDrawer;
-})(s2d || (s2d = {}));
-/// <reference path="Drawer.ts" />
-var s2d;
-(function (s2d) {
-    var TextDrawer = (function (_super) {
-        __extends(TextDrawer, _super);
-        function TextDrawer() {
-            _super.apply(this, arguments);
-            this._font = s2d.EmbeddedAssets.defaultFont;
-            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
-            this._text = "Text";
-            this._fontScale = 1;
-            this._textVertexGenerator = new s2d.TextVertextGenerator();
-        }
-        Object.defineProperty(TextDrawer.prototype, "font", {
-            get: function () {
-                return this._font;
-            },
-            set: function (value) {
-                this._font = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TextDrawer.prototype, "color", {
-            get: function () {
-                return this._color;
-            },
-            set: function (value) {
-                this._color.copyFrom(value);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TextDrawer.prototype, "text", {
-            get: function () {
-                return this._text;
-            },
-            set: function (value) {
-                this._text = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TextDrawer.prototype, "fontScale", {
-            get: function () {
-                return this._fontScale;
-            },
-            set: function (value) {
-                this._fontScale = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        TextDrawer.initStatic = function () {
-            TextDrawer.tmpRight = s2d.Vector2.create();
-            TextDrawer.tmpDown = s2d.Vector2.create();
-            TextDrawer.tmpV1 = new s2d.RenderVertex();
-            TextDrawer.tmpV2 = new s2d.RenderVertex();
-            TextDrawer.tmpV3 = new s2d.RenderVertex();
-            TextDrawer.tmpV4 = new s2d.RenderVertex();
-            TextDrawer.tmpTopLeft = s2d.Vector2.create();
-        };
-        TextDrawer.prototype.getBestSize = function () {
-            this.updateTextVertexGenerator();
-            return this._textVertexGenerator.size;
-        };
-        TextDrawer.prototype.updateTextVertexGenerator = function () {
-            this._textVertexGenerator.update(this._font, this._fontScale, this._text);
-        };
-        TextDrawer.prototype.draw = function (commands) {
-            var texture = this.font.texture;
-            if (texture == null)
-                return; //Texture not loaded yet
-            this.updateTextVertexGenerator();
-            var trans = this.entity.transform;
-            var tmpMatrix = s2d.Drawer.tmpMatrix;
-            var tmpVector = s2d.Drawer.tmpVector;
-            var colorNumber = this._color.abgrHex;
-            trans.getLocalToGlobalMatrix(tmpMatrix);
-            var vertexChars = this._textVertexGenerator.vertexChars;
-            var tmpV1 = TextDrawer.tmpV1;
-            var tmpV2 = TextDrawer.tmpV2;
-            var tmpV3 = TextDrawer.tmpV3;
-            var tmpV4 = TextDrawer.tmpV4;
-            //Offset matrix by pivot, vertex coordinates are generated starting at (0,0) and going (right,down)
-            //so we need to offset the pivot by (1, 1) to get the expected behavior
-            tmpVector[0] = -trans.sizeX * 0.5 * (trans.pivotX + 1);
-            tmpVector[1] = -trans.sizeY * 0.5 * (trans.pivotY + 1);
-            s2d.Matrix2d.translate(tmpMatrix, tmpMatrix, tmpVector);
-            for (var i = 0; i < vertexChars.length; i++) {
-                var vertexChar = vertexChars[i];
-                tmpV1.copyFrom(vertexChar.v1);
-                tmpV2.copyFrom(vertexChar.v2);
-                tmpV3.copyFrom(vertexChar.v3);
-                tmpV4.copyFrom(vertexChar.v4);
-                tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = colorNumber;
-                tmpV1.transformMat2d(tmpMatrix);
-                tmpV2.transformMat2d(tmpMatrix);
-                tmpV3.transformMat2d(tmpMatrix);
-                tmpV4.transformMat2d(tmpMatrix);
-                //draw char
-                commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
-            }
-        };
-        return TextDrawer;
-    }(s2d.Drawer));
-    s2d.TextDrawer = TextDrawer;
-})(s2d || (s2d = {}));
-/// <reference path="Drawer.ts" />
-var s2d;
-(function (s2d) {
-    var TextureDrawer = (function (_super) {
-        __extends(TextureDrawer, _super);
-        function TextureDrawer() {
-            _super.apply(this, arguments);
-            this._texture = null;
-            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
-            this._uvRect = s2d.Rect.fromValues(0, 0, 1, 1);
-        }
-        Object.defineProperty(TextureDrawer.prototype, "texture", {
-            get: function () {
-                return this._texture;
-            },
-            set: function (value) {
-                this._texture = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TextureDrawer.prototype, "color", {
-            get: function () {
-                return this._color;
-            },
-            set: function (value) {
-                this._color.copyFrom(value);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TextureDrawer.prototype, "uvRect", {
-            get: function () {
-                return this._uvRect;
-            },
-            set: function (value) {
-                s2d.Rect.copy(this._uvRect, value);
-            },
-            enumerable: true,
-            configurable: true
-        });
-        TextureDrawer.prototype.draw = function (commands) {
-            if (this._texture !== null) {
-                var trans = this.entity.transform;
-                trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
-                commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvRect, this._color);
-            }
-        };
-        return TextureDrawer;
-    }(s2d.Drawer));
-    s2d.TextureDrawer = TextureDrawer;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var TextVertextGeneratorChar = (function () {
-        function TextVertextGeneratorChar() {
-            this.v1 = new s2d.RenderVertex();
-            this.v2 = new s2d.RenderVertex();
-            this.v3 = new s2d.RenderVertex();
-            this.v4 = new s2d.RenderVertex();
-        }
-        return TextVertextGeneratorChar;
-    }());
-    s2d.TextVertextGeneratorChar = TextVertextGeneratorChar;
-    var TextVertextGenerator = (function () {
-        function TextVertextGenerator() {
-            this._font = null;
-            this._text = null;
-            this._scale = -1;
-            this._vertexChars = new Array();
-            this._current = s2d.Vector2.create();
-            this._size = s2d.Vector2.create();
-        }
-        Object.defineProperty(TextVertextGenerator.prototype, "vertexChars", {
-            get: function () {
-                return this._vertexChars;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(TextVertextGenerator.prototype, "size", {
-            get: function () {
-                return this._size;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        TextVertextGenerator.prototype.update = function (font, scale, text) {
-            if (font.texture === null) {
-                //Don't do anything if the font isn't initialised yet
-                return;
-            }
-            if (this._font !== font || this._scale !== scale || this._text !== text) {
-                this._font = font;
-                this._scale = scale;
-                this._text = text;
-                this.updateChars();
-            }
-        };
-        TextVertextGenerator.prototype.updateChars = function () {
-            var font = this._font;
-            var text = this._text;
-            var textLen = text.length;
-            var scale = this._scale;
-            var texture = font.texture;
-            var textureWidth = font.textureWidth;
-            var textureHeight = font.textureHeight;
-            var lineHeight = font.lineHeight * scale;
-            var current = this._current;
-            var startX = 0;
-            var startY = 0;
-            var lines = 0;
-            var maxX = 0;
-            var maxY = lineHeight;
-            current[0] = 0;
-            current[1] = 0;
-            var vertexChars = this._vertexChars;
-            var vertexCharsIndex = 0;
-            for (var i = 0; i < textLen; i++) {
-                var charCode = text.charCodeAt(i);
-                if (charCode === 10) {
-                    lines++;
-                    current[0] = 0;
-                    current[1] += lineHeight;
-                    maxY += lineHeight;
-                }
-                else {
-                    var charData = font.chars[charCode];
-                    if (charData) {
-                        var vertexChar = null;
-                        if (vertexCharsIndex === vertexChars.length) {
-                            vertexChar = new TextVertextGeneratorChar();
-                            vertexChars.push(vertexChar);
-                        }
-                        else {
-                            vertexChar = vertexChars[vertexCharsIndex];
-                        }
-                        vertexCharsIndex++;
-                        vertexChar.charCode = charCode;
-                        var charWidth = charData.width;
-                        var charHeight = charData.height;
-                        var dx = charData.xoffset * scale;
-                        var dy = charData.yoffset * scale;
-                        var ox = current[0];
-                        var oy = current[1];
-                        var tmpV1 = vertexChar.v1;
-                        var tmpV2 = vertexChar.v2;
-                        var tmpV3 = vertexChar.v3;
-                        var tmpV4 = vertexChar.v4;
-                        //offset char dx / dy
-                        current[0] += dx;
-                        current[1] += dy;
-                        tmpV1.x = current[0];
-                        tmpV1.y = current[1];
-                        tmpV1.u = charData.x / textureWidth;
-                        tmpV1.v = charData.y / textureHeight;
-                        tmpV2.x = current[0] + charWidth * scale;
-                        tmpV2.y = current[1];
-                        tmpV2.u = (charData.x + charWidth) / textureWidth;
-                        tmpV2.v = charData.y / textureHeight;
-                        tmpV3.x = current[0] + charWidth * scale;
-                        tmpV3.y = current[1] + charHeight * scale;
-                        tmpV3.u = (charData.x + charWidth) / textureWidth;
-                        tmpV3.v = (charData.y + charHeight) / textureHeight;
-                        tmpV4.x = current[0];
-                        tmpV4.y = current[1] + charHeight * scale;
-                        tmpV4.u = charData.x / textureWidth;
-                        tmpV4.v = (charData.y + charHeight) / textureHeight;
-                        //offset char xadvance
-                        current[0] = ox + charData.xadvance * scale;
-                        current[1] = oy;
-                        if (current[0] > maxX)
-                            maxX = current[0];
-                    }
-                }
-            }
-            if (vertexCharsIndex < vertexChars.length)
-                vertexChars.splice(vertexCharsIndex);
-            this._size[0] = maxX;
-            this._size[1] = maxY;
-        };
-        return TextVertextGenerator;
-    }());
-    s2d.TextVertextGenerator = TextVertextGenerator;
-})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     var EntityFactory = (function () {
@@ -4550,14 +4267,14 @@ var s2d;
             entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
             return textDrawer;
         };
-        EntityFactory.buildButton = function (texture) {
+        EntityFactory.buildButton = function () {
             var entity = new s2d.Entity("Button");
             entity.addComponent(s2d.SpriteDrawer);
             var button = entity.addComponent(s2d.Button);
             entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
             return button;
         };
-        EntityFactory.buildTextButton = function (texture, text) {
+        EntityFactory.buildTextButton = function (text) {
             var entity = new s2d.Entity("Button");
             entity.addComponent(s2d.SpriteDrawer);
             var button = entity.addComponent(s2d.Button);
@@ -5754,6 +5471,466 @@ var s2d;
         return Stats;
     }());
     s2d.Stats = Stats;
+})(s2d || (s2d = {}));
+/// <reference path="../Component.ts" />
+/// <reference path="../../Event/Event.ts" />
+var s2d;
+(function (s2d) {
+    var Interactable = (function (_super) {
+        __extends(Interactable, _super);
+        function Interactable() {
+            _super.apply(this, arguments);
+            this._enabled = true;
+        }
+        Object.defineProperty(Interactable.prototype, "enabled", {
+            get: function () {
+                return this._enabled;
+            },
+            set: function (value) {
+                this._enabled = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Interactable.prototype.getBounds = function (out) {
+            return this.entity.transform.getBounds(out);
+        };
+        Interactable.prototype.onPointerOver = function (pointer) {
+        };
+        Interactable.prototype.onPointerOut = function (pointer) {
+        };
+        Interactable.prototype.onPointerMove = function (pointer) {
+        };
+        Interactable.prototype.onPointerDown = function (pointer) {
+        };
+        Interactable.prototype.onPointerUp = function (pointer) {
+        };
+        return Interactable;
+    }(s2d.Component));
+    s2d.Interactable = Interactable;
+})(s2d || (s2d = {}));
+/// <reference path="Interactable.ts" />
+var s2d;
+(function (s2d) {
+    var Button = (function (_super) {
+        __extends(Button, _super);
+        function Button() {
+            _super.apply(this, arguments);
+            this._onClick = new s2d.Event();
+            this._buttonSprite = null;
+            this._buttonSpriteDown = null;
+            this._spriteDrawer = null;
+        }
+        Object.defineProperty(Button.prototype, "buttonSprite", {
+            get: function () {
+                return this._buttonSprite;
+            },
+            set: function (value) {
+                this._buttonSprite = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Button.prototype, "buttonSpriteDown", {
+            get: function () {
+                return this._buttonSpriteDown;
+            },
+            set: function (value) {
+                this._buttonSpriteDown = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Button.prototype.onInit = function () {
+            this._buttonSprite = s2d.EmbeddedAssets.defaultSkinAtlas.getSprite("button");
+            this._buttonSpriteDown = s2d.EmbeddedAssets.defaultSkinAtlas.getSprite("button_down");
+            if (!(this.entity.firstDrawer instanceof s2d.SpriteDrawer)) {
+                s2d.EngineConsole.error("Missing SpriteDrawer", this);
+            }
+            else {
+                this._spriteDrawer = this.entity.firstDrawer;
+                this._spriteDrawer.sprite = this._buttonSprite;
+            }
+        };
+        Object.defineProperty(Button.prototype, "onClick", {
+            get: function () {
+                return this._onClick;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Button.prototype.onPointerDown = function (pointer) {
+            if (this._spriteDrawer !== null && this._buttonSpriteDown !== null)
+                this._spriteDrawer.sprite = this._buttonSpriteDown;
+        };
+        Button.prototype.onPointerUp = function (pointer) {
+            if (this._spriteDrawer !== null)
+                this._spriteDrawer.sprite = this._buttonSprite;
+            this._onClick.post(this);
+        };
+        return Button;
+    }(s2d.Interactable));
+    s2d.Button = Button;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    (function (LayoutSizeMode) {
+        LayoutSizeMode[LayoutSizeMode["None"] = 0] = "None";
+        LayoutSizeMode[LayoutSizeMode["MatchDrawerBest"] = 1] = "MatchDrawerBest";
+        LayoutSizeMode[LayoutSizeMode["MatchChildrenBest"] = 2] = "MatchChildrenBest";
+    })(s2d.LayoutSizeMode || (s2d.LayoutSizeMode = {}));
+    var LayoutSizeMode = s2d.LayoutSizeMode;
+    (function (LayoutAnchorMode) {
+        LayoutAnchorMode[LayoutAnchorMode["None"] = 0] = "None";
+        LayoutAnchorMode[LayoutAnchorMode["RelativeToParent"] = 1] = "RelativeToParent";
+    })(s2d.LayoutAnchorMode || (s2d.LayoutAnchorMode = {}));
+    var LayoutAnchorMode = s2d.LayoutAnchorMode;
+    var LayoutRectOffset = (function () {
+        function LayoutRectOffset() {
+            this.top = 0;
+            this.left = 0;
+            this.bottom = 0;
+            this.right = 0;
+        }
+        Object.defineProperty(LayoutRectOffset.prototype, "all", {
+            set: function (offset) {
+                this.left = this.right = this.top = this.bottom = offset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return LayoutRectOffset;
+    }());
+    s2d.LayoutRectOffset = LayoutRectOffset;
+    var Layout = (function (_super) {
+        __extends(Layout, _super);
+        function Layout() {
+            _super.apply(this, arguments);
+            this._widthSizeMode = LayoutSizeMode.None;
+            this._heightSizeMode = LayoutSizeMode.None;
+            this._sizeOffset = s2d.Vector2.create();
+        }
+        Object.defineProperty(Layout.prototype, "widthSizeMode", {
+            //private _xAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
+            //private _yAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
+            get: function () {
+                return this._widthSizeMode;
+            },
+            set: function (value) {
+                this._widthSizeMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Layout.prototype, "heightSizeMode", {
+            get: function () {
+                return this._heightSizeMode;
+            },
+            set: function (value) {
+                this._heightSizeMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Layout.prototype, "sizeMode", {
+            set: function (value) {
+                this._heightSizeMode = this._widthSizeMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Layout.prototype, "sizeOffset", {
+            get: function () {
+                return this._sizeOffset;
+            },
+            set: function (value) {
+                s2d.Vector2.copy(this._sizeOffset, value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Layout.prototype.updateLayout = function () {
+            if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest ||
+                this._heightSizeMode === LayoutSizeMode.MatchDrawerBest) {
+                var drawer = this.entity.firstDrawer;
+                if (drawer !== null) {
+                    //DON'T MUTATE THIS VECTOR!!
+                    var bestSize = drawer.getBestSize();
+                    if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest)
+                        this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                    if (this._heightSizeMode === LayoutSizeMode.MatchDrawerBest)
+                        this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                }
+                else {
+                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchThisDrawerBest' but drawer is missing", this);
+                }
+            }
+            if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest ||
+                this._heightSizeMode === LayoutSizeMode.MatchChildrenBest) {
+                var firstChild = this.entity.transform.getFirstChild();
+                if (firstChild !== null) {
+                    var firstChildDrawer = firstChild.entity.firstDrawer;
+                    if (firstChildDrawer !== null) {
+                        //DON'T MUTATE THIS VECTOR!!
+                        var bestSize = firstChildDrawer.getBestSize();
+                        if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest)
+                            this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                        if (this._heightSizeMode === LayoutSizeMode.MatchChildrenBest)
+                            this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                    }
+                    else {
+                        s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but children with drawer is missing", this);
+                    }
+                }
+                else {
+                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but not children found", this);
+                }
+            }
+        };
+        return Layout;
+    }(s2d.Component));
+    s2d.Layout = Layout;
+})(s2d || (s2d = {}));
+/// <reference path="../Drawer.ts" />
+var s2d;
+(function (s2d) {
+    var TextDrawer = (function (_super) {
+        __extends(TextDrawer, _super);
+        function TextDrawer() {
+            _super.apply(this, arguments);
+            this._font = s2d.EmbeddedAssets.defaultFont;
+            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
+            this._text = "Text";
+            this._fontScale = 1;
+            this._textVertexGenerator = new s2d.TextVertextGenerator();
+        }
+        Object.defineProperty(TextDrawer.prototype, "font", {
+            get: function () {
+                return this._font;
+            },
+            set: function (value) {
+                this._font = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextDrawer.prototype, "color", {
+            get: function () {
+                return this._color;
+            },
+            set: function (value) {
+                this._color.copyFrom(value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextDrawer.prototype, "text", {
+            get: function () {
+                return this._text;
+            },
+            set: function (value) {
+                this._text = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextDrawer.prototype, "fontScale", {
+            get: function () {
+                return this._fontScale;
+            },
+            set: function (value) {
+                this._fontScale = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        TextDrawer.initStatic = function () {
+            TextDrawer.tmpRight = s2d.Vector2.create();
+            TextDrawer.tmpDown = s2d.Vector2.create();
+            TextDrawer.tmpV1 = new s2d.RenderVertex();
+            TextDrawer.tmpV2 = new s2d.RenderVertex();
+            TextDrawer.tmpV3 = new s2d.RenderVertex();
+            TextDrawer.tmpV4 = new s2d.RenderVertex();
+            TextDrawer.tmpTopLeft = s2d.Vector2.create();
+        };
+        TextDrawer.prototype.getBestSize = function () {
+            this.updateTextVertexGenerator();
+            return this._textVertexGenerator.size;
+        };
+        TextDrawer.prototype.updateTextVertexGenerator = function () {
+            this._textVertexGenerator.update(this._font, this._fontScale, this._text);
+        };
+        TextDrawer.prototype.draw = function (commands) {
+            var texture = this.font.texture;
+            if (texture == null)
+                return; //Texture not loaded yet
+            this.updateTextVertexGenerator();
+            var trans = this.entity.transform;
+            var tmpMatrix = s2d.Drawer.tmpMatrix;
+            var tmpVector = s2d.Drawer.tmpVector;
+            var colorNumber = this._color.abgrHex;
+            trans.getLocalToGlobalMatrix(tmpMatrix);
+            var vertexChars = this._textVertexGenerator.vertexChars;
+            var tmpV1 = TextDrawer.tmpV1;
+            var tmpV2 = TextDrawer.tmpV2;
+            var tmpV3 = TextDrawer.tmpV3;
+            var tmpV4 = TextDrawer.tmpV4;
+            //Offset matrix by pivot, vertex coordinates are generated starting at (0,0) and going (right,down)
+            //so we need to offset the pivot by (1, 1) to get the expected behavior
+            tmpVector[0] = -trans.sizeX * 0.5 * (trans.pivotX + 1);
+            tmpVector[1] = -trans.sizeY * 0.5 * (trans.pivotY + 1);
+            s2d.Matrix2d.translate(tmpMatrix, tmpMatrix, tmpVector);
+            for (var i = 0; i < vertexChars.length; i++) {
+                var vertexChar = vertexChars[i];
+                tmpV1.copyFrom(vertexChar.v1);
+                tmpV2.copyFrom(vertexChar.v2);
+                tmpV3.copyFrom(vertexChar.v3);
+                tmpV4.copyFrom(vertexChar.v4);
+                tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = colorNumber;
+                tmpV1.transformMat2d(tmpMatrix);
+                tmpV2.transformMat2d(tmpMatrix);
+                tmpV3.transformMat2d(tmpMatrix);
+                tmpV4.transformMat2d(tmpMatrix);
+                //draw char
+                commands.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
+            }
+        };
+        return TextDrawer;
+    }(s2d.Drawer));
+    s2d.TextDrawer = TextDrawer;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var TextVertextGeneratorChar = (function () {
+        function TextVertextGeneratorChar() {
+            this.v1 = new s2d.RenderVertex();
+            this.v2 = new s2d.RenderVertex();
+            this.v3 = new s2d.RenderVertex();
+            this.v4 = new s2d.RenderVertex();
+        }
+        return TextVertextGeneratorChar;
+    }());
+    s2d.TextVertextGeneratorChar = TextVertextGeneratorChar;
+    var TextVertextGenerator = (function () {
+        function TextVertextGenerator() {
+            this._font = null;
+            this._text = null;
+            this._scale = -1;
+            this._vertexChars = new Array();
+            this._current = s2d.Vector2.create();
+            this._size = s2d.Vector2.create();
+        }
+        Object.defineProperty(TextVertextGenerator.prototype, "vertexChars", {
+            get: function () {
+                return this._vertexChars;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(TextVertextGenerator.prototype, "size", {
+            get: function () {
+                return this._size;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        TextVertextGenerator.prototype.update = function (font, scale, text) {
+            if (font.texture === null) {
+                //Don't do anything if the font isn't initialised yet
+                return;
+            }
+            if (this._font !== font || this._scale !== scale || this._text !== text) {
+                this._font = font;
+                this._scale = scale;
+                this._text = text;
+                this.updateChars();
+            }
+        };
+        TextVertextGenerator.prototype.updateChars = function () {
+            var font = this._font;
+            var text = this._text;
+            var textLen = text.length;
+            var scale = this._scale;
+            var texture = font.texture;
+            var textureWidth = font.textureWidth;
+            var textureHeight = font.textureHeight;
+            var lineHeight = font.lineHeight * scale;
+            var current = this._current;
+            var startX = 0;
+            var startY = 0;
+            var lines = 0;
+            var maxX = 0;
+            var maxY = lineHeight;
+            current[0] = 0;
+            current[1] = 0;
+            var vertexChars = this._vertexChars;
+            var vertexCharsIndex = 0;
+            for (var i = 0; i < textLen; i++) {
+                var charCode = text.charCodeAt(i);
+                if (charCode === 10) {
+                    lines++;
+                    current[0] = 0;
+                    current[1] += lineHeight;
+                    maxY += lineHeight;
+                }
+                else {
+                    var charData = font.chars[charCode];
+                    if (charData) {
+                        var vertexChar = null;
+                        if (vertexCharsIndex === vertexChars.length) {
+                            vertexChar = new TextVertextGeneratorChar();
+                            vertexChars.push(vertexChar);
+                        }
+                        else {
+                            vertexChar = vertexChars[vertexCharsIndex];
+                        }
+                        vertexCharsIndex++;
+                        vertexChar.charCode = charCode;
+                        var charWidth = charData.width;
+                        var charHeight = charData.height;
+                        var dx = charData.xoffset * scale;
+                        var dy = charData.yoffset * scale;
+                        var ox = current[0];
+                        var oy = current[1];
+                        var tmpV1 = vertexChar.v1;
+                        var tmpV2 = vertexChar.v2;
+                        var tmpV3 = vertexChar.v3;
+                        var tmpV4 = vertexChar.v4;
+                        //offset char dx / dy
+                        current[0] += dx;
+                        current[1] += dy;
+                        tmpV1.x = current[0];
+                        tmpV1.y = current[1];
+                        tmpV1.u = charData.x / textureWidth;
+                        tmpV1.v = charData.y / textureHeight;
+                        tmpV2.x = current[0] + charWidth * scale;
+                        tmpV2.y = current[1];
+                        tmpV2.u = (charData.x + charWidth) / textureWidth;
+                        tmpV2.v = charData.y / textureHeight;
+                        tmpV3.x = current[0] + charWidth * scale;
+                        tmpV3.y = current[1] + charHeight * scale;
+                        tmpV3.u = (charData.x + charWidth) / textureWidth;
+                        tmpV3.v = (charData.y + charHeight) / textureHeight;
+                        tmpV4.x = current[0];
+                        tmpV4.y = current[1] + charHeight * scale;
+                        tmpV4.u = charData.x / textureWidth;
+                        tmpV4.v = (charData.y + charHeight) / textureHeight;
+                        //offset char xadvance
+                        current[0] = ox + charData.xadvance * scale;
+                        current[1] = oy;
+                        if (current[0] > maxX)
+                            maxX = current[0];
+                    }
+                }
+            }
+            if (vertexCharsIndex < vertexChars.length)
+                vertexChars.splice(vertexCharsIndex);
+            this._size[0] = maxX;
+            this._size[1] = maxY;
+        };
+        return TextVertextGenerator;
+    }());
+    s2d.TextVertextGenerator = TextVertextGenerator;
 })(s2d || (s2d = {}));
 
 //# sourceMappingURL=main.js.map

@@ -1,4 +1,4 @@
-/// <reference path="Drawer.ts" />
+/// <reference path="../Drawer.ts" />
 
 module s2d {
 

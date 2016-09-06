@@ -10,12 +10,7 @@ module s2d {
 
         private _loaders:StringDictionary<Loader<any>> = new StringDictionary<Loader<any>>();
         private _assets:StringDictionary<any> = new StringDictionary<any>();
-        private _dispatchComplete:boolean = false;
         
-        public get onLoadComplete() {
-            return this._onLoadComplete;
-        }
-
         public init() {
             
         }
@@ -23,6 +18,10 @@ module s2d {
         public getAsset(id:string) : any {
             return this._assets.get(id);
         } 
+
+        public attachOnLoadCompleteListener(handler: (data: void) => void, boundTo: Object = null): void {
+            this._onLoadComplete.attachOnlyOnce(handler, boundTo);
+        }
 
         public loadRenderTextureFromUrl(id:string, url:string, hasAlpha:boolean, onLoadComplete:(loader:Loader<RenderTexture>) => void = null, onLoadCompleteBoundTo:Object = null) {
 
@@ -117,25 +116,11 @@ module s2d {
         private onLoaderComplete(loader: Loader<any>) {
             this._loaders.remove(loader.id);
             this._assets.add(loader.id, loader.asset);
-            this.dispatchCompleteIfFinished();
-        }
-
-        private dispatchCompleteIfFinished() : void {
-            if (this._loaders.empty) {
-                //Real event dispatch is delayed to update() method, to have a
-                //predictable dispatch order
-                this._dispatchComplete = true;
-            }
         }
 
         public update() {
-            if (this._dispatchComplete) {
-                this._dispatchComplete = false;
-
-                //We validate if it's still empty, just in case that some asset was added to download
-                //between the time when _dispatchComplete was set true and the call to update()
-                if (this._loaders.empty)
-                    this.onLoadComplete.post();
+            if (this._loaders.empty && this._onLoadComplete.listenerCount > 0) {
+                this._onLoadComplete.post();
             }
         }
     }

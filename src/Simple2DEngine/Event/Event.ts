@@ -158,7 +158,7 @@ module s2d {
 
             this._recursion--;
 
-            //Remove any listener that was set a "fireOnlyOnce"
+            //Remove any listener that was set as "fireOnlyOnce"
             if (listenersToRemove != null) {
 
                 //Update listeners reference, could have been be updated in any of the callbacks
