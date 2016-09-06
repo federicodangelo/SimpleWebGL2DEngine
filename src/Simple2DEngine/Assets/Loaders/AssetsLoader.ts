@@ -1,8 +1,8 @@
-/// <reference path="../Render/RenderTexture.ts" />
-/// <reference path="../Render/RenderSprite.ts" />
-/// <reference path="../Render/RenderSpriteAtlas.ts" />
-/// <reference path="../Render/RenderFont.ts" />
-/// <reference path="../Event/Event.ts" />
+/// <reference path="../../Render/RenderTexture.ts" />
+/// <reference path="../../Render/RenderSprite.ts" />
+/// <reference path="../../Render/RenderSpriteAtlas.ts" />
+/// <reference path="../../Render/RenderFont.ts" />
+/// <reference path="../../Event/Event.ts" />
 
 module s2d {
     export class AssetsLoader {
@@ -63,11 +63,11 @@ module s2d {
             loader.start();
         }
 
-        public loadRenderSpriteAtlasFromUrl(id:string, url:string, onLoadComplete:(loader:Loader<RenderSpriteAtlas>) => void = null, onLoadCompleteBoundTo:Object = null) {
+        public loadRenderSpriteAtlasFromUrl(id:string, xmlUrl:string, onLoadComplete:(loader:Loader<RenderSpriteAtlas>) => void = null, onLoadCompleteBoundTo:Object = null) {
             if (!this.validateId(id))
                 return;
 
-            var loader = new RenderSpriteAtlasLoader(id, url);
+            var loader = new RenderSpriteAtlasLoader(id, xmlUrl);
             loader.onLoadComplete.attach(this.onLoaderComplete, this);
             if (onLoadComplete !== null)
                 loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);

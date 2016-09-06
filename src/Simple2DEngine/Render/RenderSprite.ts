@@ -11,6 +11,7 @@ module s2d {
         private _id: string = null;
         private _texture: RenderTexture = null;
         private _uvRect: Rect = Rect.create();
+        private _size: Vector2 = Vector2.create();
         private _innerUvRect: Rect = null;
         private _drawMode: RenderSpriteDrawMode = RenderSpriteDrawMode.Normal;
 
@@ -34,10 +35,15 @@ module s2d {
             return this._innerUvRect;
         }
 
+        public get size() {
+            return this._size;
+        }
+
         public constructor(id: string, texture: RenderTexture, uvRect: Rect, drawMode: RenderSpriteDrawMode = RenderSpriteDrawMode.Normal, innerUvRect: Rect = null) {
             this._id = id;
             this._texture = texture;
             Rect.copy(this._uvRect, uvRect);
+            Vector2.set(this._size, uvRect[2], uvRect[3]);
             this._drawMode = drawMode;
 
             if (innerUvRect !== null) {

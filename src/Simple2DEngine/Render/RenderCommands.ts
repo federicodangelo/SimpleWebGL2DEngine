@@ -148,6 +148,11 @@ module s2d {
             let u1 = uvRect[0] + uvRect[2];
             let v1 = uvRect[1] + uvRect[3];
 
+            u0 /= texture.width;
+            v0 /= texture.height;
+            u1 /= texture.width;
+            v1 /= texture.height;
+
             //Top left
             tmpV1.x = -halfSizeX + dx;
             tmpV1.y = -halfSizeY + dy;

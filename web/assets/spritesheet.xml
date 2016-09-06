@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<atlas>
+  <info file="spritesheet.png" alpha="false"/>
+
+  <sprites>
+    <sprite id="grass" rect="384,192,64,64"/>
+    <sprite id="sand" rect="448,192,64,64"/>
+    <sprite id="road" rect="320,192,64,64"/>
+    <sprite id="dirt" rect="448,128,64,64"/>
+    <sprite id="water" rect="0,256,64,64"/>
+  </sprites>
+</atlas>

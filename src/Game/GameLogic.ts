@@ -15,6 +15,8 @@ class GameLogic extends s2d.Behavior {
 
         this.gameScreen = s2d.EntityFactory.buildWithComponent(GameScreen, "Game Screen");
         s2d.EntityFactory.buildWithComponent(GameStats, "Game Stats");
+
+        this.setActiveTest(new TestTilemap());
     }
 
     public update(): void {

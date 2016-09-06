@@ -7,6 +7,7 @@ class GameScreen extends s2d.Screen {
     protected onScreenInit() {
         this.addTestButton("Test Simple", TestSimple);
         this.addTestButton("Test Moving Triangles", TestMovingTriangles);
+        this.addTestButton("Test Tilemap", TestTilemap);
     }
 
     protected addTestButton<T extends Test>(name:string, testClazz: { new (): T }) : void {

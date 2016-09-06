@@ -8,15 +8,11 @@ module s2d {
 
         private _sprites: StringDictionary<RenderSprite> = new StringDictionary<RenderSprite>();
 
-        private _xhttp: XMLHttpRequest = null;
-        private _loadCompleteCallback: (atlas:RenderSpriteAtlas) => void = null;
-        private _loadCompleteCallbackThis: any = null;
-
         public get texture() {
             return this._texture;
         }
 
-        public sprites() {
+        public get sprites() {
             return this._sprites;
         }
 

@@ -454,6 +454,10 @@ var s2d;
             var v0 = uvRect[1];
             var u1 = uvRect[0] + uvRect[2];
             var v1 = uvRect[1] + uvRect[3];
+            u0 /= texture.width;
+            v0 /= texture.height;
+            u1 /= texture.width;
+            v1 /= texture.height;
             //Top left
             tmpV1.x = -halfSizeX + dx;
             tmpV1.y = -halfSizeY + dy;
@@ -2845,9 +2849,11 @@ var s2d;
             //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST_MIPMAP_NEAREST);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            //Ignore errors for NPOT textures
             gl.generateMipmap(gl.TEXTURE_2D);
         }
         Object.defineProperty(RenderTexture.prototype, "texture", {
@@ -2908,11 +2914,13 @@ var s2d;
             this._id = null;
             this._texture = null;
             this._uvRect = s2d.Rect.create();
+            this._size = s2d.Vector2.create();
             this._innerUvRect = null;
             this._drawMode = RenderSpriteDrawMode.Normal;
             this._id = id;
             this._texture = texture;
             s2d.Rect.copy(this._uvRect, uvRect);
+            s2d.Vector2.set(this._size, uvRect[2], uvRect[3]);
             this._drawMode = drawMode;
             if (innerUvRect !== null) {
                 this._innerUvRect = s2d.Rect.create();
@@ -2952,6 +2960,13 @@ var s2d;
         Object.defineProperty(RenderSprite.prototype, "innerUvRect", {
             get: function () {
                 return this._innerUvRect;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "size", {
+            get: function () {
+                return this._size;
             },
             enumerable: true,
             configurable: true
@@ -3013,9 +3028,6 @@ var s2d;
         function RenderSpriteAtlas(texture, atlasJson) {
             this._texture = null;
             this._sprites = new s2d.StringDictionary();
-            this._xhttp = null;
-            this._loadCompleteCallback = null;
-            this._loadCompleteCallbackThis = null;
             this._texture = texture;
             this.parseAtlasJson(atlasJson);
         }
@@ -3026,9 +3038,13 @@ var s2d;
             enumerable: true,
             configurable: true
         });
-        RenderSpriteAtlas.prototype.sprites = function () {
-            return this._sprites;
-        };
+        Object.defineProperty(RenderSpriteAtlas.prototype, "sprites", {
+            get: function () {
+                return this._sprites;
+            },
+            enumerable: true,
+            configurable: true
+        });
         RenderSpriteAtlas.prototype.getSprite = function (id) {
             return this._sprites.get(id);
         };
@@ -3371,11 +3387,11 @@ var s2d;
     }(Event));
     s2d.ErrorEvent = ErrorEvent;
 })(s2d || (s2d = {}));
-/// <reference path="../Render/RenderTexture.ts" />
-/// <reference path="../Render/RenderSprite.ts" />
-/// <reference path="../Render/RenderSpriteAtlas.ts" />
-/// <reference path="../Render/RenderFont.ts" />
-/// <reference path="../Event/Event.ts" />
+/// <reference path="../../Render/RenderTexture.ts" />
+/// <reference path="../../Render/RenderSprite.ts" />
+/// <reference path="../../Render/RenderSpriteAtlas.ts" />
+/// <reference path="../../Render/RenderFont.ts" />
+/// <reference path="../../Event/Event.ts" />
 var s2d;
 (function (s2d) {
     var AssetsLoader = (function () {
@@ -3430,12 +3446,12 @@ var s2d;
             this._loaders.add(id, loader);
             loader.start();
         };
-        AssetsLoader.prototype.loadRenderSpriteAtlasFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
+        AssetsLoader.prototype.loadRenderSpriteAtlasFromUrl = function (id, xmlUrl, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
             if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
             if (!this.validateId(id))
                 return;
-            var loader = new s2d.RenderSpriteAtlasLoader(id, url);
+            var loader = new s2d.RenderSpriteAtlasLoader(id, xmlUrl);
             loader.onLoadComplete.attach(this.onLoaderComplete, this);
             if (onLoadComplete !== null)
                 loader.onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
@@ -3506,7 +3522,7 @@ var s2d;
 /// <reference path="Render/RenderManager.ts" />
 /// <reference path="Entity/EntityManager.ts" />
 /// <reference path="Component/UI/UIManager.ts" />
-/// <reference path="Assets/AssetsLoader.ts" />
+/// <reference path="Assets/Loaders/AssetsLoader.ts" />
 /// <reference path="Util/Time.ts" />
 var s2d;
 (function (s2d) {
@@ -3652,6 +3668,7 @@ var GameLogic = (function (_super) {
         this.cam = s2d.EntityFactory.buildCamera();
         this.gameScreen = s2d.EntityFactory.buildWithComponent(GameScreen, "Game Screen");
         s2d.EntityFactory.buildWithComponent(GameStats, "Game Stats");
+        this.setActiveTest(new TestTilemap());
     };
     GameLogic.prototype.update = function () {
         if (this.activeTest !== null)
@@ -3714,6 +3731,7 @@ var GameScreen = (function (_super) {
     GameScreen.prototype.onScreenInit = function () {
         this.addTestButton("Test Simple", TestSimple);
         this.addTestButton("Test Moving Triangles", TestMovingTriangles);
+        this.addTestButton("Test Tilemap", TestTilemap);
     };
     GameScreen.prototype.addTestButton = function (name, testClazz) {
         var button = s2d.EntityFactory.buildTextButton(name);
@@ -3927,6 +3945,131 @@ var TestSimple = (function (_super) {
     };
     return TestSimple;
 }(Test));
+var TestTilemap = (function (_super) {
+    __extends(TestTilemap, _super);
+    function TestTilemap() {
+        _super.apply(this, arguments);
+        this.loadCompleted = false;
+    }
+    TestTilemap.prototype.onInit = function () {
+        s2d.loader.loadRenderSpriteAtlasFromUrl("spritesheet", "assets/spritesheet.xml");
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestTilemap.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestTilemap.prototype.onLoadComplete = function () {
+        this.spritesheet = s2d.loader.getAsset("spritesheet");
+        this.loadCompleted = true;
+        this.initTilemap();
+    };
+    TestTilemap.prototype.initTilemap = function () {
+        if (!this.loadCompleted)
+            return;
+        var spritesheet = this.spritesheet;
+        var tiles = new Array();
+        for (var spriteId in spritesheet.sprites.data) {
+            var sprite = spritesheet.sprites.data[spriteId];
+            tiles.push(new s2d.Tile(sprite.id, sprite));
+        }
+        var tilemap = new s2d.Tilemap(128, 64, tiles);
+        var data = tilemap.data;
+        for (var x = 0; x < tilemap.width; x++) {
+            for (var y = 0; y < tilemap.height; y++) {
+                data[y][x] = tiles[(x + y) % tiles.length];
+            }
+        }
+        var tilemapDrawer = s2d.EntityFactory.buildWithComponent(s2d.TilemapDrawer);
+        tilemapDrawer.tilemap = tilemap;
+        tilemapDrawer.entity.transform.setPivot(-1, -1);
+        tilemapDrawer.entity.transform.parent = this.testContainer;
+    };
+    TestTilemap.prototype.onUpdate = function () {
+    };
+    TestTilemap.prototype.onDestroy = function () {
+    };
+    return TestTilemap;
+}(Test));
+/// <reference path="../Render/RenderSprite.ts" />
+var s2d;
+(function (s2d) {
+    var Tile = (function () {
+        function Tile(id, sprite) {
+            this._id = null;
+            this._sprite = null;
+            this._id = id;
+            this._sprite = sprite;
+        }
+        Object.defineProperty(Tile.prototype, "sprite", {
+            get: function () {
+                return this._sprite;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tile.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tile;
+    }());
+    s2d.Tile = Tile;
+})(s2d || (s2d = {}));
+/// <reference path="Tile.ts" />
+var s2d;
+(function (s2d) {
+    var Tilemap = (function () {
+        function Tilemap(width, height, tiles) {
+            this._tiles = new Array();
+            this._data = new Array();
+            this._width = 0;
+            this._height = 0;
+            this._width = width;
+            this._height = height;
+            this._tiles = tiles;
+            var data = this.data;
+            for (var y = 0; y < height; y++) {
+                var line = new Array();
+                for (var x = 0; x < width; x++)
+                    line.push(null);
+                data.push(line);
+            }
+        }
+        Object.defineProperty(Tilemap.prototype, "data", {
+            get: function () {
+                return this._data;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "tiles", {
+            get: function () {
+                return this._tiles;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "width", {
+            get: function () {
+                return this._width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tilemap;
+    }());
+    s2d.Tilemap = Tilemap;
+})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
 (function (s2d) {
@@ -4044,208 +4187,84 @@ var s2d;
     }(s2d.Drawer));
     s2d.TextureDrawer = TextureDrawer;
 })(s2d || (s2d = {}));
+/// <reference path="Drawer.ts" />
+/// <reference path="../Assets/Tilemap.ts" />
 var s2d;
 (function (s2d) {
-    (function (LoaderState) {
-        LoaderState[LoaderState["WaitingStart"] = 0] = "WaitingStart";
-        LoaderState[LoaderState["Loading"] = 1] = "Loading";
-        LoaderState[LoaderState["Complete"] = 2] = "Complete";
-    })(s2d.LoaderState || (s2d.LoaderState = {}));
-    var LoaderState = s2d.LoaderState;
-    var Loader = (function () {
-        function Loader(id) {
-            this._id = null;
-            this._onLoadComplete = new s2d.Event();
-            this._state = LoaderState.WaitingStart;
-            this._asset = null;
-            this._id = id;
+    var TilemapDrawer = (function (_super) {
+        __extends(TilemapDrawer, _super);
+        function TilemapDrawer() {
+            _super.apply(this, arguments);
+            this._tilemap = null;
+            this._color = s2d.Color.fromRgba(255, 255, 255, 255);
+            this._tileSize = s2d.Vector2.fromValues(32, 32);
         }
-        Object.defineProperty(Loader.prototype, "id", {
+        Object.defineProperty(TilemapDrawer.prototype, "tilemap", {
             get: function () {
-                return this._id;
+                return this._tilemap;
+            },
+            set: function (value) {
+                this._tilemap = value;
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Loader.prototype, "state", {
+        Object.defineProperty(TilemapDrawer.prototype, "color", {
             get: function () {
-                return this._state;
+                return this._color;
+            },
+            set: function (value) {
+                this._color.copyFrom(value);
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Loader.prototype, "asset", {
+        Object.defineProperty(TilemapDrawer.prototype, "tileSize", {
             get: function () {
-                return this._asset;
+                return this._tileSize;
+            },
+            set: function (value) {
+                s2d.Vector2.copy(this._tileSize, value);
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Loader.prototype, "onLoadComplete", {
-            get: function () {
-                return this._onLoadComplete;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Loader.prototype.start = function () {
-            if (this._state == LoaderState.WaitingStart) {
-                this._state = LoaderState.Loading;
-                this.onStart();
+        TilemapDrawer.prototype.draw = function (commands) {
+            var tilemap = this._tilemap;
+            if (tilemap !== null) {
+                var trans = this.entity.transform;
+                var pivot = trans.pivot;
+                var matrix = s2d.Drawer.tmpMatrix;
+                trans.getLocalToGlobalMatrix(matrix);
+                var color = this._color;
+                var width = tilemap.width;
+                var height = tilemap.height;
+                var data = tilemap.data;
+                var tileSize = this.tileSize;
+                var right = s2d.Vector2.fromValues(tileSize[0], 0);
+                var down = s2d.Vector2.fromValues(0, tileSize[1]);
+                s2d.Vector2.transformMat2d(right, right, matrix);
+                s2d.Vector2.transformMat2d(down, down, matrix);
+                var startingPosition = s2d.Vector2.fromValues(matrix[4], matrix[5]);
+                for (var y = 0; y < height; y++) {
+                    matrix[4] = startingPosition[0] + down[0] * y;
+                    matrix[5] = startingPosition[1] + down[1] * y;
+                    var line = data[y];
+                    for (var x = 0; x < width; x++) {
+                        var tile = line[x];
+                        if (tile !== null) {
+                            var sprite = tile.sprite;
+                            commands.drawRectSimple(matrix, tileSize, pivot, sprite.texture, sprite.uvRect, this._color);
+                        }
+                        matrix[4] += right[0];
+                        matrix[5] += right[1];
+                    }
+                }
             }
         };
-        Loader.prototype.onStart = function () {
-            //Must be overriden in subclass to start downloading
-        };
-        //Must be called by subclass when the asset has finished downloading
-        Loader.prototype.setAsset = function (asset) {
-            this._asset = asset;
-            this._onLoadComplete.post(this);
-        };
-        return Loader;
-    }());
-    s2d.Loader = Loader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-var s2d;
-(function (s2d) {
-    var ImageLoader = (function (_super) {
-        __extends(ImageLoader, _super);
-        function ImageLoader(id, url) {
-            _super.call(this, id);
-            this._image = null;
-            this._url = url;
-        }
-        ImageLoader.prototype.onStart = function () {
-            var _this = this;
-            this._image = new Image();
-            this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = this._url;
-        };
-        ImageLoader.prototype.onImageLoadComplete = function () {
-            var tmp = this._image;
-            this._image = null;
-            this.setAsset(tmp);
-        };
-        return ImageLoader;
-    }(s2d.Loader));
-    s2d.ImageLoader = ImageLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-/// <reference path="ImageLoader.ts" />
-/// <reference path="../Render/RenderTexture.ts" />
-var s2d;
-(function (s2d) {
-    var RenderTextureLoader = (function (_super) {
-        __extends(RenderTextureLoader, _super);
-        function RenderTextureLoader(id, url, hasAlpha) {
-            _super.call(this, id);
-            this._url = null;
-            this._hasAlpha = false;
-            this._url = url;
-            this._hasAlpha = hasAlpha;
-        }
-        RenderTextureLoader.prototype.onStart = function () {
-            s2d.loader.loadImageFromUrl(this.id + "_image", this._url, this.onImageLoadComplete, this);
-        };
-        RenderTextureLoader.prototype.onImageLoadComplete = function (imageLoader) {
-            var texture = new s2d.RenderTexture(imageLoader.asset, this._hasAlpha);
-            this.setAsset(texture);
-        };
-        return RenderTextureLoader;
-    }(s2d.Loader));
-    s2d.RenderTextureLoader = RenderTextureLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-var s2d;
-(function (s2d) {
-    var XmlLoader = (function (_super) {
-        __extends(XmlLoader, _super);
-        function XmlLoader(id, url) {
-            _super.call(this, id);
-            this._xhttp = null;
-            this._url = url;
-        }
-        XmlLoader.prototype.onStart = function () {
-            var _this = this;
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
-            this._xhttp.open("GET", this._url, true);
-            this._xhttp.send(null);
-        };
-        XmlLoader.prototype.onXMLLoadComplete = function () {
-            var tmp = this._xhttp;
-            this._xhttp = null;
-            this.setAsset(tmp.responseText);
-        };
-        return XmlLoader;
-    }(s2d.Loader));
-    s2d.XmlLoader = XmlLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-/// <reference path="RenderTextureLoader.ts" />
-/// <reference path="XmlLoader.ts" />
-/// <reference path="../Render/RenderFont.ts" />
-var s2d;
-(function (s2d) {
-    var RenderFontLoader = (function (_super) {
-        __extends(RenderFontLoader, _super);
-        function RenderFontLoader(id, fontXmlUrl) {
-            _super.call(this, id);
-            this._fontXmlUrl = null;
-            this._fontJson = null;
-            this._fontXmlUrl = fontXmlUrl;
-        }
-        RenderFontLoader.prototype.onStart = function () {
-            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._fontXmlUrl, this.onXmlLoadComplete, this);
-        };
-        RenderFontLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
-            var xml = xmlLoader.asset;
-            this._fontJson = JXON.stringToJs(xml);
-            var url = "assets/" + this._fontJson.font.pages.page.$file;
-            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
-        };
-        RenderFontLoader.prototype.onTextureLoadComplete = function (loader) {
-            var font = new s2d.RenderFont(loader.asset, this._fontJson);
-            this._fontJson = null;
-            this.setAsset(font);
-        };
-        return RenderFontLoader;
-    }(s2d.Loader));
-    s2d.RenderFontLoader = RenderFontLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-/// <reference path="RenderTextureLoader.ts" />
-/// <reference path="XmlLoader.ts" />
-/// <reference path="../Render/RenderSpriteAtlas.ts" />
-var s2d;
-(function (s2d) {
-    var RenderSpriteAtlasLoader = (function (_super) {
-        __extends(RenderSpriteAtlasLoader, _super);
-        function RenderSpriteAtlasLoader(id, spriteAtlasXmlUrl) {
-            _super.call(this, id);
-            this._spriteAtlasXmlUrl = null;
-            this._spriteAtlasJson = null;
-            this._spriteAtlasXmlUrl = spriteAtlasXmlUrl;
-        }
-        RenderSpriteAtlasLoader.prototype.onStart = function () {
-            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
-        };
-        RenderSpriteAtlasLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
-            var xml = xmlLoader.asset;
-            this._spriteAtlasJson = JXON.stringToJs(xml);
-            var url = "assets/" + this._spriteAtlasJson.atlas.info.$file;
-            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
-        };
-        RenderSpriteAtlasLoader.prototype.onTextureLoadComplete = function (textureLoader) {
-            var atlas = new s2d.RenderSpriteAtlas(textureLoader.asset, this._spriteAtlasJson);
-            this._spriteAtlasJson = null;
-            this.setAsset(atlas);
-        };
-        return RenderSpriteAtlasLoader;
-    }(s2d.Loader));
-    s2d.RenderSpriteAtlasLoader = RenderSpriteAtlasLoader;
+        return TilemapDrawer;
+    }(s2d.Drawer));
+    s2d.TilemapDrawer = TilemapDrawer;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -5471,6 +5490,211 @@ var s2d;
         return Stats;
     }());
     s2d.Stats = Stats;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    (function (LoaderState) {
+        LoaderState[LoaderState["WaitingStart"] = 0] = "WaitingStart";
+        LoaderState[LoaderState["Loading"] = 1] = "Loading";
+        LoaderState[LoaderState["Complete"] = 2] = "Complete";
+    })(s2d.LoaderState || (s2d.LoaderState = {}));
+    var LoaderState = s2d.LoaderState;
+    var Loader = (function () {
+        function Loader(id) {
+            this._id = null;
+            this._onLoadComplete = new s2d.Event();
+            this._state = LoaderState.WaitingStart;
+            this._asset = null;
+            this._id = id;
+        }
+        Object.defineProperty(Loader.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "state", {
+            get: function () {
+                return this._state;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "asset", {
+            get: function () {
+                return this._asset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "onLoadComplete", {
+            get: function () {
+                return this._onLoadComplete;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Loader.prototype.start = function () {
+            if (this._state == LoaderState.WaitingStart) {
+                this._state = LoaderState.Loading;
+                this.onStart();
+            }
+        };
+        Loader.prototype.onStart = function () {
+            //Must be overriden in subclass to start downloading
+        };
+        //Must be called by subclass when the asset has finished downloading
+        Loader.prototype.setAsset = function (asset) {
+            this._asset = asset;
+            this._onLoadComplete.post(this);
+        };
+        return Loader;
+    }());
+    s2d.Loader = Loader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+var s2d;
+(function (s2d) {
+    var ImageLoader = (function (_super) {
+        __extends(ImageLoader, _super);
+        function ImageLoader(id, url) {
+            _super.call(this, id);
+            this._image = null;
+            this._url = url;
+        }
+        ImageLoader.prototype.onStart = function () {
+            var _this = this;
+            this._image = new Image();
+            this._image.setAttribute('crossOrigin', 'anonymous');
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = this._url;
+        };
+        ImageLoader.prototype.onImageLoadComplete = function () {
+            var tmp = this._image;
+            this._image = null;
+            this.setAsset(tmp);
+        };
+        return ImageLoader;
+    }(s2d.Loader));
+    s2d.ImageLoader = ImageLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="../../Render/RenderFont.ts" />
+var s2d;
+(function (s2d) {
+    var RenderFontLoader = (function (_super) {
+        __extends(RenderFontLoader, _super);
+        function RenderFontLoader(id, fontXmlUrl) {
+            _super.call(this, id);
+            this._fontXmlUrl = null;
+            this._fontJson = null;
+            this._fontXmlUrl = fontXmlUrl;
+        }
+        RenderFontLoader.prototype.onStart = function () {
+            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._fontXmlUrl, this.onXmlLoadComplete, this);
+        };
+        RenderFontLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
+            var xml = xmlLoader.asset;
+            this._fontJson = JXON.stringToJs(xml);
+            var url = "assets/" + this._fontJson.font.pages.page.$file;
+            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
+        };
+        RenderFontLoader.prototype.onTextureLoadComplete = function (loader) {
+            var font = new s2d.RenderFont(loader.asset, this._fontJson);
+            this._fontJson = null;
+            this.setAsset(font);
+        };
+        return RenderFontLoader;
+    }(s2d.Loader));
+    s2d.RenderFontLoader = RenderFontLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="../../Render/RenderSpriteAtlas.ts" />
+var s2d;
+(function (s2d) {
+    var RenderSpriteAtlasLoader = (function (_super) {
+        __extends(RenderSpriteAtlasLoader, _super);
+        function RenderSpriteAtlasLoader(id, spriteAtlasXmlUrl) {
+            _super.call(this, id);
+            this._spriteAtlasXmlUrl = null;
+            this._spriteAtlasJson = null;
+            this._spriteAtlasXmlUrl = spriteAtlasXmlUrl;
+        }
+        RenderSpriteAtlasLoader.prototype.onStart = function () {
+            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
+        };
+        RenderSpriteAtlasLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
+            var xml = xmlLoader.asset;
+            this._spriteAtlasJson = JXON.stringToJs(xml);
+            var url = "assets/" + this._spriteAtlasJson.atlas.info.$file;
+            var hasAlpha = true;
+            if (typeof this._spriteAtlasJson.atlas.info.$alpha === "string") {
+                if (this._spriteAtlasJson.atlas.info.$alpha.trim().toLowerCase() === "true")
+                    hasAlpha = true;
+                else
+                    hasAlpha = false;
+            }
+            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, hasAlpha, this.onTextureLoadComplete, this);
+        };
+        RenderSpriteAtlasLoader.prototype.onTextureLoadComplete = function (textureLoader) {
+            var atlas = new s2d.RenderSpriteAtlas(textureLoader.asset, this._spriteAtlasJson);
+            this._spriteAtlasJson = null;
+            this.setAsset(atlas);
+        };
+        return RenderSpriteAtlasLoader;
+    }(s2d.Loader));
+    s2d.RenderSpriteAtlasLoader = RenderSpriteAtlasLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="../../Render/RenderTexture.ts" />
+var s2d;
+(function (s2d) {
+    var RenderTextureLoader = (function (_super) {
+        __extends(RenderTextureLoader, _super);
+        function RenderTextureLoader(id, url, hasAlpha) {
+            _super.call(this, id);
+            this._url = null;
+            this._hasAlpha = false;
+            this._url = url;
+            this._hasAlpha = hasAlpha;
+        }
+        RenderTextureLoader.prototype.onStart = function () {
+            s2d.loader.loadImageFromUrl(this.id + "_image", this._url, this.onImageLoadComplete, this);
+        };
+        RenderTextureLoader.prototype.onImageLoadComplete = function (imageLoader) {
+            var texture = new s2d.RenderTexture(imageLoader.asset, this._hasAlpha);
+            this.setAsset(texture);
+        };
+        return RenderTextureLoader;
+    }(s2d.Loader));
+    s2d.RenderTextureLoader = RenderTextureLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+var s2d;
+(function (s2d) {
+    var XmlLoader = (function (_super) {
+        __extends(XmlLoader, _super);
+        function XmlLoader(id, url) {
+            _super.call(this, id);
+            this._xhttp = null;
+            this._url = url;
+        }
+        XmlLoader.prototype.onStart = function () {
+            var _this = this;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", this._url, true);
+            this._xhttp.send(null);
+        };
+        XmlLoader.prototype.onXMLLoadComplete = function () {
+            var tmp = this._xhttp;
+            this._xhttp = null;
+            this.setAsset(tmp.responseText);
+        };
+        return XmlLoader;
+    }(s2d.Loader));
+    s2d.XmlLoader = XmlLoader;
 })(s2d || (s2d = {}));
 /// <reference path="../Component.ts" />
 /// <reference path="../../Event/Event.ts" />

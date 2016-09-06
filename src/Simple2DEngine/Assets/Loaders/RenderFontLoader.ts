@@ -1,7 +1,5 @@
 /// <reference path="Loader.ts" />
-/// <reference path="RenderTextureLoader.ts" />
-/// <reference path="XmlLoader.ts" />
-/// <reference path="../Render/RenderFont.ts" />
+/// <reference path="../../Render/RenderFont.ts" />
 
 module s2d {
 

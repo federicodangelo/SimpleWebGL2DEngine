@@ -1,6 +1,5 @@
 /// <reference path="Loader.ts" />
-/// <reference path="ImageLoader.ts" />
-/// <reference path="../Render/RenderTexture.ts" />
+/// <reference path="../../Render/RenderTexture.ts" />
 
 module s2d {
 

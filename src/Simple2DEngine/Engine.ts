@@ -2,7 +2,7 @@
 /// <reference path="Render/RenderManager.ts" />
 /// <reference path="Entity/EntityManager.ts" />
 /// <reference path="Component/UI/UIManager.ts" />
-/// <reference path="Assets/AssetsLoader.ts" />
+/// <reference path="Assets/Loaders/AssetsLoader.ts" />
 /// <reference path="Util/Time.ts" />
 
 module s2d {

@@ -1,7 +1,5 @@
 /// <reference path="Loader.ts" />
-/// <reference path="RenderTextureLoader.ts" />
-/// <reference path="XmlLoader.ts" />
-/// <reference path="../Render/RenderSpriteAtlas.ts" />
+/// <reference path="../../Render/RenderSpriteAtlas.ts" />
 
 module s2d {
 
@@ -25,8 +23,16 @@ module s2d {
             this._spriteAtlasJson = JXON.stringToJs(xml);
 
             let url = "assets/" + this._spriteAtlasJson.atlas.info.$file;
+            let hasAlpha = true;
 
-            loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
+            if (typeof this._spriteAtlasJson.atlas.info.$alpha === "string") {
+                if ((<string> this._spriteAtlasJson.atlas.info.$alpha).trim().toLowerCase() === "true")
+                    hasAlpha = true;
+                else
+                    hasAlpha = false; 
+            }
+
+            loader.loadRenderTextureFromUrl(this.id + "_texture", url, hasAlpha, this.onTextureLoadComplete, this);
         }
 
         private onTextureLoadComplete(textureLoader:Loader<RenderTexture>) {
