@@ -84,7 +84,7 @@ module s2d {
         private indexesOffset: number;
         private vertexOffset: number;
 
-        static MAX_TRIANGLES = 1024;
+        static MAX_TRIANGLES = 1024; //1024 works great for some reason.. benchmark a lot before trying to change this value!!
 
         static VERTEX_SIZE: number = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
         static MAX_VERTEX: number = RenderCommands.MAX_TRIANGLES * 3; //3 vertex per triangle
