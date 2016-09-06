@@ -414,10 +414,7 @@ var s2d;
         function RenderCommands() {
             this.currentBufferIndex = 0;
             this.currentTexture = null;
-            this.tmpV1 = new s2d.RenderVertex();
-            this.tmpV2 = new s2d.RenderVertex();
-            this.tmpV3 = new s2d.RenderVertex();
-            this.tmpV4 = new s2d.RenderVertex();
+            this.renderMesh = null;
             var gl = s2d.renderer.gl;
             this.renderProgram = new s2d.RenderProgram(RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderVertexBuffers = new Array();
@@ -426,201 +423,71 @@ var s2d;
                 this.renderVertexBuffers.push(new s2d.RenderBuffer(gl.ARRAY_BUFFER));
                 this.renderIndexBuffers.push(new s2d.RenderBuffer(gl.ELEMENT_ARRAY_BUFFER));
             }
-            this.backingVertexArray = new ArrayBuffer(RenderCommands.MAX_VERTEX * RenderCommands.VERTEX_SIZE);
-            this.positions = new Float32Array(this.backingVertexArray);
-            this.colors = new Uint32Array(this.backingVertexArray);
-            this.uvs = new Uint16Array(this.backingVertexArray);
-            this.backingIndexArray = new ArrayBuffer(RenderCommands.MAX_INDEXES * RenderCommands.INDEX_SIZE);
-            this.indexes = new Uint16Array(this.backingIndexArray);
+            this.renderMesh = new s2d.RenderMesh();
         }
         RenderCommands.prototype.startFrame = function () {
         };
         RenderCommands.prototype.endFrame = function () {
         };
         RenderCommands.prototype.start = function () {
-            this.vertexOffset = 0;
-            this.indexesOffset = 0;
+            this.renderMesh.reset();
         };
         RenderCommands.prototype.drawRectSimple = function (mat, size, pivot, texture, uvRect, color) {
-            var tmpV1 = this.tmpV1;
-            var tmpV2 = this.tmpV2;
-            var tmpV3 = this.tmpV3;
-            var tmpV4 = this.tmpV4;
-            var halfSizeX = size[0] * 0.5;
-            var halfSizeY = size[1] * 0.5;
-            var dx = -pivot[0] * halfSizeX;
-            var dy = -pivot[1] * halfSizeY;
-            var u0 = uvRect[0];
-            var v0 = uvRect[1];
-            var u1 = uvRect[0] + uvRect[2];
-            var v1 = uvRect[1] + uvRect[3];
-            //Top left
-            tmpV1.x = -halfSizeX + dx;
-            tmpV1.y = -halfSizeY + dy;
-            tmpV1.color = color.abgrHex;
-            tmpV1.u = u0;
-            tmpV1.v = v0;
-            //Top right
-            tmpV2.x = halfSizeX + dx;
-            tmpV2.y = -halfSizeY + dy;
-            tmpV2.color = color.abgrHex;
-            tmpV2.u = u1;
-            tmpV2.v = v0;
-            //Bottom right
-            tmpV3.x = halfSizeX + dx;
-            tmpV3.y = halfSizeY + dy;
-            tmpV3.color = color.abgrHex;
-            tmpV3.u = u1;
-            tmpV3.v = v1;
-            //Bottom left
-            tmpV4.x = -halfSizeX + dx;
-            tmpV4.y = halfSizeY + dy;
-            tmpV4.color = color.abgrHex;
-            tmpV4.u = u0;
-            tmpV4.v = v1;
-            tmpV1.transformMat2d(mat);
-            tmpV2.transformMat2d(mat);
-            tmpV3.transformMat2d(mat);
-            tmpV4.transformMat2d(mat);
-            this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
-        };
-        RenderCommands.prototype.drawRect9Slice = function (mat, size, pivot, texture, rect, uvRect, innerRect, innerUvRect, color) {
-            var tmpV1 = this.tmpV1;
-            var tmpV2 = this.tmpV2;
-            var tmpV3 = this.tmpV3;
-            var tmpV4 = this.tmpV4;
-            var halfSizeX = size[0] * 0.5;
-            var halfSizeY = size[1] * 0.5;
-            var dx = -pivot[0] * halfSizeX;
-            var dy = -pivot[1] * halfSizeY;
-            var u0 = uvRect[0];
-            var v0 = uvRect[1];
-            var u1 = uvRect[0] + uvRect[2];
-            var v1 = uvRect[1] + uvRect[3];
-            var iu0 = innerUvRect[0];
-            var iv0 = innerUvRect[1];
-            var iu1 = innerUvRect[0] + innerUvRect[2];
-            var iv1 = innerUvRect[1] + innerUvRect[3];
-            //Draws a total of 9 rects
-            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = color.abgrHex;
-            var x0 = -halfSizeX + dx;
-            var y0 = -halfSizeY + dy;
-            var x1 = halfSizeX + dx;
-            var y1 = halfSizeY + dy;
-            var leftWidth = innerRect[0] - rect[0];
-            var rightWidth = rect[0] + rect[2] - (innerRect[0] + innerRect[2]);
-            var topHeight = innerRect[1] - rect[1];
-            var bottomHeight = rect[1] + rect[3] - (innerRect[1] + innerRect[3]);
-            var ix0 = x0 + leftWidth;
-            var iy0 = y0 + topHeight;
-            var ix1 = x1 - rightWidth;
-            var iy1 = y1 - bottomHeight;
-            /**
-             * Reference:
-             *
-             *  x0,y0                             x1,y0
-             *   /----------------------------------\
-             *   |                                  |
-             *   |  ix0,iy0               ix1,iy0   |
-             *   |   /-----------------------\      |
-             *   |   |                       |      |
-             *   |   |                       |      |
-             *   |   |                       |      |
-             *   |   \-----------------------/      |
-             *   |  ix0,iy1               ix1,iy1   |
-             *   |                                  |
-             *   \----------------------------------/
-             *  x0,y1                             x1,y1
-             *
-             *
-             *
-             */
-            //TODO: OPTIMIZE!!!
-            //This can be done with only 16 vertexes, since all vertexes share uv / colors 
-            //Top left corner
-            this.drawRect(tmpV1.setXYUV(x0, y0, u0, v0).transformMat2d(mat), tmpV2.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV4.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat), texture);
-            //Top middle
-            this.drawRect(tmpV1.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV2.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), texture);
-            //Top right corner
-            this.drawRect(tmpV1.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV2.setXYUV(x1, y0, u1, v0).transformMat2d(mat), tmpV3.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), texture);
-            //Center left
-            this.drawRect(tmpV1.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV4.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat), texture);
-            //Center middle
-            this.drawRect(tmpV1.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), texture);
-            //Center right
-            this.drawRect(tmpV1.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV2.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV3.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), texture);
-            //Bottom left corner
-            this.drawRect(tmpV1.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV3.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat), tmpV4.setXYUV(x0, y1, u0, v1).transformMat2d(mat), texture);
-            //Bottom middle
-            this.drawRect(tmpV1.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV3.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat), tmpV4.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat), texture);
-            //Bottom right corner
-            this.drawRect(tmpV1.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV2.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV3.setXYUV(x1, y1, u1, v1).transformMat2d(mat), tmpV4.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat), texture);
-        };
-        RenderCommands.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4, texture) {
-            if (this.vertexOffset + 4 >= RenderCommands.MAX_VERTEX || this.indexesOffset + 6 >= RenderCommands.MAX_INDEXES || texture !== this.currentTexture) {
+            var renderMesh = this.renderMesh;
+            if (!renderMesh.canDrawRect() || texture !== this.currentTexture) {
                 this.end();
                 this.start();
                 this.currentTexture = texture;
             }
-            var vertexOffset = this.vertexOffset;
-            var indexesOffset = this.indexesOffset;
-            var positions = this.positions;
-            var colors = this.colors;
-            var uvs = this.uvs;
-            var indexes = this.indexes;
-            var positionsOffset = vertexOffset * 4;
-            var colorsOffset = vertexOffset * 4;
-            var uvsOffset = vertexOffset * 8;
-            //Add 4 vertexes
-            positions[positionsOffset + 0] = tmpV1.x;
-            positions[positionsOffset + 1] = tmpV1.y;
-            colors[colorsOffset + 2] = tmpV1.color;
-            uvs[uvsOffset + 6] = tmpV1.u * 65535;
-            uvs[uvsOffset + 7] = tmpV1.v * 65535;
-            positions[positionsOffset + 4] = tmpV2.x;
-            positions[positionsOffset + 5] = tmpV2.y;
-            colors[colorsOffset + 6] = tmpV2.color;
-            uvs[uvsOffset + 14] = tmpV2.u * 65535;
-            uvs[uvsOffset + 15] = tmpV2.v * 65535;
-            positions[positionsOffset + 8] = tmpV3.x;
-            positions[positionsOffset + 9] = tmpV3.y;
-            colors[colorsOffset + 10] = tmpV3.color;
-            uvs[uvsOffset + 22] = tmpV3.u * 65535;
-            uvs[uvsOffset + 23] = tmpV3.v * 65535;
-            positions[positionsOffset + 12] = tmpV4.x;
-            positions[positionsOffset + 13] = tmpV4.y;
-            colors[colorsOffset + 14] = tmpV4.color;
-            uvs[uvsOffset + 30] = tmpV4.u * 65535;
-            uvs[uvsOffset + 31] = tmpV4.v * 65535;
-            //Add 2 triangles
-            //First triangle (0 -> 1 -> 2)
-            indexes[indexesOffset + 0] = vertexOffset + 0;
-            indexes[indexesOffset + 1] = vertexOffset + 1;
-            indexes[indexesOffset + 2] = vertexOffset + 2;
-            //Second triangle (2 -> 3 -> 0)
-            indexes[indexesOffset + 3] = vertexOffset + 2;
-            indexes[indexesOffset + 4] = vertexOffset + 3;
-            indexes[indexesOffset + 5] = vertexOffset + 0;
-            this.vertexOffset += 4;
-            this.indexesOffset += 6;
+            renderMesh.drawRectSimple(mat, size, pivot, uvRect, color);
+        };
+        RenderCommands.prototype.drawRect9Slice = function (mat, size, pivot, texture, rect, uvRect, innerRect, innerUvRect, color) {
+            var renderMesh = this.renderMesh;
+            if (!renderMesh.canDrawRect9Slice() || texture !== this.currentTexture) {
+                this.end();
+                this.start();
+                this.currentTexture = texture;
+            }
+            renderMesh.drawRect9Slice(mat, size, pivot, rect, uvRect, innerRect, innerUvRect, color);
+        };
+        RenderCommands.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4, texture) {
+            var renderMesh = this.renderMesh;
+            if (!renderMesh.canDrawRect() || texture !== this.currentTexture) {
+                this.end();
+                this.start();
+                this.currentTexture = texture;
+            }
+            renderMesh.drawRect(tmpV1, tmpV2, tmpV3, tmpV4);
+        };
+        RenderCommands.prototype.drawMesh = function (renderMesh, texture) {
+            if (this.renderMesh.vertexCount > 0) {
+                //Flush current mesh first!!
+                this.end();
+                this.start();
+            }
+            this.drawMeshInternal(renderMesh, texture);
         };
         RenderCommands.prototype.end = function () {
+            this.drawMeshInternal(this.renderMesh, this.currentTexture);
+            this.currentTexture = null;
+        };
+        RenderCommands.prototype.drawMeshInternal = function (renderMesh, texture) {
             if (!s2d.EngineConfiguration.RENDER_ENABLED)
                 return;
-            if (this.vertexOffset === 0)
+            if (renderMesh.vertexCount === 0)
                 return;
             var gl = s2d.renderer.gl;
             this.renderProgram.useProgram();
             this.renderProgram.setUniform2f("u_resolution", gl.canvas.width, gl.canvas.height);
-            this.currentTexture.useTexture();
+            texture.useTexture();
             var vertexBuffer = this.renderVertexBuffers[this.currentBufferIndex];
             var indexBuffer = this.renderIndexBuffers[this.currentBufferIndex];
-            vertexBuffer.setData(this.backingVertexArray, false);
-            indexBuffer.setData(this.backingIndexArray, false);
-            this.renderProgram.setVertexAttributePointer("a_position", vertexBuffer, 2, gl.FLOAT, false, RenderCommands.VERTEX_SIZE, 0);
-            this.renderProgram.setVertexAttributePointer("a_color", vertexBuffer, 4, gl.UNSIGNED_BYTE, true, RenderCommands.VERTEX_SIZE, 8);
-            this.renderProgram.setVertexAttributePointer("a_texcoord", vertexBuffer, 2, gl.UNSIGNED_SHORT, true, RenderCommands.VERTEX_SIZE, 12);
-            if (this.currentTexture.hasAlpha) {
+            vertexBuffer.setData(renderMesh.vertexArray, false);
+            indexBuffer.setData(renderMesh.indexArray, false);
+            this.renderProgram.setVertexAttributePointer("a_position", vertexBuffer, 2, gl.FLOAT, false, s2d.RenderMesh.VERTEX_SIZE, 0);
+            this.renderProgram.setVertexAttributePointer("a_color", vertexBuffer, 4, gl.UNSIGNED_BYTE, true, s2d.RenderMesh.VERTEX_SIZE, 8);
+            this.renderProgram.setVertexAttributePointer("a_texcoord", vertexBuffer, 2, gl.UNSIGNED_SHORT, true, s2d.RenderMesh.VERTEX_SIZE, 12);
+            if (texture.hasAlpha) {
                 gl.enable(gl.BLEND);
                 gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
             }
@@ -628,18 +495,12 @@ var s2d;
                 gl.disable(gl.BLEND);
             }
             s2d.engine.stats.incrmentDrawcalls();
-            gl.drawElements(gl.TRIANGLES, this.indexesOffset, gl.UNSIGNED_SHORT, 0);
+            gl.drawElements(gl.TRIANGLES, renderMesh.indexCount, gl.UNSIGNED_SHORT, 0);
             this.currentBufferIndex = (this.currentBufferIndex + 1) % this.renderVertexBuffers.length;
-            this.currentTexture = null;
         };
         RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n            attribute vec2 a_texcoord;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // texture used in vertex shader\n            varying vec2 v_texcoord;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n\n                v_texcoord = a_texcoord;\n            }\n        ";
         RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            //texture uv received from vertex shader\n            varying vec2 v_texcoord;\n\n            // Main texture.\n            uniform sampler2D u_texture;\n\n            void main() {\n\n                gl_FragColor = texture2D(u_texture, v_texcoord) * v_color;\n\n                //gl_FragColor = v_color;\n            }\n        ";
         RenderCommands.BUFFERS_COUNT = 16;
-        RenderCommands.MAX_TRIANGLES = 1024; //1024 works great for some reason.. benchmark a lot before trying to change this value!!
-        RenderCommands.VERTEX_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
-        RenderCommands.MAX_VERTEX = RenderCommands.MAX_TRIANGLES * 3; //3 vertex per triangle
-        RenderCommands.INDEX_SIZE = 2; //16 bits
-        RenderCommands.MAX_INDEXES = RenderCommands.MAX_TRIANGLES * 3; //3 index per triangle
         return RenderCommands;
     }());
     s2d.RenderCommands = RenderCommands;
@@ -4003,58 +3864,97 @@ var TestTilemap = (function (_super) {
     };
     return TestTilemap;
 }(Test));
+/// <reference path="../Render/RenderSprite.ts" />
 var s2d;
 (function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
+    var Tile = (function () {
+        function Tile(id, sprite) {
+            this._id = null;
+            this._sprite = null;
+            this._id = id;
+            this._sprite = sprite;
         }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            return textureDrawer;
-        };
-        EntityFactory.buildTextDrawer = function () {
-            var entity = new s2d.Entity("Text");
-            var textDrawer = entity.addComponent(s2d.TextDrawer);
-            textDrawer.fontScale = 3;
-            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
-            return textDrawer;
-        };
-        EntityFactory.buildButton = function () {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            return button;
-        };
-        EntityFactory.buildTextButton = function (text) {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            //Layout used to make the button match the size of the text inside
-            var layout = entity.addComponent(s2d.Layout);
-            layout.sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
-            layout.sizeOffset = s2d.Vector2.fromValues(8, 4); //4px on X, 2px on Y
-            //Text drawer
-            var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
-            textDrawer.color.setFromRgba(0, 0, 0);
-            textDrawer.fontScale = 1;
-            textDrawer.text = text;
-            textDrawer.entity.transform.parent = entity.transform;
-            return button;
-        };
-        EntityFactory.buildWithComponent = function (clazz, name) {
-            if (name === void 0) { name = "Entity"; }
-            return new s2d.Entity(name).addComponent(clazz);
-        };
-        return EntityFactory;
+        Object.defineProperty(Tile.prototype, "sprite", {
+            get: function () {
+                return this._sprite;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tile.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tile;
     }());
-    s2d.EntityFactory = EntityFactory;
+    s2d.Tile = Tile;
+})(s2d || (s2d = {}));
+/// <reference path="Tile.ts" />
+var s2d;
+(function (s2d) {
+    var Tilemap = (function () {
+        function Tilemap(width, height, tiles) {
+            this._tiles = new Array();
+            this._data = new Array();
+            this._width = 0;
+            this._height = 0;
+            this._dirty = true;
+            this._width = width;
+            this._height = height;
+            this._tiles = tiles;
+            var data = this.data;
+            var defaultTile = tiles[0];
+            for (var y = 0; y < height; y++) {
+                var line = new Array();
+                for (var x = 0; x < width; x++)
+                    line.push(defaultTile);
+                data.push(line);
+            }
+        }
+        Object.defineProperty(Tilemap.prototype, "data", {
+            get: function () {
+                return this._data;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "tiles", {
+            get: function () {
+                return this._tiles;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "width", {
+            get: function () {
+                return this._width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "dirty", {
+            get: function () {
+                return this._dirty;
+            },
+            set: function (value) {
+                this._dirty = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tilemap;
+    }());
+    s2d.Tilemap = Tilemap;
 })(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
@@ -4173,87 +4073,6 @@ var s2d;
     }(s2d.Drawer));
     s2d.TextureDrawer = TextureDrawer;
 })(s2d || (s2d = {}));
-/// <reference path="../Render/RenderSprite.ts" />
-var s2d;
-(function (s2d) {
-    var Tile = (function () {
-        function Tile(id, sprite) {
-            this._id = null;
-            this._sprite = null;
-            this._id = id;
-            this._sprite = sprite;
-        }
-        Object.defineProperty(Tile.prototype, "sprite", {
-            get: function () {
-                return this._sprite;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tile.prototype, "id", {
-            get: function () {
-                return this._id;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Tile;
-    }());
-    s2d.Tile = Tile;
-})(s2d || (s2d = {}));
-/// <reference path="Tile.ts" />
-var s2d;
-(function (s2d) {
-    var Tilemap = (function () {
-        function Tilemap(width, height, tiles) {
-            this._tiles = new Array();
-            this._data = new Array();
-            this._width = 0;
-            this._height = 0;
-            this._width = width;
-            this._height = height;
-            this._tiles = tiles;
-            var data = this.data;
-            var defaultTile = tiles[0];
-            for (var y = 0; y < height; y++) {
-                var line = new Array();
-                for (var x = 0; x < width; x++)
-                    line.push(defaultTile);
-                data.push(line);
-            }
-        }
-        Object.defineProperty(Tilemap.prototype, "data", {
-            get: function () {
-                return this._data;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "tiles", {
-            get: function () {
-                return this._tiles;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "width", {
-            get: function () {
-                return this._width;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "height", {
-            get: function () {
-                return this._height;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Tilemap;
-    }());
-    s2d.Tilemap = Tilemap;
-})(s2d || (s2d = {}));
 /// <reference path="Drawer.ts" />
 /// <reference path="../Assets/Tilemap.ts" />
 var s2d;
@@ -4265,6 +4084,8 @@ var s2d;
             this._tilemap = null;
             this._color = s2d.Color.fromRgba(255, 255, 255, 255);
             this._tileSize = s2d.Vector2.fromValues(32, 32);
+            this._mesh = null;
+            this.lastDrawnMatrix = s2d.Matrix2d.create();
         }
         Object.defineProperty(TilemapDrawer.prototype, "tilemap", {
             get: function () {
@@ -4296,42 +4117,117 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        TilemapDrawer.prototype.buildRenderMesh = function (matrix) {
+            var tilemap = this.tilemap;
+            var trans = this.entity.transform;
+            var pivot = trans.pivot;
+            var color = this._color;
+            var width = tilemap.width;
+            var height = tilemap.height;
+            var data = tilemap.data;
+            var tileSize = this.tileSize;
+            var right = s2d.Vector2.fromValues(tileSize[0], 0);
+            var down = s2d.Vector2.fromValues(0, tileSize[1]);
+            s2d.Vector2.transformMat2d(right, right, matrix);
+            s2d.Vector2.transformMat2d(down, down, matrix);
+            var startingPosition = s2d.Vector2.fromValues(matrix[4], matrix[5]);
+            var mesh = this._mesh;
+            if (mesh === null || mesh.maxTriangles !== width * height * 2) {
+                mesh = new s2d.RenderMesh(width * height * 2);
+                this._mesh = mesh;
+            }
+            else {
+                mesh.reset();
+            }
+            for (var y = 0; y < height; y++) {
+                matrix[4] = startingPosition[0] + down[0] * y;
+                matrix[5] = startingPosition[1] + down[1] * y;
+                var line = data[y];
+                for (var x = 0; x < width; x++) {
+                    var tile = line[x];
+                    if (tile !== null) {
+                        var sprite = tile.sprite;
+                        mesh.drawRectSimple(matrix, tileSize, pivot, sprite.uvRect, this._color);
+                    }
+                    matrix[4] += right[0];
+                    matrix[5] += right[1];
+                }
+            }
+            tilemap.dirty = false;
+        };
         TilemapDrawer.prototype.draw = function (commands) {
             var tilemap = this._tilemap;
             if (tilemap !== null) {
-                var trans = this.entity.transform;
-                var pivot = trans.pivot;
                 var matrix = s2d.Drawer.tmpMatrix;
-                trans.getLocalToGlobalMatrix(matrix);
-                var color = this._color;
-                var width = tilemap.width;
-                var height = tilemap.height;
-                var data = tilemap.data;
-                var tileSize = this.tileSize;
-                var right = s2d.Vector2.fromValues(tileSize[0], 0);
-                var down = s2d.Vector2.fromValues(0, tileSize[1]);
-                s2d.Vector2.transformMat2d(right, right, matrix);
-                s2d.Vector2.transformMat2d(down, down, matrix);
-                var startingPosition = s2d.Vector2.fromValues(matrix[4], matrix[5]);
-                for (var y = 0; y < height; y++) {
-                    matrix[4] = startingPosition[0] + down[0] * y;
-                    matrix[5] = startingPosition[1] + down[1] * y;
-                    var line = data[y];
-                    for (var x = 0; x < width; x++) {
-                        var tile = line[x];
-                        if (tile !== null) {
-                            var sprite = tile.sprite;
-                            commands.drawRectSimple(matrix, tileSize, pivot, sprite.texture, sprite.uvRect, this._color);
-                        }
-                        matrix[4] += right[0];
-                        matrix[5] += right[1];
-                    }
+                this.entity.transform.getLocalToGlobalMatrix(matrix);
+                if (this.lastDrawnMatrix === null ||
+                    !s2d.Matrix2d.equals(matrix, this.lastDrawnMatrix) ||
+                    this._mesh === null ||
+                    tilemap.dirty) {
+                    s2d.Matrix2d.copy(this.lastDrawnMatrix, matrix);
+                    this.buildRenderMesh(matrix);
                 }
+                //We assume that ALL sprites have the same texture..
+                var texture = this.tilemap.tiles[0].sprite.texture;
+                commands.drawMesh(this._mesh, texture);
             }
         };
         return TilemapDrawer;
     }(s2d.Drawer));
     s2d.TilemapDrawer = TilemapDrawer;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EntityFactory = (function () {
+        function EntityFactory() {
+        }
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function () {
+            var entity = new s2d.Entity("Text");
+            var textDrawer = entity.addComponent(s2d.TextDrawer);
+            textDrawer.fontScale = 3;
+            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
+            return textDrawer;
+        };
+        EntityFactory.buildButton = function () {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            return button;
+        };
+        EntityFactory.buildTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            var layout = entity.addComponent(s2d.Layout);
+            layout.sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
+            layout.sizeOffset = s2d.Vector2.fromValues(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
+        };
+        return EntityFactory;
+    }());
+    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -5324,6 +5220,255 @@ var s2d;
         return SMath;
     }());
     s2d.SMath = SMath;
+})(s2d || (s2d = {}));
+/// <reference path="RenderBuffer.ts" />
+/// <reference path="RenderProgram.ts" />
+var s2d;
+(function (s2d) {
+    var RenderMesh = (function () {
+        function RenderMesh(maxTriangles) {
+            if (maxTriangles === void 0) { maxTriangles = 1024; }
+            this.backingVertexArray = null;
+            this.positions = null;
+            this.colors = null;
+            this.uvs = null;
+            this.backingIndexArray = null;
+            this.indexes = null;
+            this.indexesOffset = 0;
+            this.vertexOffset = 0;
+            this.maxVertex = 0;
+            this.maxIndex = 0;
+            this._maxTriangles = 0;
+            this.tmpV1 = new s2d.RenderVertex();
+            this.tmpV2 = new s2d.RenderVertex();
+            this.tmpV3 = new s2d.RenderVertex();
+            this.tmpV4 = new s2d.RenderVertex();
+            this._maxTriangles = maxTriangles;
+            this.maxVertex = maxTriangles * 3;
+            this.maxIndex = maxTriangles * 3;
+            this.backingVertexArray = new ArrayBuffer(this.maxVertex * RenderMesh.VERTEX_SIZE);
+            this.positions = new Float32Array(this.backingVertexArray);
+            this.colors = new Uint32Array(this.backingVertexArray);
+            this.uvs = new Uint16Array(this.backingVertexArray);
+            this.backingIndexArray = new ArrayBuffer(this.maxIndex * RenderMesh.INDEX_SIZE);
+            this.indexes = new Uint16Array(this.backingIndexArray);
+        }
+        Object.defineProperty(RenderMesh.prototype, "vertexCount", {
+            get: function () {
+                return this.vertexOffset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "indexCount", {
+            get: function () {
+                return this.indexesOffset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "vertexArray", {
+            get: function () {
+                return this.backingVertexArray;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "indexArray", {
+            get: function () {
+                return this.backingIndexArray;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "maxTriangles", {
+            get: function () {
+                return this._maxTriangles;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderMesh.prototype.reset = function () {
+            this.vertexOffset = 0;
+            this.indexesOffset = 0;
+        };
+        RenderMesh.prototype.canDrawRectSimple = function () {
+            return this.vertexOffset + 4 < this.maxVertex && this.indexesOffset + 6 < this.maxIndex;
+        };
+        RenderMesh.prototype.drawRectSimple = function (mat, size, pivot, uvRect, color) {
+            var tmpV1 = this.tmpV1;
+            var tmpV2 = this.tmpV2;
+            var tmpV3 = this.tmpV3;
+            var tmpV4 = this.tmpV4;
+            var halfSizeX = size[0] * 0.5;
+            var halfSizeY = size[1] * 0.5;
+            var dx = -pivot[0] * halfSizeX;
+            var dy = -pivot[1] * halfSizeY;
+            var u0 = uvRect[0];
+            var v0 = uvRect[1];
+            var u1 = uvRect[0] + uvRect[2];
+            var v1 = uvRect[1] + uvRect[3];
+            //Top left
+            tmpV1.x = -halfSizeX + dx;
+            tmpV1.y = -halfSizeY + dy;
+            tmpV1.color = color.abgrHex;
+            tmpV1.u = u0;
+            tmpV1.v = v0;
+            //Top right
+            tmpV2.x = halfSizeX + dx;
+            tmpV2.y = -halfSizeY + dy;
+            tmpV2.color = color.abgrHex;
+            tmpV2.u = u1;
+            tmpV2.v = v0;
+            //Bottom right
+            tmpV3.x = halfSizeX + dx;
+            tmpV3.y = halfSizeY + dy;
+            tmpV3.color = color.abgrHex;
+            tmpV3.u = u1;
+            tmpV3.v = v1;
+            //Bottom left
+            tmpV4.x = -halfSizeX + dx;
+            tmpV4.y = halfSizeY + dy;
+            tmpV4.color = color.abgrHex;
+            tmpV4.u = u0;
+            tmpV4.v = v1;
+            tmpV1.transformMat2d(mat);
+            tmpV2.transformMat2d(mat);
+            tmpV3.transformMat2d(mat);
+            tmpV4.transformMat2d(mat);
+            this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4);
+        };
+        RenderMesh.prototype.canDrawRect9Slice = function () {
+            //Draws 9 rects
+            return this.vertexOffset + 4 * 9 < this.maxVertex && this.indexesOffset + 6 * 9 < this.maxIndex;
+        };
+        RenderMesh.prototype.drawRect9Slice = function (mat, size, pivot, rect, uvRect, innerRect, innerUvRect, color) {
+            var tmpV1 = this.tmpV1;
+            var tmpV2 = this.tmpV2;
+            var tmpV3 = this.tmpV3;
+            var tmpV4 = this.tmpV4;
+            var halfSizeX = size[0] * 0.5;
+            var halfSizeY = size[1] * 0.5;
+            var dx = -pivot[0] * halfSizeX;
+            var dy = -pivot[1] * halfSizeY;
+            var u0 = uvRect[0];
+            var v0 = uvRect[1];
+            var u1 = uvRect[0] + uvRect[2];
+            var v1 = uvRect[1] + uvRect[3];
+            var iu0 = innerUvRect[0];
+            var iv0 = innerUvRect[1];
+            var iu1 = innerUvRect[0] + innerUvRect[2];
+            var iv1 = innerUvRect[1] + innerUvRect[3];
+            //Draws a total of 9 rects
+            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = color.abgrHex;
+            var x0 = -halfSizeX + dx;
+            var y0 = -halfSizeY + dy;
+            var x1 = halfSizeX + dx;
+            var y1 = halfSizeY + dy;
+            var leftWidth = innerRect[0] - rect[0];
+            var rightWidth = rect[0] + rect[2] - (innerRect[0] + innerRect[2]);
+            var topHeight = innerRect[1] - rect[1];
+            var bottomHeight = rect[1] + rect[3] - (innerRect[1] + innerRect[3]);
+            var ix0 = x0 + leftWidth;
+            var iy0 = y0 + topHeight;
+            var ix1 = x1 - rightWidth;
+            var iy1 = y1 - bottomHeight;
+            /**
+             * Reference:
+             *
+             *  x0,y0                             x1,y0
+             *   /----------------------------------\
+             *   |                                  |
+             *   |  ix0,iy0               ix1,iy0   |
+             *   |   /-----------------------\      |
+             *   |   |                       |      |
+             *   |   |                       |      |
+             *   |   |                       |      |
+             *   |   \-----------------------/      |
+             *   |  ix0,iy1               ix1,iy1   |
+             *   |                                  |
+             *   \----------------------------------/
+             *  x0,y1                             x1,y1
+             *
+             *
+             *
+             */
+            //TODO: OPTIMIZE!!!
+            //This can be done with only 16 vertexes, since all vertexes share uv / colors 
+            //Top left corner
+            this.drawRect(tmpV1.setXYUV(x0, y0, u0, v0).transformMat2d(mat), tmpV2.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV4.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat));
+            //Top middle
+            this.drawRect(tmpV1.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV2.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat));
+            //Top right corner
+            this.drawRect(tmpV1.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV2.setXYUV(x1, y0, u1, v0).transformMat2d(mat), tmpV3.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat));
+            //Center left
+            this.drawRect(tmpV1.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV4.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat));
+            //Center middle
+            this.drawRect(tmpV1.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat));
+            //Center right
+            this.drawRect(tmpV1.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV2.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV3.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat));
+            //Bottom left corner
+            this.drawRect(tmpV1.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV3.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat), tmpV4.setXYUV(x0, y1, u0, v1).transformMat2d(mat));
+            //Bottom middle
+            this.drawRect(tmpV1.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV3.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat), tmpV4.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat));
+            //Bottom right corner
+            this.drawRect(tmpV1.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV2.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV3.setXYUV(x1, y1, u1, v1).transformMat2d(mat), tmpV4.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat));
+        };
+        RenderMesh.prototype.canDrawRect = function () {
+            return this.vertexOffset + 4 < this.maxVertex && this.indexesOffset + 6 < this.maxIndex;
+        };
+        RenderMesh.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4) {
+            if (this.vertexOffset + 4 >= this.maxVertex || this.indexesOffset + 6 >= this.maxIndex) {
+                s2d.EngineConsole.error("Mesh is full!!!");
+                return;
+            }
+            var vertexOffset = this.vertexOffset;
+            var indexesOffset = this.indexesOffset;
+            var positions = this.positions;
+            var colors = this.colors;
+            var uvs = this.uvs;
+            var indexes = this.indexes;
+            var positionsOffset = vertexOffset * 4;
+            var colorsOffset = vertexOffset * 4;
+            var uvsOffset = vertexOffset * 8;
+            //Add 4 vertexes
+            positions[positionsOffset + 0] = tmpV1.x;
+            positions[positionsOffset + 1] = tmpV1.y;
+            colors[colorsOffset + 2] = tmpV1.color;
+            uvs[uvsOffset + 6] = tmpV1.u * 65535;
+            uvs[uvsOffset + 7] = tmpV1.v * 65535;
+            positions[positionsOffset + 4] = tmpV2.x;
+            positions[positionsOffset + 5] = tmpV2.y;
+            colors[colorsOffset + 6] = tmpV2.color;
+            uvs[uvsOffset + 14] = tmpV2.u * 65535;
+            uvs[uvsOffset + 15] = tmpV2.v * 65535;
+            positions[positionsOffset + 8] = tmpV3.x;
+            positions[positionsOffset + 9] = tmpV3.y;
+            colors[colorsOffset + 10] = tmpV3.color;
+            uvs[uvsOffset + 22] = tmpV3.u * 65535;
+            uvs[uvsOffset + 23] = tmpV3.v * 65535;
+            positions[positionsOffset + 12] = tmpV4.x;
+            positions[positionsOffset + 13] = tmpV4.y;
+            colors[colorsOffset + 14] = tmpV4.color;
+            uvs[uvsOffset + 30] = tmpV4.u * 65535;
+            uvs[uvsOffset + 31] = tmpV4.v * 65535;
+            //Add 2 triangles
+            //First triangle (0 -> 1 -> 2)
+            indexes[indexesOffset + 0] = vertexOffset + 0;
+            indexes[indexesOffset + 1] = vertexOffset + 1;
+            indexes[indexesOffset + 2] = vertexOffset + 2;
+            //Second triangle (2 -> 3 -> 0)
+            indexes[indexesOffset + 3] = vertexOffset + 2;
+            indexes[indexesOffset + 4] = vertexOffset + 3;
+            indexes[indexesOffset + 5] = vertexOffset + 0;
+            this.vertexOffset += 4;
+            this.indexesOffset += 6;
+        };
+        RenderMesh.VERTEX_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
+        RenderMesh.INDEX_SIZE = 2; //16 bits
+        return RenderMesh;
+    }());
+    s2d.RenderMesh = RenderMesh;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {

@@ -6,6 +6,7 @@ module s2d {
         private _data:Array<Array<Tile>> = new Array<Array<Tile>>();
         private _width:number = 0;
         private _height:number = 0;
+        private _dirty:boolean = true;
 
         public get data() {
             return this._data;
@@ -21,6 +22,14 @@ module s2d {
 
         public get height() {
             return this._height;
+        }
+
+        public get dirty() {
+            return this._dirty;
+        }
+
+        public set dirty(value:boolean) {
+            this._dirty = value;
         }
 
         public constructor(width:number, height:number, tiles:Array<Tile>) {
