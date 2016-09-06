@@ -412,73 +412,101 @@ module s2d {
             return prevChild._nextSibling;
         }
 
-        public getComponentInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>): number {
+        public getComponentsInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, includeInactive: boolean = false): number {
 
             if (clazz === <any>Behavior)
-                return this.getBehaviorInChildrenInternal(<any>toReturn, 0);
+                return this.getBehaviorsInChildrenInternal(<any>toReturn, 0, includeInactive);
             else if (clazz === <any>Drawer)
-                return this.getDrawerInChildrenInternal(<any>toReturn, 0);
+                return this.getDrawersInChildrenInternal(<any>toReturn, 0, includeInactive);
             else if (clazz === <any>Layout)
-                return this.getLayoutInChildrenInternal(<any>toReturn, 0);
+                return this.getLayoutsInChildrenInternal(<any>toReturn, 0, includeInactive);
 
-            return this.getComponentInChildrenInternal(clazz, toReturn, 0);
+            return this.getComponentsInChildrenInternal(clazz, toReturn, 0, includeInactive);
         }
 
-        private getComponentInChildrenInternal<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, index: number): number {
+        private getComponentsInChildrenInternal<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, index: number, includeInactive: boolean): number {
 
-            let comp = this.getComponent(clazz);
-            if (comp !== null)
-                toReturn[index++] = comp;
+            let entity = this.entity;
+
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+
+                let comp = entity.getComponent(clazz);
+                if (comp !== null)
+                    toReturn[index++] = comp;
+            }
 
             let child = this._firstChild;
 
             while (child !== null) {
-                index = child.getComponentInChildrenInternal(clazz, toReturn, index);
+                index = child.getComponentsInChildrenInternal(clazz, toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
 
             return index;
         }
 
-        private getBehaviorInChildrenInternal(toReturn: Array<Behavior>, index: number): number {
+        private getBehaviorsInChildrenInternal(toReturn: Array<Behavior>, index: number, includeInactive: boolean): number {
 
-            if (this.entity !== null && this.entity.firstBehavior !== null)
-                toReturn[index++] = this.entity.firstBehavior;
+            let entity = this.entity;
+
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+
+                if (this.entity.firstBehavior !== null)
+                    toReturn[index++] = this.entity.firstBehavior;
+            }
 
             let child = this._firstChild;
 
             while (child !== null) {
-                index = child.getBehaviorInChildrenInternal(toReturn, index);
+                index = child.getBehaviorsInChildrenInternal(toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
 
             return index;
         }
 
-        private getDrawerInChildrenInternal(toReturn: Array<Drawer>, index: number): number {
+        private getDrawersInChildrenInternal(toReturn: Array<Drawer>, index: number, includeInactive: boolean): number {
 
-            if (this.entity !== null && this.entity.firstDrawer !== null)
-                toReturn[index++] = this.entity.firstDrawer;
+            let entity = this.entity;
+
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+
+                if (entity.firstDrawer !== null)
+                    toReturn[index++] = entity.firstDrawer;
+            }
 
             let child = this._firstChild;
 
             while (child !== null) {
-                index = child.getDrawerInChildrenInternal(toReturn, index);
+                index = child.getDrawersInChildrenInternal(toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
 
             return index;
         }
 
-        private getLayoutInChildrenInternal(toReturn: Array<Layout>, index: number): number {
+        private getLayoutsInChildrenInternal(toReturn: Array<Layout>, index: number, includeInactive: boolean): number {
 
-            if (this.entity !== null && this.entity.firstLayout !== null)
-                toReturn[index++] = this.entity.firstLayout;
+            let entity = this.entity;
+
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+
+                if (entity.firstLayout !== null)
+                    toReturn[index++] = entity.firstLayout;
+            }
 
             let child = this._firstChild;
 
             while (child !== null) {
-                index = child.getLayoutInChildrenInternal(toReturn, index);
+                index = child.getLayoutsInChildrenInternal(toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
 

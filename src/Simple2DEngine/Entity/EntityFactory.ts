@@ -21,11 +21,9 @@ module s2d {
 
         public static buildButton(texture: RenderTexture) : Button {
             var entity = new Entity("Button");
+            entity.addComponent(SpriteDrawer);
             var button = entity.addComponent(Button);
-            var textureDrawer = entity.addComponent(TextureDrawer);
-            textureDrawer.texture = texture;
-            entity.transform.pivotX = -1;
-            entity.transform.pivotY = -1;
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
             return button;
         }
 

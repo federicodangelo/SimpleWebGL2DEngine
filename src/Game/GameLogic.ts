@@ -19,12 +19,12 @@ class GameLogic extends s2d.Behavior {
     private lastDrawcalls:number = 0;
 
     private loadCompleted:boolean = false;
+    private rectsContainer: s2d.Transform;
 
     public onInit(): void {
-        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
-        s2d.loader.onLoadComplete.attachOnlyOnce(this.onLoadComplete, this);
-
         this.cam = s2d.EntityFactory.buildCamera();
+
+        this.rectsContainer = new s2d.Entity("Rects Container").transform;
 
         this.uiContainer = new s2d.Entity("UI Container").transform;
 
@@ -42,7 +42,7 @@ class GameLogic extends s2d.Behavior {
 
         let addMore = s2d.EntityFactory.buildTextButton(this.texture, "Add\nMore");
         addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
-        addMore.onClick.attach(() => { this.initTest(); });
+        addMore.onClick.attach(this.initTest, this);
 
         let toggleRotationButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nRotation");
         toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
@@ -50,7 +50,18 @@ class GameLogic extends s2d.Behavior {
 
         let toggleNestingButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nNesting");
         toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
-        toggleNestingButton.onClick.attach(() => { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; this.clear(); this.initTest(); } );        
+        toggleNestingButton.onClick.attach(() => { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; this.clear(); this.initTest(); } );
+
+        let toggleActiveButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nActive");
+        toggleActiveButton.entity.transform.setLocalPosition(800, 100).setParent(this.uiContainer);
+        toggleActiveButton.onClick.attach(this.toggleActive, this);
+
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.onLoadComplete.attachOnlyOnce(this.onLoadComplete, this);
+    }
+
+    private toggleActive() : void {
+        this.rectsContainer.entity.active = !this.rectsContainer.entity.active;
     }
 
     private onLoadComplete() {
@@ -106,6 +117,8 @@ class GameLogic extends s2d.Behavior {
     private initTestComplex() {
         if (!this.loadCompleted)
             return;
+
+        this.rectsContainer.entity.active = true;
         
         let sWidth = s2d.engine.renderer.screenWidth;
         let sHeight = s2d.engine.renderer.screenHeight;
@@ -120,12 +133,12 @@ class GameLogic extends s2d.Behavior {
             if (GameLogic.TEST_NESTING) {
                 if (i > 0 && i % 3 == 0)
                     e.transform.parent = this.entities[i - 2].transform;
-
-                if (i > 0 && i % 5 == 0)
+                else if (i > 0 && i % 5 == 0)
                     e.transform.parent = this.entities[i - 4].transform;
-
-                if (i > 0 && i % 7 == 0)
+                else if (i > 0 && i % 7 == 0)
                     e.transform.parent = this.entities[i - 6].transform;
+                else
+                    e.transform.parent = this.rectsContainer;
             }
 
             this.entities.push(e);

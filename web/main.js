@@ -272,11 +272,14 @@ var s2d;
             var rect = this.tmpRect;
             var pointer = this._inputPointer;
             var interactables = this.tmpInteractables;
-            var interactablesCount = s2d.entities.getComponentInChildren(s2d.Interactable, interactables);
-            for (var i = 0; i < interactablesCount; i++) {
+            var interactablesCount = s2d.entities.getComponentsInChildren(s2d.Interactable, interactables);
+            var pointerX = pointer.position[0];
+            var pointerY = pointer.position[1];
+            //Iterate from bottom to top, since the last drawn items will be on top and we want those first
+            for (var i = interactablesCount - 1; i >= 0; i--) {
                 var interactable = interactables[i];
                 if (interactable.enabled)
-                    if (s2d.Rect.containts(interactable.getBounds(rect), pointer.position[0], pointer.position[1]))
+                    if (s2d.Rect.containts(interactable.getBounds(rect), pointerX, pointerY))
                         return interactable;
             }
             return null;
@@ -410,6 +413,7 @@ var s2d;
     var RenderCommands = (function () {
         function RenderCommands() {
             this.currentBufferIndex = 0;
+            this.currentTexture = null;
             this.tmpV1 = new s2d.RenderVertex();
             this.tmpV2 = new s2d.RenderVertex();
             this.tmpV3 = new s2d.RenderVertex();
@@ -418,7 +422,7 @@ var s2d;
             this.renderProgram = new s2d.RenderProgram(RenderCommands.vertexShader, RenderCommands.fragmentShader);
             this.renderVertexBuffers = new Array();
             this.renderIndexBuffers = new Array();
-            for (var i = 0; i < 16; i++) {
+            for (var i = 0; i < RenderCommands.BUFFERS_COUNT; i++) {
                 this.renderVertexBuffers.push(new s2d.RenderBuffer(gl.ARRAY_BUFFER));
                 this.renderIndexBuffers.push(new s2d.RenderBuffer(gl.ELEMENT_ARRAY_BUFFER));
             }
@@ -638,7 +642,8 @@ var s2d;
         };
         RenderCommands.vertexShader = "\n            attribute vec2 a_position;\n            attribute vec4 a_color;\n            attribute vec2 a_texcoord;\n\n            // screen resolution\n            uniform vec2 u_resolution;\n\n            // color used in fragment shader\n            varying vec4 v_color;\n\n            // texture used in vertex shader\n            varying vec2 v_texcoord;\n\n            // all shaders have a main function\n            void main() {\n                // convert the position from pixels to 0.0 to 1.0\n                vec2 zeroToOne = a_position / u_resolution;\n            \n                // convert from 0->1 to 0->2\n                vec2 zeroToTwo = zeroToOne * 2.0;\n            \n                // convert from 0->2 to -1->+1 (clipspace)\n                vec2 clipSpace = zeroToTwo - 1.0;\n\n                // vertical flip, so top/left is (0,0)\n                gl_Position = vec4(clipSpace * vec2(1, -1), 0, 1); \n                //gl_Position = vec4(clipSpace, 0, 1);\n\n                // pass vertex color to fragment shader\n                v_color = a_color;\n\n                v_texcoord = a_texcoord;\n            }\n        ";
         RenderCommands.fragmentShader = "\n            // fragment shaders don't have a default precision so we need\n            // to pick one. mediump is a good default\n            precision mediump float;\n\n            //color received from vertex shader\n            varying vec4 v_color;\n\n            //texture uv received from vertex shader\n            varying vec2 v_texcoord;\n\n            // Main texture.\n            uniform sampler2D u_texture;\n\n            void main() {\n\n                gl_FragColor = texture2D(u_texture, v_texcoord) * v_color;\n\n                //gl_FragColor = v_color;\n            }\n        ";
-        RenderCommands.MAX_TRIANGLES = 4096;
+        RenderCommands.BUFFERS_COUNT = 16;
+        RenderCommands.MAX_TRIANGLES = 1024;
         RenderCommands.VERTEX_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
         RenderCommands.MAX_VERTEX = RenderCommands.MAX_TRIANGLES * 3; //3 vertex per triangle
         RenderCommands.INDEX_SIZE = 2; //16 bits
@@ -775,11 +780,11 @@ var s2d;
         };
         RenderManager.prototype.draw = function () {
             var cameras = this.tmpCameras;
-            var camerasLen = s2d.engine.entities.getComponentInChildren(s2d.Camera, cameras);
+            var camerasLen = s2d.engine.entities.getComponentsInChildren(s2d.Camera, cameras);
             var drawers = this.tmpDrawers;
-            var drawersLen = s2d.engine.entities.getComponentInChildren(s2d.Drawer, drawers);
+            var drawersLen = s2d.engine.entities.getComponentsInChildren(s2d.Drawer, drawers);
             var layouts = this.tmpLayouts;
-            var layoutsLen = s2d.engine.entities.getComponentInChildren(s2d.Layout, layouts);
+            var layoutsLen = s2d.engine.entities.getComponentsInChildren(s2d.Layout, layouts);
             if (camerasLen === 0)
                 console.warn("No cameras to draw!!");
             if (drawersLen === 0)
@@ -1233,52 +1238,73 @@ var s2d;
         Transform.prototype.getNextChild = function (prevChild) {
             return prevChild._nextSibling;
         };
-        Transform.prototype.getComponentInChildren = function (clazz, toReturn) {
+        Transform.prototype.getComponentsInChildren = function (clazz, toReturn, includeInactive) {
+            if (includeInactive === void 0) { includeInactive = false; }
             if (clazz === s2d.Behavior)
-                return this.getBehaviorInChildrenInternal(toReturn, 0);
+                return this.getBehaviorsInChildrenInternal(toReturn, 0, includeInactive);
             else if (clazz === s2d.Drawer)
-                return this.getDrawerInChildrenInternal(toReturn, 0);
+                return this.getDrawersInChildrenInternal(toReturn, 0, includeInactive);
             else if (clazz === s2d.Layout)
-                return this.getLayoutInChildrenInternal(toReturn, 0);
-            return this.getComponentInChildrenInternal(clazz, toReturn, 0);
+                return this.getLayoutsInChildrenInternal(toReturn, 0, includeInactive);
+            return this.getComponentsInChildrenInternal(clazz, toReturn, 0, includeInactive);
         };
-        Transform.prototype.getComponentInChildrenInternal = function (clazz, toReturn, index) {
-            var comp = this.getComponent(clazz);
-            if (comp !== null)
-                toReturn[index++] = comp;
+        Transform.prototype.getComponentsInChildrenInternal = function (clazz, toReturn, index, includeInactive) {
+            var entity = this.entity;
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+                var comp = entity.getComponent(clazz);
+                if (comp !== null)
+                    toReturn[index++] = comp;
+            }
             var child = this._firstChild;
             while (child !== null) {
-                index = child.getComponentInChildrenInternal(clazz, toReturn, index);
+                index = child.getComponentsInChildrenInternal(clazz, toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
             return index;
         };
-        Transform.prototype.getBehaviorInChildrenInternal = function (toReturn, index) {
-            if (this.entity !== null && this.entity.firstBehavior !== null)
-                toReturn[index++] = this.entity.firstBehavior;
+        Transform.prototype.getBehaviorsInChildrenInternal = function (toReturn, index, includeInactive) {
+            var entity = this.entity;
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+                if (this.entity.firstBehavior !== null)
+                    toReturn[index++] = this.entity.firstBehavior;
+            }
             var child = this._firstChild;
             while (child !== null) {
-                index = child.getBehaviorInChildrenInternal(toReturn, index);
+                index = child.getBehaviorsInChildrenInternal(toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
             return index;
         };
-        Transform.prototype.getDrawerInChildrenInternal = function (toReturn, index) {
-            if (this.entity !== null && this.entity.firstDrawer !== null)
-                toReturn[index++] = this.entity.firstDrawer;
+        Transform.prototype.getDrawersInChildrenInternal = function (toReturn, index, includeInactive) {
+            var entity = this.entity;
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+                if (entity.firstDrawer !== null)
+                    toReturn[index++] = entity.firstDrawer;
+            }
             var child = this._firstChild;
             while (child !== null) {
-                index = child.getDrawerInChildrenInternal(toReturn, index);
+                index = child.getDrawersInChildrenInternal(toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
             return index;
         };
-        Transform.prototype.getLayoutInChildrenInternal = function (toReturn, index) {
-            if (this.entity !== null && this.entity.firstLayout !== null)
-                toReturn[index++] = this.entity.firstLayout;
+        Transform.prototype.getLayoutsInChildrenInternal = function (toReturn, index, includeInactive) {
+            var entity = this.entity;
+            if (entity !== null) {
+                if (!entity.active && !includeInactive)
+                    return index;
+                if (entity.firstLayout !== null)
+                    toReturn[index++] = entity.firstLayout;
+            }
             var child = this._firstChild;
             while (child !== null) {
-                index = child.getLayoutInChildrenInternal(toReturn, index);
+                index = child.getLayoutsInChildrenInternal(toReturn, index, includeInactive);
                 child = child._nextSibling;
             }
             return index;
@@ -2562,6 +2588,7 @@ var s2d;
             this._name = "Entity";
             this._transform = null;
             this._destroyed = false;
+            this._active = true;
             this._firstDrawer = null;
             this._firstBehavior = null;
             this._firstLayout = null;
@@ -2617,6 +2644,16 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Entity.prototype, "active", {
+            get: function () {
+                return this._active;
+            },
+            set: function (v) {
+                this._active = v;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Entity.prototype.addComponent = function (clazz) {
             if (this._destroyed) {
                 s2d.EngineConsole.error("Can't add components to a destroyed entity", this);
@@ -2645,7 +2682,7 @@ var s2d;
             return null;
         };
         Entity.prototype.getComponentInChildren = function (clazz, toReturn) {
-            return this._transform.getComponentInChildren(clazz, toReturn);
+            return this._transform.getComponentsInChildren(clazz, toReturn);
         };
         Entity.prototype.destroy = function () {
             s2d.entities.destroyEntity(this);
@@ -2692,14 +2729,15 @@ var s2d;
             this._root.sizeX = s2d.renderer.screenWidth;
             this._root.sizeY = s2d.renderer.screenHeight;
         };
-        EntityManager.prototype.getComponentInChildren = function (clazz, toReturn) {
-            return this._root.getComponentInChildren(clazz, toReturn);
+        EntityManager.prototype.getComponentsInChildren = function (clazz, toReturn, includeInactive) {
+            if (includeInactive === void 0) { includeInactive = false; }
+            return this._root.getComponentsInChildren(clazz, toReturn, includeInactive);
         };
         EntityManager.prototype.update = function () {
             this._root.sizeX = s2d.renderer.screenWidth;
             this._root.sizeY = s2d.renderer.screenHeight;
             var behaviors = this.tmpBehaviors;
-            var behaviorsLen = this.getComponentInChildren(s2d.Behavior, behaviors);
+            var behaviorsLen = this.getComponentsInChildren(s2d.Behavior, behaviors);
             for (var i = 0; i < behaviorsLen; i++) {
                 var behavior = behaviors[i];
                 behavior.update();
@@ -3593,9 +3631,8 @@ var GameLogic = (function (_super) {
     }
     GameLogic.prototype.onInit = function () {
         var _this = this;
-        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
-        s2d.loader.onLoadComplete.attachOnlyOnce(this.onLoadComplete, this);
         this.cam = s2d.EntityFactory.buildCamera();
+        this.rectsContainer = new s2d.Entity("Rects Container").transform;
         this.uiContainer = new s2d.Entity("UI Container").transform;
         this.textFPS = s2d.EntityFactory.buildTextDrawer();
         this.textFPS.entity.transform.setPivot(-1, -1).setLocalPosition(8, 8).setParent(this.uiContainer);
@@ -3608,13 +3645,21 @@ var GameLogic = (function (_super) {
         clearButton.onClick.attach(this.onClearButtonClicked, this);
         var addMore = s2d.EntityFactory.buildTextButton(this.texture, "Add\nMore");
         addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
-        addMore.onClick.attach(function () { _this.initTest(); });
+        addMore.onClick.attach(this.initTest, this);
         var toggleRotationButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nRotation");
         toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
         toggleRotationButton.onClick.attach(function () { return GameLogic.TEST_MOVING = !GameLogic.TEST_MOVING; });
         var toggleNestingButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nNesting");
         toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
         toggleNestingButton.onClick.attach(function () { GameLogic.TEST_NESTING = !GameLogic.TEST_NESTING; _this.clear(); _this.initTest(); });
+        var toggleActiveButton = s2d.EntityFactory.buildTextButton(this.texture, "Toggle\nActive");
+        toggleActiveButton.entity.transform.setLocalPosition(800, 100).setParent(this.uiContainer);
+        toggleActiveButton.onClick.attach(this.toggleActive, this);
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.onLoadComplete.attachOnlyOnce(this.onLoadComplete, this);
+    };
+    GameLogic.prototype.toggleActive = function () {
+        this.rectsContainer.entity.active = !this.rectsContainer.entity.active;
     };
     GameLogic.prototype.onLoadComplete = function () {
         this.texture = s2d.loader.getAsset("test.png");
@@ -3657,6 +3702,7 @@ var GameLogic = (function (_super) {
     GameLogic.prototype.initTestComplex = function () {
         if (!this.loadCompleted)
             return;
+        this.rectsContainer.entity.active = true;
         var sWidth = s2d.engine.renderer.screenWidth;
         var sHeight = s2d.engine.renderer.screenHeight;
         for (var i = 0; i < GameLogic.RECTS_COUNT; i++) {
@@ -3667,10 +3713,12 @@ var GameLogic = (function (_super) {
             if (GameLogic.TEST_NESTING) {
                 if (i > 0 && i % 3 == 0)
                     e.transform.parent = this.entities[i - 2].transform;
-                if (i > 0 && i % 5 == 0)
+                else if (i > 0 && i % 5 == 0)
                     e.transform.parent = this.entities[i - 4].transform;
-                if (i > 0 && i % 7 == 0)
+                else if (i > 0 && i % 7 == 0)
                     e.transform.parent = this.entities[i - 6].transform;
+                else
+                    e.transform.parent = this.rectsContainer;
             }
             this.entities.push(e);
         }
@@ -4504,11 +4552,9 @@ var s2d;
         };
         EntityFactory.buildButton = function (texture) {
             var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
             var button = entity.addComponent(s2d.Button);
-            var textureDrawer = entity.addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            entity.transform.pivotX = -1;
-            entity.transform.pivotY = -1;
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
             return button;
         };
         EntityFactory.buildTextButton = function (texture, text) {
@@ -5443,6 +5489,10 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
+    /**
+     * Rect
+     * uses 4 values: x, y, width and height
+     */
     var Rect = (function (_super) {
         __extends(Rect, _super);
         function Rect() {

@@ -64,12 +64,14 @@ module s2d {
 
         private renderProgram: RenderProgram;
 
+        static BUFFERS_COUNT = 16;
+
         private renderVertexBuffers: Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
         private renderIndexBuffers: Array<RenderBuffer>; //Use in round-robing fashion to prevent stalls in rendering due to render buffer reuse in same frame
 
         private currentBufferIndex = 0;
 
-        private currentTexture: RenderTexture;
+        private currentTexture: RenderTexture = null;
 
         private backingVertexArray: ArrayBuffer;
         private positions: Float32Array;
@@ -82,7 +84,7 @@ module s2d {
         private indexesOffset: number;
         private vertexOffset: number;
 
-        static MAX_TRIANGLES = 4096;
+        static MAX_TRIANGLES = 1024;
 
         static VERTEX_SIZE: number = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
         static MAX_VERTEX: number = RenderCommands.MAX_TRIANGLES * 3; //3 vertex per triangle
@@ -96,7 +98,7 @@ module s2d {
 
             this.renderVertexBuffers = new Array<RenderBuffer>();
             this.renderIndexBuffers = new Array<RenderBuffer>();
-            for (let i = 0; i < 16; i++) {
+            for (let i = 0; i < RenderCommands.BUFFERS_COUNT; i++) {
                 this.renderVertexBuffers.push(new RenderBuffer(gl.ARRAY_BUFFER));
                 this.renderIndexBuffers.push(new RenderBuffer(gl.ELEMENT_ARRAY_BUFFER));
             }

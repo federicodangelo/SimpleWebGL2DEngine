@@ -26,8 +26,8 @@ module s2d {
             this._root.sizeY = renderer.screenHeight;
         }
 
-        public getComponentInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>): number {
-            return this._root.getComponentInChildren(clazz, toReturn);
+        public getComponentsInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, includeInactive: boolean = false): number {
+            return this._root.getComponentsInChildren(clazz, toReturn, includeInactive);
         }
 
         private tmpBehaviors: Array<Behavior> = new Array<Behavior>(1024);
@@ -39,7 +39,7 @@ module s2d {
 
             var behaviors: Array<Behavior> = this.tmpBehaviors;
 
-            var behaviorsLen = this.getComponentInChildren(Behavior, behaviors);
+            var behaviorsLen = this.getComponentsInChildren(Behavior, behaviors);
 
             for (var i = 0; i < behaviorsLen; i++) {
                 var behavior = behaviors[i];

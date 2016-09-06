@@ -155,13 +155,13 @@ module s2d {
         public draw(): void {
 
             let cameras = this.tmpCameras;
-            let camerasLen = engine.entities.getComponentInChildren(Camera, cameras);
+            let camerasLen = engine.entities.getComponentsInChildren(Camera, cameras);
 
             let drawers = this.tmpDrawers;
-            let drawersLen = engine.entities.getComponentInChildren(Drawer, drawers);
+            let drawersLen = engine.entities.getComponentsInChildren(Drawer, drawers);
 
             let layouts = this.tmpLayouts;
-            let layoutsLen = engine.entities.getComponentInChildren(Layout, layouts);
+            let layoutsLen = engine.entities.getComponentsInChildren(Layout, layouts);
 
             if (camerasLen === 0)
                 console.warn("No cameras to draw!!");

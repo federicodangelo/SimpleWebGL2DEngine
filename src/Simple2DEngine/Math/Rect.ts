@@ -1,4 +1,9 @@
 module s2d {
+
+    /**
+     * Rect
+     * uses 4 values: x, y, width and height 
+     */
     export class Rect extends Float32Array {
 
         public static create(): Rect {

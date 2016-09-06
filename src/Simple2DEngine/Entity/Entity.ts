@@ -9,6 +9,7 @@ module s2d {
         private _name: String = "Entity";
         private _transform: Transform = null;
         private _destroyed: boolean = false;
+        private _active: boolean = true;
 
         private _firstDrawer: Drawer = null;
         private _firstBehavior: Behavior = null;
@@ -45,6 +46,14 @@ module s2d {
 
         public get destroyed() {
             return this._destroyed;
+        }
+
+        public get active() {
+            return this._active;
+        }
+
+        public set active(v: boolean) {
+            this._active = v;
         }
 
         constructor(name: String = null) {
@@ -95,7 +104,7 @@ module s2d {
         }
 
         public getComponentInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>): number {
-            return this._transform.getComponentInChildren(clazz, toReturn);
+            return this._transform.getComponentsInChildren(clazz, toReturn);
         }
 
         public destroy() {

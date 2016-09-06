@@ -106,13 +106,17 @@ module s2d {
             let rect = this.tmpRect;
             let pointer = this._inputPointer;
             let interactables = this.tmpInteractables;
-            let interactablesCount = entities.getComponentInChildren(Interactable, interactables);
+            let interactablesCount = entities.getComponentsInChildren(Interactable, interactables);
 
-            for (let i = 0; i < interactablesCount; i++) {
+            let pointerX = pointer.position[0];
+            let pointerY = pointer.position[1];
+
+            //Iterate from bottom to top, since the last drawn items will be on top and we want those first
+            for (let i = interactablesCount - 1; i >= 0; i--) {
                 let interactable = interactables[i];
 
                 if (interactable.enabled)
-                    if (Rect.containts(interactable.getBounds(rect), pointer.position[0], pointer.position[1]))
+                    if (Rect.containts(interactable.getBounds(rect), pointerX, pointerY))
                         return interactable;
             }
 
