@@ -148,11 +148,6 @@ module s2d {
             let u1 = uvRect[0] + uvRect[2];
             let v1 = uvRect[1] + uvRect[3];
 
-            u0 /= texture.width;
-            v0 /= texture.height;
-            u1 /= texture.width;
-            v1 /= texture.height;
-
             //Top left
             tmpV1.x = -halfSizeX + dx;
             tmpV1.y = -halfSizeY + dy;
@@ -189,7 +184,7 @@ module s2d {
             this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
         }
 
-        public drawRect9Slice(mat: Matrix2d, size: Vector2, pivot: Vector2, texture: RenderTexture, uvRect: Rect, innerUvRect: Rect, color: Color): void {
+        public drawRect9Slice(mat: Matrix2d, size: Vector2, pivot: Vector2, texture: RenderTexture, rect:Rect, uvRect: Rect, innerRect:Rect, innerUvRect: Rect, color: Color): void {
 
             let tmpV1 = this.tmpV1;
             let tmpV2 = this.tmpV2;
@@ -220,25 +215,15 @@ module s2d {
             let x1 = halfSizeX + dx;
             let y1 = halfSizeY + dy;
 
-            let leftWidth = iu0 - u0;
-            let rightWidth = u1 - iu1;
-            let topHeight = iv0 - v0;
-            let bottomHeight = v1 - iv1;
+            let leftWidth = innerRect[0] - rect[0];
+            let rightWidth = rect[0] + rect[2] - (innerRect[0] + innerRect[2]);
+            let topHeight = innerRect[1] - rect[1];
+            let bottomHeight = rect[1] + rect[3] - (innerRect[1] + innerRect[3]);
 
             let ix0 = x0 + leftWidth;
             let iy0 = y0 + topHeight;
             let ix1 = x1 - rightWidth;
             let iy1 = y1 - bottomHeight;
-
-            iu0 /= texture.width;
-            iv0 /= texture.height;
-            iu1 /= texture.width;
-            iv1 /= texture.height;
-
-            u0 /= texture.width;
-            v0 /= texture.height;
-            u1 /= texture.width;
-            v1 /= texture.height;
 
             /**
              * Reference:

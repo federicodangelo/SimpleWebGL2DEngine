@@ -29,11 +29,12 @@ module s2d {
             this._tiles = tiles;
 
             let data = this.data;
+            let defaultTile = tiles[0];
 
             for (let y = 0; y < height; y++) {
                 let line = new Array<Tile>();
                 for (let x = 0; x < width; x++)
-                    line.push(null);
+                    line.push(defaultTile);
                 data.push(line);
             }
         }

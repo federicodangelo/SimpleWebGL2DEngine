@@ -454,10 +454,6 @@ var s2d;
             var v0 = uvRect[1];
             var u1 = uvRect[0] + uvRect[2];
             var v1 = uvRect[1] + uvRect[3];
-            u0 /= texture.width;
-            v0 /= texture.height;
-            u1 /= texture.width;
-            v1 /= texture.height;
             //Top left
             tmpV1.x = -halfSizeX + dx;
             tmpV1.y = -halfSizeY + dy;
@@ -488,7 +484,7 @@ var s2d;
             tmpV4.transformMat2d(mat);
             this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4, texture);
         };
-        RenderCommands.prototype.drawRect9Slice = function (mat, size, pivot, texture, uvRect, innerUvRect, color) {
+        RenderCommands.prototype.drawRect9Slice = function (mat, size, pivot, texture, rect, uvRect, innerRect, innerUvRect, color) {
             var tmpV1 = this.tmpV1;
             var tmpV2 = this.tmpV2;
             var tmpV3 = this.tmpV3;
@@ -511,22 +507,14 @@ var s2d;
             var y0 = -halfSizeY + dy;
             var x1 = halfSizeX + dx;
             var y1 = halfSizeY + dy;
-            var leftWidth = iu0 - u0;
-            var rightWidth = u1 - iu1;
-            var topHeight = iv0 - v0;
-            var bottomHeight = v1 - iv1;
+            var leftWidth = innerRect[0] - rect[0];
+            var rightWidth = rect[0] + rect[2] - (innerRect[0] + innerRect[2]);
+            var topHeight = innerRect[1] - rect[1];
+            var bottomHeight = rect[1] + rect[3] - (innerRect[1] + innerRect[3]);
             var ix0 = x0 + leftWidth;
             var iy0 = y0 + topHeight;
             var ix1 = x1 - rightWidth;
             var iy1 = y1 - bottomHeight;
-            iu0 /= texture.width;
-            iv0 /= texture.height;
-            iu1 /= texture.width;
-            iv1 /= texture.height;
-            u0 /= texture.width;
-            v0 /= texture.height;
-            u1 /= texture.width;
-            v1 /= texture.height;
             /**
              * Reference:
              *
@@ -2908,23 +2896,34 @@ var s2d;
     })(s2d.RenderSpriteDrawMode || (s2d.RenderSpriteDrawMode = {}));
     var RenderSpriteDrawMode = s2d.RenderSpriteDrawMode;
     var RenderSprite = (function () {
-        function RenderSprite(id, texture, uvRect, drawMode, innerUvRect) {
+        function RenderSprite(id, texture, rect, drawMode, innerRect) {
             if (drawMode === void 0) { drawMode = RenderSpriteDrawMode.Normal; }
-            if (innerUvRect === void 0) { innerUvRect = null; }
+            if (innerRect === void 0) { innerRect = null; }
             this._id = null;
             this._texture = null;
             this._uvRect = s2d.Rect.create();
+            this._rect = s2d.Rect.create();
             this._size = s2d.Vector2.create();
             this._innerUvRect = null;
+            this._innerRect = null;
             this._drawMode = RenderSpriteDrawMode.Normal;
             this._id = id;
             this._texture = texture;
-            s2d.Rect.copy(this._uvRect, uvRect);
-            s2d.Vector2.set(this._size, uvRect[2], uvRect[3]);
+            s2d.Rect.copy(this._rect, rect);
+            s2d.Vector2.set(this._size, rect[2], rect[3]);
+            this._uvRect[0] = rect[0] / texture.width;
+            this._uvRect[1] = rect[1] / texture.height;
+            this._uvRect[2] = rect[2] / texture.width;
+            this._uvRect[3] = rect[3] / texture.height;
             this._drawMode = drawMode;
-            if (innerUvRect !== null) {
+            if (innerRect !== null) {
+                this._innerRect = s2d.Rect.create();
+                s2d.Rect.copy(this._innerRect, innerRect);
                 this._innerUvRect = s2d.Rect.create();
-                s2d.Rect.copy(this._innerUvRect, innerUvRect);
+                this._innerUvRect[0] = innerRect[0] / texture.width;
+                this._innerUvRect[1] = innerRect[1] / texture.height;
+                this._innerUvRect[2] = innerRect[2] / texture.width;
+                this._innerUvRect[3] = innerRect[3] / texture.height;
             }
             if (drawMode !== RenderSpriteDrawMode.Normal && this._innerUvRect === null)
                 s2d.EngineConsole.error("Missing innerUvRect for draw mode " + drawMode, this);
@@ -2939,6 +2938,13 @@ var s2d;
         Object.defineProperty(RenderSprite.prototype, "texture", {
             get: function () {
                 return this._texture;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "rect", {
+            get: function () {
+                return this._rect;
             },
             enumerable: true,
             configurable: true
@@ -2960,6 +2966,13 @@ var s2d;
         Object.defineProperty(RenderSprite.prototype, "innerUvRect", {
             get: function () {
                 return this._innerUvRect;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderSprite.prototype, "innerRect", {
+            get: function () {
+                return this._innerRect;
             },
             enumerable: true,
             configurable: true
@@ -3668,7 +3681,7 @@ var GameLogic = (function (_super) {
         this.cam = s2d.EntityFactory.buildCamera();
         this.gameScreen = s2d.EntityFactory.buildWithComponent(GameScreen, "Game Screen");
         s2d.EntityFactory.buildWithComponent(GameStats, "Game Stats");
-        this.setActiveTest(new TestTilemap());
+        //this.setActiveTest(new TestTilemap());
     };
     GameLogic.prototype.update = function () {
         if (this.activeTest !== null)
@@ -3990,85 +4003,58 @@ var TestTilemap = (function (_super) {
     };
     return TestTilemap;
 }(Test));
-/// <reference path="../Render/RenderSprite.ts" />
 var s2d;
 (function (s2d) {
-    var Tile = (function () {
-        function Tile(id, sprite) {
-            this._id = null;
-            this._sprite = null;
-            this._id = id;
-            this._sprite = sprite;
+    var EntityFactory = (function () {
+        function EntityFactory() {
         }
-        Object.defineProperty(Tile.prototype, "sprite", {
-            get: function () {
-                return this._sprite;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tile.prototype, "id", {
-            get: function () {
-                return this._id;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Tile;
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function () {
+            var entity = new s2d.Entity("Text");
+            var textDrawer = entity.addComponent(s2d.TextDrawer);
+            textDrawer.fontScale = 3;
+            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
+            return textDrawer;
+        };
+        EntityFactory.buildButton = function () {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            return button;
+        };
+        EntityFactory.buildTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            var layout = entity.addComponent(s2d.Layout);
+            layout.sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
+            layout.sizeOffset = s2d.Vector2.fromValues(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
+        };
+        return EntityFactory;
     }());
-    s2d.Tile = Tile;
-})(s2d || (s2d = {}));
-/// <reference path="Tile.ts" />
-var s2d;
-(function (s2d) {
-    var Tilemap = (function () {
-        function Tilemap(width, height, tiles) {
-            this._tiles = new Array();
-            this._data = new Array();
-            this._width = 0;
-            this._height = 0;
-            this._width = width;
-            this._height = height;
-            this._tiles = tiles;
-            var data = this.data;
-            for (var y = 0; y < height; y++) {
-                var line = new Array();
-                for (var x = 0; x < width; x++)
-                    line.push(null);
-                data.push(line);
-            }
-        }
-        Object.defineProperty(Tilemap.prototype, "data", {
-            get: function () {
-                return this._data;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "tiles", {
-            get: function () {
-                return this._tiles;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "width", {
-            get: function () {
-                return this._width;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "height", {
-            get: function () {
-                return this._height;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Tilemap;
-    }());
-    s2d.Tilemap = Tilemap;
+    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
@@ -4126,7 +4112,7 @@ var s2d;
                         commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, this._color);
                         break;
                     case s2d.RenderSpriteDrawMode.Slice9:
-                        commands.drawRect9Slice(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, sprite.innerUvRect, this._color);
+                        commands.drawRect9Slice(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.rect, sprite.uvRect, sprite.innerRect, sprite.innerUvRect, this._color);
                         break;
                 }
             }
@@ -4186,6 +4172,87 @@ var s2d;
         return TextureDrawer;
     }(s2d.Drawer));
     s2d.TextureDrawer = TextureDrawer;
+})(s2d || (s2d = {}));
+/// <reference path="../Render/RenderSprite.ts" />
+var s2d;
+(function (s2d) {
+    var Tile = (function () {
+        function Tile(id, sprite) {
+            this._id = null;
+            this._sprite = null;
+            this._id = id;
+            this._sprite = sprite;
+        }
+        Object.defineProperty(Tile.prototype, "sprite", {
+            get: function () {
+                return this._sprite;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tile.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tile;
+    }());
+    s2d.Tile = Tile;
+})(s2d || (s2d = {}));
+/// <reference path="Tile.ts" />
+var s2d;
+(function (s2d) {
+    var Tilemap = (function () {
+        function Tilemap(width, height, tiles) {
+            this._tiles = new Array();
+            this._data = new Array();
+            this._width = 0;
+            this._height = 0;
+            this._width = width;
+            this._height = height;
+            this._tiles = tiles;
+            var data = this.data;
+            var defaultTile = tiles[0];
+            for (var y = 0; y < height; y++) {
+                var line = new Array();
+                for (var x = 0; x < width; x++)
+                    line.push(defaultTile);
+                data.push(line);
+            }
+        }
+        Object.defineProperty(Tilemap.prototype, "data", {
+            get: function () {
+                return this._data;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "tiles", {
+            get: function () {
+                return this._tiles;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "width", {
+            get: function () {
+                return this._width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tilemap;
+    }());
+    s2d.Tilemap = Tilemap;
 })(s2d || (s2d = {}));
 /// <reference path="Drawer.ts" />
 /// <reference path="../Assets/Tilemap.ts" />
@@ -4265,59 +4332,6 @@ var s2d;
         return TilemapDrawer;
     }(s2d.Drawer));
     s2d.TilemapDrawer = TilemapDrawer;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            return textureDrawer;
-        };
-        EntityFactory.buildTextDrawer = function () {
-            var entity = new s2d.Entity("Text");
-            var textDrawer = entity.addComponent(s2d.TextDrawer);
-            textDrawer.fontScale = 3;
-            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
-            return textDrawer;
-        };
-        EntityFactory.buildButton = function () {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            return button;
-        };
-        EntityFactory.buildTextButton = function (text) {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            //Layout used to make the button match the size of the text inside
-            var layout = entity.addComponent(s2d.Layout);
-            layout.sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
-            layout.sizeOffset = s2d.Vector2.fromValues(8, 4); //4px on X, 2px on Y
-            //Text drawer
-            var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
-            textDrawer.color.setFromRgba(0, 0, 0);
-            textDrawer.fontScale = 1;
-            textDrawer.text = text;
-            textDrawer.entity.transform.parent = entity.transform;
-            return button;
-        };
-        EntityFactory.buildWithComponent = function (clazz, name) {
-            if (name === void 0) { name = "Entity"; }
-            return new s2d.Entity(name).addComponent(clazz);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
