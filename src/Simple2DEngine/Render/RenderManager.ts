@@ -54,8 +54,8 @@ module s2d {
         }
 
         private onWindowResize() {
-            this._screenWidth = window.innerWidth;
-            this._screenHeight = window.innerHeight;
+            this._screenWidth = window.innerWidth * window.devicePixelRatio;
+            this._screenHeight = window.innerHeight * window.devicePixelRatio;
             this.mainCanvas.width = this._screenWidth;
             this.mainCanvas.height = this._screenHeight;
             this.gl.viewport(0, 0, this._screenWidth, this._screenHeight);

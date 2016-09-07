@@ -579,8 +579,8 @@ var s2d;
             }
         };
         RenderManager.prototype.onWindowResize = function () {
-            this._screenWidth = window.innerWidth;
-            this._screenHeight = window.innerHeight;
+            this._screenWidth = window.innerWidth * window.devicePixelRatio;
+            this._screenHeight = window.innerHeight * window.devicePixelRatio;
             this.mainCanvas.width = this._screenWidth;
             this.mainCanvas.height = this._screenHeight;
             this.gl.viewport(0, 0, this._screenWidth, this._screenHeight);
@@ -3998,6 +3998,79 @@ var s2d;
     }());
     s2d.Tilemap = Tilemap;
 })(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EntityFactory = (function () {
+        function EntityFactory() {
+        }
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function () {
+            var entity = new s2d.Entity("Text");
+            var textDrawer = entity.addComponent(s2d.TextDrawer);
+            textDrawer.fontScale = 3;
+            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
+            return textDrawer;
+        };
+        EntityFactory.buildButton = function () {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            return button;
+        };
+        EntityFactory.buildTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            var layout = entity.addComponent(s2d.Layout)
+                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.getOrAddComponent(s2d.Layout)
+                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildFullscreenTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.FullscreenButton);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            entity.addComponent(s2d.Layout)
+                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.getOrAddComponent(s2d.Layout)
+                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
+        };
+        return EntityFactory;
+    }());
+    s2d.EntityFactory = EntityFactory;
+})(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
 (function (s2d) {
@@ -4217,79 +4290,6 @@ var s2d;
         return TilemapDrawer;
     }(s2d.Drawer));
     s2d.TilemapDrawer = TilemapDrawer;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            return textureDrawer;
-        };
-        EntityFactory.buildTextDrawer = function () {
-            var entity = new s2d.Entity("Text");
-            var textDrawer = entity.addComponent(s2d.TextDrawer);
-            textDrawer.fontScale = 3;
-            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
-            return textDrawer;
-        };
-        EntityFactory.buildButton = function () {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            return button;
-        };
-        EntityFactory.buildTextButton = function (text) {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            //Layout used to make the button match the size of the text inside
-            var layout = entity.addComponent(s2d.Layout)
-                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
-                .setSizeOffset(8, 4); //4px on X, 2px on Y
-            //Text drawer
-            var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.getOrAddComponent(s2d.Layout)
-                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
-            textDrawer.color.setFromRgba(0, 0, 0);
-            textDrawer.fontScale = 1;
-            textDrawer.text = text;
-            textDrawer.entity.transform.parent = entity.transform;
-            return button;
-        };
-        EntityFactory.buildFullscreenTextButton = function (text) {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.FullscreenButton);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            //Layout used to make the button match the size of the text inside
-            entity.addComponent(s2d.Layout)
-                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
-                .setSizeOffset(8, 4); //4px on X, 2px on Y
-            //Text drawer
-            var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.getOrAddComponent(s2d.Layout)
-                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
-            textDrawer.color.setFromRgba(0, 0, 0);
-            textDrawer.fontScale = 1;
-            textDrawer.text = text;
-            textDrawer.entity.transform.parent = entity.transform;
-            return button;
-        };
-        EntityFactory.buildWithComponent = function (clazz, name) {
-            if (name === void 0) { name = "Entity"; }
-            return new s2d.Entity(name).addComponent(clazz);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
