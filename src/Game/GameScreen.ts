@@ -2,7 +2,7 @@
 
 class GameScreen extends s2d.Screen {
 
-    private lastButtonY : number = 100;
+    private offestY : number = -100;
 
     protected onScreenInit() {
         this.addTestButton("Test Simple", TestSimple);
@@ -13,11 +13,16 @@ class GameScreen extends s2d.Screen {
     protected addTestButton<T extends Test>(name:string, testClazz: { new (): T }) : void {
 
         let button = s2d.EntityFactory.buildTextButton(name);
-        button.entity.transform.setLocalPosition(300, this.lastButtonY).setParent(this.trans);
+        button.entity.transform.setParent(this.trans).setPivot(0, 0);
+
+        button.entity.getOrAddComponent(s2d.Layout)
+            .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent)
+            .setAnchorModeOffset(0, this.offestY);
+            
         button.onClick.attach(() => { 
             GameLogic.instance.setActiveTest(new testClazz());
         });
 
-        this.lastButtonY += 100;
+        this.offestY += 100;
     }
 }
