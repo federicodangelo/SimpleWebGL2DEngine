@@ -65,7 +65,7 @@ module s2d {
 
             if (this.touches.length == 1 && FullscreenButton.activeInstance !== null) {
                 //Fullscreen needs to be triggered from the down event..
-                if (input.getInteractableUnderPointer() === FullscreenButton.activeInstance)
+                if (input.getInteractableUnderPointer(this.touches[0].x, this.touches[0].y) === FullscreenButton.activeInstance)
                     renderer.enterFullscreen();
             }
         }

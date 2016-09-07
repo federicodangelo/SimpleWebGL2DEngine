@@ -101,15 +101,18 @@ module s2d {
         private tmpInteractables: Array<Interactable> = new Array<Interactable>(1024);
         private tmpRect: Rect = Rect.create();
 
-        public getInteractableUnderPointer(): Interactable {
+        public getInteractableUnderPointer(pointerX:number = -1, pointerY:number = -1): Interactable {
 
             let rect = this.tmpRect;
             let pointer = this._inputPointer;
             let interactables = this.tmpInteractables;
             let interactablesCount = entities.getComponentsInChildren(Interactable, interactables);
 
-            let pointerX = pointer.position[0];
-            let pointerY = pointer.position[1];
+            if (pointerX === -1)
+                pointerX = pointer.position[0];
+
+            if (pointerY === -1)
+                pointerY = pointer.position[1];
 
             //Iterate from bottom to top, since the last drawn items will be on top and we want those first
             for (let i = interactablesCount - 1; i >= 0; i--) {

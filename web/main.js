@@ -25,7 +25,7 @@ var s2d;
                     _this._rightDown = true;
                 if (ev.button === 0 && s2d.FullscreenButton.activeInstance !== null) {
                     //Fullscreen needs to be triggered from the down event..
-                    if (s2d.input.getInteractableUnderPointer() === s2d.FullscreenButton.activeInstance)
+                    if (s2d.input.getInteractableUnderPointer(_this.x, _this.y) === s2d.FullscreenButton.activeInstance)
                         s2d.renderer.enterFullscreen();
                 }
             };
@@ -137,7 +137,7 @@ var s2d;
                 _this.updateLastPositions(ev);
                 if (_this.touches.length == 1 && s2d.FullscreenButton.activeInstance !== null) {
                     //Fullscreen needs to be triggered from the down event..
-                    if (s2d.input.getInteractableUnderPointer() === s2d.FullscreenButton.activeInstance)
+                    if (s2d.input.getInteractableUnderPointer(_this.touches[0].x, _this.touches[0].y) === s2d.FullscreenButton.activeInstance)
                         s2d.renderer.enterFullscreen();
                 }
             };
@@ -289,13 +289,17 @@ var s2d;
             }
             this._inputMouse.resetMoved();
         };
-        InputManager.prototype.getInteractableUnderPointer = function () {
+        InputManager.prototype.getInteractableUnderPointer = function (pointerX, pointerY) {
+            if (pointerX === void 0) { pointerX = -1; }
+            if (pointerY === void 0) { pointerY = -1; }
             var rect = this.tmpRect;
             var pointer = this._inputPointer;
             var interactables = this.tmpInteractables;
             var interactablesCount = s2d.entities.getComponentsInChildren(s2d.Interactable, interactables);
-            var pointerX = pointer.position[0];
-            var pointerY = pointer.position[1];
+            if (pointerX === -1)
+                pointerX = pointer.position[0];
+            if (pointerY === -1)
+                pointerY = pointer.position[1];
             //Iterate from bottom to top, since the last drawn items will be on top and we want those first
             for (var i = interactablesCount - 1; i >= 0; i--) {
                 var interactable = interactables[i];
@@ -4293,6 +4297,19 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
+    var InputPointer = (function () {
+        function InputPointer() {
+            this.down = false;
+            this.downFrames = 0;
+            this.position = s2d.Vector2.create();
+            this.delta = s2d.Vector2.create();
+        }
+        return InputPointer;
+    }());
+    s2d.InputPointer = InputPointer;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
     var Color = (function () {
         function Color() {
         }
@@ -5269,19 +5286,6 @@ var s2d;
         return SMath;
     }());
     s2d.SMath = SMath;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var InputPointer = (function () {
-        function InputPointer() {
-            this.down = false;
-            this.downFrames = 0;
-            this.position = s2d.Vector2.create();
-            this.delta = s2d.Vector2.create();
-        }
-        return InputPointer;
-    }());
-    s2d.InputPointer = InputPointer;
 })(s2d || (s2d = {}));
 /// <reference path="RenderBuffer.ts" />
 /// <reference path="RenderProgram.ts" />
