@@ -6,6 +6,11 @@ module s2d {
         private _lastY : number;
         private _leftDown : boolean;
         private _rightDown : boolean;
+        private _moved : boolean;
+
+        public get moved() {
+            return this._moved;
+        }
 
         public get x() {
             return this._lastX;
@@ -40,6 +45,7 @@ module s2d {
             this._lastY = 0;
             this._leftDown = false;
             this._rightDown = false;
+            this._moved = false;
 
             document.addEventListener("mousedown", this.onMouseDown, true);
             document.addEventListener("mousemove", this.onMouseMove, true);
@@ -57,6 +63,10 @@ module s2d {
             }
         }
 
+        public resetMoved() {
+            this._moved = false;
+        }
+
         private onMouseDown = (ev: MouseEvent) => {
             ev.preventDefault();
             this.updateLastPosition(ev);
@@ -66,13 +76,17 @@ module s2d {
             else if (ev.button === 2)
                 this._rightDown = true;
 
-            //TEST!!
-            //this.engine.renderer.enterFullscreen();
+            if (ev.button === 0 && FullscreenButton.activeInstance !== null) {
+                //Fullscreen needs to be triggered from the down event..
+                if (input.getInteractableUnderPointer() === FullscreenButton.activeInstance)
+                    renderer.enterFullscreen();
+            }
         }
 
         private onMouseMove = (ev: MouseEvent) => {
             ev.preventDefault();
             this.updateLastPosition(ev);
+            this._moved = true;
         }
 
         private onMouseOut = (ev: MouseEvent) => {

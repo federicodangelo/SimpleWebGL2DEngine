@@ -23,12 +23,16 @@ var s2d;
                     _this._leftDown = true;
                 else if (ev.button === 2)
                     _this._rightDown = true;
-                //TEST!!
-                //this.engine.renderer.enterFullscreen();
+                if (ev.button === 0 && s2d.FullscreenButton.activeInstance !== null) {
+                    //Fullscreen needs to be triggered from the down event..
+                    if (s2d.input.getInteractableUnderPointer() === s2d.FullscreenButton.activeInstance)
+                        s2d.renderer.enterFullscreen();
+                }
             };
             this.onMouseMove = function (ev) {
                 ev.preventDefault();
                 _this.updateLastPosition(ev);
+                _this._moved = true;
             };
             this.onMouseOut = function (ev) {
                 ev.preventDefault();
@@ -54,6 +58,7 @@ var s2d;
             this._lastY = 0;
             this._leftDown = false;
             this._rightDown = false;
+            this._moved = false;
             document.addEventListener("mousedown", this.onMouseDown, true);
             document.addEventListener("mousemove", this.onMouseMove, true);
             document.addEventListener("mouseout", this.onMouseOut, true);
@@ -61,6 +66,13 @@ var s2d;
             document.addEventListener("mouseup", this.onMouseUp, true);
             document.addEventListener("mousewheel", this.onMouseWheel, true);
         }
+        Object.defineProperty(InputMouse.prototype, "moved", {
+            get: function () {
+                return this._moved;
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(InputMouse.prototype, "x", {
             get: function () {
                 return this._lastX;
@@ -102,6 +114,9 @@ var s2d;
                 this._lastY = ev.y;
             }
         };
+        InputMouse.prototype.resetMoved = function () {
+            this._moved = false;
+        };
         return InputMouse;
     }());
     s2d.InputMouse = InputMouse;
@@ -120,8 +135,11 @@ var s2d;
             this.onTouchStart = function (ev) {
                 ev.preventDefault();
                 _this.updateLastPositions(ev);
-                //TEST!!
-                //this.engine.renderer.enterFullscreen();
+                if (_this.touches.length == 1 && s2d.FullscreenButton.activeInstance !== null) {
+                    //Fullscreen needs to be triggered from the down event..
+                    if (s2d.input.getInteractableUnderPointer() === s2d.FullscreenButton.activeInstance)
+                        s2d.renderer.enterFullscreen();
+                }
             };
             this.onTouchEnd = function (ev) {
                 ev.preventDefault();
@@ -187,6 +205,8 @@ var s2d;
     var InputManager = (function () {
         function InputManager() {
             this._lastInteractableDown = null;
+            this._lastPointerX = 0;
+            this._lastPointerY = 0;
             this.tmpInteractables = new Array(1024);
             this.tmpRect = s2d.Rect.create();
         }
@@ -199,22 +219,22 @@ var s2d;
         });
         Object.defineProperty(InputManager.prototype, "pointerX", {
             get: function () {
-                if (this._inputMouse.isDown)
-                    return this._inputMouse.x;
-                if (this._inputTouch.touches.length > 0)
-                    return this._inputTouch.touches[0].x;
-                return 0;
+                if (this._inputMouse.isDown || this._inputMouse.moved)
+                    this._lastPointerX = this._inputMouse.x;
+                else if (this._inputTouch.touches.length > 0)
+                    this._lastPointerX = this._inputTouch.touches[0].x;
+                return this._lastPointerX;
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(InputManager.prototype, "pointerY", {
             get: function () {
-                if (this._inputMouse.isDown)
-                    return this._inputMouse.y;
-                if (this._inputTouch.touches.length > 0)
-                    return this._inputTouch.touches[0].y;
-                return 0;
+                if (this._inputMouse.isDown || this._inputMouse.moved)
+                    this._lastPointerY = this._inputMouse.y;
+                else if (this._inputTouch.touches.length > 0)
+                    this._lastPointerY = this._inputTouch.touches[0].y;
+                return this._lastPointerY;
             },
             enumerable: true,
             configurable: true
@@ -267,6 +287,7 @@ var s2d;
                 inputPointer.down = down;
                 inputPointer.downFrames = 0;
             }
+            this._inputMouse.resetMoved();
         };
         InputManager.prototype.getInteractableUnderPointer = function () {
             var rect = this.tmpRect;
@@ -967,8 +988,8 @@ var s2d;
             configurable: true
         });
         Transform.prototype.setPivot = function (x, y) {
-            this.pivotX = x;
-            this.pivotY = y;
+            this._pivot[0] = s2d.SMath.clamp(x, -1, 1);
+            this._pivot[1] = s2d.SMath.clamp(y, -1, 1);
             return this;
         };
         Transform.initStatic = function () {
@@ -2507,10 +2528,21 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Entity.prototype.getOrAddComponent = function (clazz) {
+            var existing = this.getComponent(clazz);
+            if (existing !== null)
+                return existing;
+            else
+                return this.addComponent(clazz);
+        };
         Entity.prototype.addComponent = function (clazz) {
             if (this._destroyed) {
                 s2d.EngineConsole.error("Can't add components to a destroyed entity", this);
-                return;
+                return null;
+            }
+            if (this.getComponent(clazz) !== null) {
+                s2d.EngineConsole.warning("Can't add the same component more than once, returning existing component", this);
+                return this.getComponent(clazz);
             }
             var comp = new clazz();
             var tmp = this._firstComponent;
@@ -3542,6 +3574,13 @@ var GameLogic = (function (_super) {
         this.cam = s2d.EntityFactory.buildCamera();
         this.gameScreen = s2d.EntityFactory.buildWithComponent(GameScreen, "Game Screen");
         s2d.EntityFactory.buildWithComponent(GameStats, "Game Stats");
+        var fullScreenButton = s2d.EntityFactory.buildFullscreenTextButton("FULL\nSCREEN");
+        fullScreenButton.entity.transform.setParent(s2d.ui.root);
+        fullScreenButton.entity.transform.setPivot(1, 1); //bottom right
+        fullScreenButton.entity.getOrAddComponent(s2d.Layout)
+            .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent)
+            .setAnchorModePivot(1, 1) //bottom right
+            .setAnchorModeOffset(-5, -5);
         //this.setActiveTest(new TestTilemap());
     };
     GameLogic.prototype.update = function () {
@@ -3864,97 +3903,78 @@ var TestTilemap = (function (_super) {
     };
     return TestTilemap;
 }(Test));
-/// <reference path="../Render/RenderSprite.ts" />
 var s2d;
 (function (s2d) {
-    var Tile = (function () {
-        function Tile(id, sprite) {
-            this._id = null;
-            this._sprite = null;
-            this._id = id;
-            this._sprite = sprite;
+    var EntityFactory = (function () {
+        function EntityFactory() {
         }
-        Object.defineProperty(Tile.prototype, "sprite", {
-            get: function () {
-                return this._sprite;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tile.prototype, "id", {
-            get: function () {
-                return this._id;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Tile;
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function () {
+            var entity = new s2d.Entity("Text");
+            var textDrawer = entity.addComponent(s2d.TextDrawer);
+            textDrawer.fontScale = 3;
+            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
+            return textDrawer;
+        };
+        EntityFactory.buildButton = function () {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            return button;
+        };
+        EntityFactory.buildTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            var layout = entity.addComponent(s2d.Layout)
+                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.getOrAddComponent(s2d.Layout)
+                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildFullscreenTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.FullscreenButton);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            entity.addComponent(s2d.Layout)
+                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.getOrAddComponent(s2d.Layout)
+                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
+        };
+        return EntityFactory;
     }());
-    s2d.Tile = Tile;
-})(s2d || (s2d = {}));
-/// <reference path="Tile.ts" />
-var s2d;
-(function (s2d) {
-    var Tilemap = (function () {
-        function Tilemap(width, height, tiles) {
-            this._tiles = new Array();
-            this._data = new Array();
-            this._width = 0;
-            this._height = 0;
-            this._dirty = true;
-            this._width = width;
-            this._height = height;
-            this._tiles = tiles;
-            var data = this.data;
-            var defaultTile = tiles[0];
-            for (var y = 0; y < height; y++) {
-                var line = new Array();
-                for (var x = 0; x < width; x++)
-                    line.push(defaultTile);
-                data.push(line);
-            }
-        }
-        Object.defineProperty(Tilemap.prototype, "data", {
-            get: function () {
-                return this._data;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "tiles", {
-            get: function () {
-                return this._tiles;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "width", {
-            get: function () {
-                return this._width;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "height", {
-            get: function () {
-                return this._height;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Tilemap.prototype, "dirty", {
-            get: function () {
-                return this._dirty;
-            },
-            set: function (value) {
-                this._dirty = value;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        return Tilemap;
-    }());
-    s2d.Tilemap = Tilemap;
+    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
@@ -4073,6 +4093,98 @@ var s2d;
     }(s2d.Drawer));
     s2d.TextureDrawer = TextureDrawer;
 })(s2d || (s2d = {}));
+/// <reference path="../Render/RenderSprite.ts" />
+var s2d;
+(function (s2d) {
+    var Tile = (function () {
+        function Tile(id, sprite) {
+            this._id = null;
+            this._sprite = null;
+            this._id = id;
+            this._sprite = sprite;
+        }
+        Object.defineProperty(Tile.prototype, "sprite", {
+            get: function () {
+                return this._sprite;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tile.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tile;
+    }());
+    s2d.Tile = Tile;
+})(s2d || (s2d = {}));
+/// <reference path="Tile.ts" />
+var s2d;
+(function (s2d) {
+    var Tilemap = (function () {
+        function Tilemap(width, height, tiles) {
+            this._tiles = new Array();
+            this._data = new Array();
+            this._width = 0;
+            this._height = 0;
+            this._dirty = true;
+            this._width = width;
+            this._height = height;
+            this._tiles = tiles;
+            var data = this.data;
+            var defaultTile = tiles[0];
+            for (var y = 0; y < height; y++) {
+                var line = new Array();
+                for (var x = 0; x < width; x++)
+                    line.push(defaultTile);
+                data.push(line);
+            }
+        }
+        Object.defineProperty(Tilemap.prototype, "data", {
+            get: function () {
+                return this._data;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "tiles", {
+            get: function () {
+                return this._tiles;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "width", {
+            get: function () {
+                return this._width;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "height", {
+            get: function () {
+                return this._height;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Tilemap.prototype, "dirty", {
+            get: function () {
+                return this._dirty;
+            },
+            set: function (value) {
+                this._dirty = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        return Tilemap;
+    }());
+    s2d.Tilemap = Tilemap;
+})(s2d || (s2d = {}));
 /// <reference path="Drawer.ts" />
 /// <reference path="../Assets/Tilemap.ts" />
 var s2d;
@@ -4175,59 +4287,6 @@ var s2d;
         return TilemapDrawer;
     }(s2d.Drawer));
     s2d.TilemapDrawer = TilemapDrawer;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            return textureDrawer;
-        };
-        EntityFactory.buildTextDrawer = function () {
-            var entity = new s2d.Entity("Text");
-            var textDrawer = entity.addComponent(s2d.TextDrawer);
-            textDrawer.fontScale = 3;
-            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
-            return textDrawer;
-        };
-        EntityFactory.buildButton = function () {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            return button;
-        };
-        EntityFactory.buildTextButton = function (text) {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            //Layout used to make the button match the size of the text inside
-            var layout = entity.addComponent(s2d.Layout);
-            layout.sizeMode = s2d.LayoutSizeMode.MatchChildrenBest;
-            layout.sizeOffset = s2d.Vector2.fromValues(8, 4); //4px on X, 2px on Y
-            //Text drawer
-            var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
-            textDrawer.color.setFromRgba(0, 0, 0);
-            textDrawer.fontScale = 1;
-            textDrawer.text = text;
-            textDrawer.entity.transform.parent = entity.transform;
-            return button;
-        };
-        EntityFactory.buildWithComponent = function (clazz, name) {
-            if (name === void 0) { name = "Entity"; }
-            return new s2d.Entity(name).addComponent(clazz);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -5221,6 +5280,168 @@ var s2d;
     }());
     s2d.SMath = SMath;
 })(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedAssets = (function () {
+        function EmbeddedAssets() {
+        }
+        EmbeddedAssets.init = function () {
+            s2d.loader.loadRenderFontFromUrl("defaultFont", "assets/font.xml");
+            s2d.loader.loadRenderSpriteAtlasFromUrl("defaultSkinAtlas", "assets/gui_skin.xml");
+        };
+        Object.defineProperty(EmbeddedAssets, "defaultFont", {
+            get: function () {
+                if (EmbeddedAssets._defaultFont === null)
+                    EmbeddedAssets._defaultFont = s2d.loader.getAsset("defaultFont");
+                return EmbeddedAssets._defaultFont;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
+            get: function () {
+                if (EmbeddedAssets._defaultSkinAtlas === null)
+                    EmbeddedAssets._defaultSkinAtlas = s2d.loader.getAsset("defaultSkinAtlas");
+                return EmbeddedAssets._defaultSkinAtlas;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        //Default font is KenPixel.ttf at 12px height
+        EmbeddedAssets._defaultFont = null;
+        EmbeddedAssets._defaultSkinAtlas = null;
+        return EmbeddedAssets;
+    }());
+    s2d.EmbeddedAssets = EmbeddedAssets;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedData = (function () {
+        function EmbeddedData() {
+        }
+        return EmbeddedData;
+    }());
+    s2d.EmbeddedData = EmbeddedData;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EngineConfiguration = (function () {
+        function EngineConfiguration() {
+        }
+        EngineConfiguration.RENDER_ENABLED = true;
+        EngineConfiguration.LOG_PERFORMANCE = false;
+        return EngineConfiguration;
+    }());
+    s2d.EngineConfiguration = EngineConfiguration;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EngineConsole = (function () {
+        function EngineConsole() {
+        }
+        EngineConsole.error = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.error(prefix + message);
+        };
+        EngineConsole.warning = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.warn(prefix + message);
+        };
+        EngineConsole.getClassName = function (instance) {
+            var funcNameRegex = /function (.{1,})\(/;
+            var results = (funcNameRegex).exec(instance["constructor"].toString());
+            return (results && results.length > 1) ? results[1] : "";
+        };
+        return EngineConsole;
+    }());
+    s2d.EngineConsole = EngineConsole;
+})(s2d || (s2d = {}));
+/// <reference path="EngineConfiguration.ts" />
+var s2d;
+(function (s2d) {
+    var Stats = (function () {
+        function Stats() {
+            this.lastFpsTime = 0;
+            this.fpsCounter = 0;
+            this.accumulatedUpdateTime = 0;
+            this._lastFps = 0;
+            this._lastUpdateTime = 0;
+            this._lastDrawcalls = 0;
+            this._drawcalls = 0;
+        }
+        Object.defineProperty(Stats.prototype, "lastFps", {
+            get: function () {
+                return this._lastFps;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Stats.prototype, "lastUpdateTime", {
+            get: function () {
+                return this._lastUpdateTime;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Stats.prototype, "lastDrawcalls", {
+            get: function () {
+                return this._lastDrawcalls;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Stats.prototype.init = function () {
+            this.lastFpsTime = performance.now();
+        };
+        Stats.prototype.startFrame = function () {
+            this._drawcalls = 0;
+        };
+        Stats.prototype.incrmentDrawcalls = function () {
+            this._drawcalls++;
+        };
+        Stats.prototype.endFrame = function () {
+            this._lastDrawcalls = this._drawcalls;
+        };
+        Stats.prototype.startUpdate = function () {
+            this.updateStartTime = performance.now();
+        };
+        Stats.prototype.endUpdate = function () {
+            var endTime = performance.now();
+            this.accumulatedUpdateTime += endTime - this.updateStartTime;
+            this.fpsCounter++;
+            if (this.updateStartTime - this.lastFpsTime > 1000) {
+                var delta = this.updateStartTime - this.lastFpsTime;
+                var fps = this.fpsCounter / (delta / 1000);
+                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
+                this.lastFpsTime = this.updateStartTime;
+                this.fpsCounter = 0;
+                this.accumulatedUpdateTime = 0;
+                this._lastFps = fps;
+                this._lastUpdateTime = updateTime;
+                if (s2d.EngineConfiguration.LOG_PERFORMANCE)
+                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
+            }
+        };
+        return Stats;
+    }());
+    s2d.Stats = Stats;
+})(s2d || (s2d = {}));
 /// <reference path="RenderBuffer.ts" />
 /// <reference path="RenderProgram.ts" />
 var s2d;
@@ -5500,361 +5721,6 @@ var s2d;
     }());
     s2d.RenderVertex = RenderVertex;
 })(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EmbeddedAssets = (function () {
-        function EmbeddedAssets() {
-        }
-        EmbeddedAssets.init = function () {
-            s2d.loader.loadRenderFontFromUrl("defaultFont", "assets/font.xml");
-            s2d.loader.loadRenderSpriteAtlasFromUrl("defaultSkinAtlas", "assets/gui_skin.xml");
-        };
-        Object.defineProperty(EmbeddedAssets, "defaultFont", {
-            get: function () {
-                if (EmbeddedAssets._defaultFont === null)
-                    EmbeddedAssets._defaultFont = s2d.loader.getAsset("defaultFont");
-                return EmbeddedAssets._defaultFont;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
-            get: function () {
-                if (EmbeddedAssets._defaultSkinAtlas === null)
-                    EmbeddedAssets._defaultSkinAtlas = s2d.loader.getAsset("defaultSkinAtlas");
-                return EmbeddedAssets._defaultSkinAtlas;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        //Default font is KenPixel.ttf at 12px height
-        EmbeddedAssets._defaultFont = null;
-        EmbeddedAssets._defaultSkinAtlas = null;
-        return EmbeddedAssets;
-    }());
-    s2d.EmbeddedAssets = EmbeddedAssets;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EmbeddedData = (function () {
-        function EmbeddedData() {
-        }
-        return EmbeddedData;
-    }());
-    s2d.EmbeddedData = EmbeddedData;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EngineConfiguration = (function () {
-        function EngineConfiguration() {
-        }
-        EngineConfiguration.RENDER_ENABLED = true;
-        EngineConfiguration.LOG_PERFORMANCE = false;
-        return EngineConfiguration;
-    }());
-    s2d.EngineConfiguration = EngineConfiguration;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EngineConsole = (function () {
-        function EngineConsole() {
-        }
-        EngineConsole.error = function (message, target) {
-            if (target === void 0) { target = null; }
-            var prefix = "";
-            if (target instanceof s2d.Component) {
-                var componentClassName = EngineConsole.getClassName(target);
-                prefix = target.entity.name + "->" + componentClassName + ": ";
-            }
-            else if (target instanceof s2d.Entity) {
-                prefix = target.name + ": ";
-            }
-            console.error(prefix + message);
-        };
-        EngineConsole.getClassName = function (instance) {
-            var funcNameRegex = /function (.{1,})\(/;
-            var results = (funcNameRegex).exec(instance["constructor"].toString());
-            return (results && results.length > 1) ? results[1] : "";
-        };
-        return EngineConsole;
-    }());
-    s2d.EngineConsole = EngineConsole;
-})(s2d || (s2d = {}));
-/// <reference path="EngineConfiguration.ts" />
-var s2d;
-(function (s2d) {
-    var Stats = (function () {
-        function Stats() {
-            this.lastFpsTime = 0;
-            this.fpsCounter = 0;
-            this.accumulatedUpdateTime = 0;
-            this._lastFps = 0;
-            this._lastUpdateTime = 0;
-            this._lastDrawcalls = 0;
-            this._drawcalls = 0;
-        }
-        Object.defineProperty(Stats.prototype, "lastFps", {
-            get: function () {
-                return this._lastFps;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Stats.prototype, "lastUpdateTime", {
-            get: function () {
-                return this._lastUpdateTime;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Stats.prototype, "lastDrawcalls", {
-            get: function () {
-                return this._lastDrawcalls;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Stats.prototype.init = function () {
-            this.lastFpsTime = performance.now();
-        };
-        Stats.prototype.startFrame = function () {
-            this._drawcalls = 0;
-        };
-        Stats.prototype.incrmentDrawcalls = function () {
-            this._drawcalls++;
-        };
-        Stats.prototype.endFrame = function () {
-            this._lastDrawcalls = this._drawcalls;
-        };
-        Stats.prototype.startUpdate = function () {
-            this.updateStartTime = performance.now();
-        };
-        Stats.prototype.endUpdate = function () {
-            var endTime = performance.now();
-            this.accumulatedUpdateTime += endTime - this.updateStartTime;
-            this.fpsCounter++;
-            if (this.updateStartTime - this.lastFpsTime > 1000) {
-                var delta = this.updateStartTime - this.lastFpsTime;
-                var fps = this.fpsCounter / (delta / 1000);
-                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
-                this.lastFpsTime = this.updateStartTime;
-                this.fpsCounter = 0;
-                this.accumulatedUpdateTime = 0;
-                this._lastFps = fps;
-                this._lastUpdateTime = updateTime;
-                if (s2d.EngineConfiguration.LOG_PERFORMANCE)
-                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
-            }
-        };
-        return Stats;
-    }());
-    s2d.Stats = Stats;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    (function (LoaderState) {
-        LoaderState[LoaderState["WaitingStart"] = 0] = "WaitingStart";
-        LoaderState[LoaderState["Loading"] = 1] = "Loading";
-        LoaderState[LoaderState["Complete"] = 2] = "Complete";
-    })(s2d.LoaderState || (s2d.LoaderState = {}));
-    var LoaderState = s2d.LoaderState;
-    var Loader = (function () {
-        function Loader(id) {
-            this._id = null;
-            this._onLoadComplete = new s2d.Event();
-            this._state = LoaderState.WaitingStart;
-            this._asset = null;
-            this._id = id;
-        }
-        Object.defineProperty(Loader.prototype, "id", {
-            get: function () {
-                return this._id;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Loader.prototype, "state", {
-            get: function () {
-                return this._state;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Loader.prototype, "asset", {
-            get: function () {
-                return this._asset;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Loader.prototype, "onLoadComplete", {
-            get: function () {
-                return this._onLoadComplete;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Loader.prototype.start = function () {
-            if (this._state == LoaderState.WaitingStart) {
-                this._state = LoaderState.Loading;
-                this.onStart();
-            }
-        };
-        Loader.prototype.onStart = function () {
-            //Must be overriden in subclass to start downloading
-        };
-        //Must be called by subclass when the asset has finished downloading
-        Loader.prototype.setAsset = function (asset) {
-            this._asset = asset;
-            this._onLoadComplete.post(this);
-        };
-        return Loader;
-    }());
-    s2d.Loader = Loader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-var s2d;
-(function (s2d) {
-    var ImageLoader = (function (_super) {
-        __extends(ImageLoader, _super);
-        function ImageLoader(id, url) {
-            _super.call(this, id);
-            this._image = null;
-            this._url = url;
-        }
-        ImageLoader.prototype.onStart = function () {
-            var _this = this;
-            this._image = new Image();
-            this._image.setAttribute('crossOrigin', 'anonymous');
-            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
-            this._image.src = this._url;
-        };
-        ImageLoader.prototype.onImageLoadComplete = function () {
-            var tmp = this._image;
-            this._image = null;
-            this.setAsset(tmp);
-        };
-        return ImageLoader;
-    }(s2d.Loader));
-    s2d.ImageLoader = ImageLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-/// <reference path="../../Render/RenderFont.ts" />
-var s2d;
-(function (s2d) {
-    var RenderFontLoader = (function (_super) {
-        __extends(RenderFontLoader, _super);
-        function RenderFontLoader(id, fontXmlUrl) {
-            _super.call(this, id);
-            this._fontXmlUrl = null;
-            this._fontJson = null;
-            this._fontXmlUrl = fontXmlUrl;
-        }
-        RenderFontLoader.prototype.onStart = function () {
-            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._fontXmlUrl, this.onXmlLoadComplete, this);
-        };
-        RenderFontLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
-            var xml = xmlLoader.asset;
-            this._fontJson = JXON.stringToJs(xml);
-            var url = "assets/" + this._fontJson.font.pages.page.$file;
-            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
-        };
-        RenderFontLoader.prototype.onTextureLoadComplete = function (loader) {
-            var font = new s2d.RenderFont(loader.asset, this._fontJson);
-            this._fontJson = null;
-            this.setAsset(font);
-        };
-        return RenderFontLoader;
-    }(s2d.Loader));
-    s2d.RenderFontLoader = RenderFontLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-/// <reference path="../../Render/RenderSpriteAtlas.ts" />
-var s2d;
-(function (s2d) {
-    var RenderSpriteAtlasLoader = (function (_super) {
-        __extends(RenderSpriteAtlasLoader, _super);
-        function RenderSpriteAtlasLoader(id, spriteAtlasXmlUrl) {
-            _super.call(this, id);
-            this._spriteAtlasXmlUrl = null;
-            this._spriteAtlasJson = null;
-            this._spriteAtlasXmlUrl = spriteAtlasXmlUrl;
-        }
-        RenderSpriteAtlasLoader.prototype.onStart = function () {
-            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
-        };
-        RenderSpriteAtlasLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
-            var xml = xmlLoader.asset;
-            this._spriteAtlasJson = JXON.stringToJs(xml);
-            var url = "assets/" + this._spriteAtlasJson.atlas.info.$file;
-            var hasAlpha = true;
-            if (typeof this._spriteAtlasJson.atlas.info.$alpha === "string") {
-                if (this._spriteAtlasJson.atlas.info.$alpha.trim().toLowerCase() === "true")
-                    hasAlpha = true;
-                else
-                    hasAlpha = false;
-            }
-            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, hasAlpha, this.onTextureLoadComplete, this);
-        };
-        RenderSpriteAtlasLoader.prototype.onTextureLoadComplete = function (textureLoader) {
-            var atlas = new s2d.RenderSpriteAtlas(textureLoader.asset, this._spriteAtlasJson);
-            this._spriteAtlasJson = null;
-            this.setAsset(atlas);
-        };
-        return RenderSpriteAtlasLoader;
-    }(s2d.Loader));
-    s2d.RenderSpriteAtlasLoader = RenderSpriteAtlasLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-/// <reference path="../../Render/RenderTexture.ts" />
-var s2d;
-(function (s2d) {
-    var RenderTextureLoader = (function (_super) {
-        __extends(RenderTextureLoader, _super);
-        function RenderTextureLoader(id, url, hasAlpha) {
-            _super.call(this, id);
-            this._url = null;
-            this._hasAlpha = false;
-            this._url = url;
-            this._hasAlpha = hasAlpha;
-        }
-        RenderTextureLoader.prototype.onStart = function () {
-            s2d.loader.loadImageFromUrl(this.id + "_image", this._url, this.onImageLoadComplete, this);
-        };
-        RenderTextureLoader.prototype.onImageLoadComplete = function (imageLoader) {
-            var texture = new s2d.RenderTexture(imageLoader.asset, this._hasAlpha);
-            this.setAsset(texture);
-        };
-        return RenderTextureLoader;
-    }(s2d.Loader));
-    s2d.RenderTextureLoader = RenderTextureLoader;
-})(s2d || (s2d = {}));
-/// <reference path="Loader.ts" />
-var s2d;
-(function (s2d) {
-    var XmlLoader = (function (_super) {
-        __extends(XmlLoader, _super);
-        function XmlLoader(id, url) {
-            _super.call(this, id);
-            this._xhttp = null;
-            this._url = url;
-        }
-        XmlLoader.prototype.onStart = function () {
-            var _this = this;
-            this._xhttp = new XMLHttpRequest();
-            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
-            this._xhttp.open("GET", this._url, true);
-            this._xhttp.send(null);
-        };
-        XmlLoader.prototype.onXMLLoadComplete = function () {
-            var tmp = this._xhttp;
-            this._xhttp = null;
-            this.setAsset(tmp.responseText);
-        };
-        return XmlLoader;
-    }(s2d.Loader));
-    s2d.XmlLoader = XmlLoader;
-})(s2d || (s2d = {}));
 /// <reference path="../Component.ts" />
 /// <reference path="../../Event/Event.ts" />
 var s2d;
@@ -5955,6 +5821,35 @@ var s2d;
     }(s2d.Interactable));
     s2d.Button = Button;
 })(s2d || (s2d = {}));
+/// <reference path="Interactable.ts" />
+var s2d;
+(function (s2d) {
+    var FullscreenButton = (function (_super) {
+        __extends(FullscreenButton, _super);
+        function FullscreenButton() {
+            _super.apply(this, arguments);
+        }
+        Object.defineProperty(FullscreenButton, "activeInstance", {
+            get: function () {
+                return FullscreenButton._activeInstance;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        FullscreenButton.prototype.onInit = function () {
+            _super.prototype.onInit.call(this);
+            FullscreenButton._activeInstance = this;
+        };
+        FullscreenButton.prototype.onDestroy = function () {
+            if (FullscreenButton._activeInstance === this)
+                FullscreenButton._activeInstance = null;
+            _super.prototype.onDestroy.call(this);
+        };
+        FullscreenButton._activeInstance = null;
+        return FullscreenButton;
+    }(s2d.Button));
+    s2d.FullscreenButton = FullscreenButton;
+})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     (function (LayoutSizeMode) {
@@ -5992,10 +5887,12 @@ var s2d;
             this._widthSizeMode = LayoutSizeMode.None;
             this._heightSizeMode = LayoutSizeMode.None;
             this._sizeOffset = s2d.Vector2.create();
+            this._xAnchorMode = LayoutAnchorMode.None;
+            this._yAnchorMode = LayoutAnchorMode.None;
+            this._anchorModePivot = s2d.Vector2.create();
+            this._anchorModeOffset = s2d.Vector2.create();
         }
         Object.defineProperty(Layout.prototype, "widthSizeMode", {
-            //private _xAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
-            //private _yAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
             get: function () {
                 return this._widthSizeMode;
             },
@@ -6022,6 +5919,11 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Layout.prototype.setSizeMode = function (widthSizeMode, heightSizeMode) {
+            this._widthSizeMode = widthSizeMode;
+            this._heightSizeMode = heightSizeMode;
+            return this;
+        };
         Object.defineProperty(Layout.prototype, "sizeOffset", {
             get: function () {
                 return this._sizeOffset;
@@ -6032,7 +5934,71 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Layout.prototype.setSizeOffset = function (x, y) {
+            this._sizeOffset[0] = x;
+            this._sizeOffset[1] = y;
+            return this;
+        };
+        Object.defineProperty(Layout.prototype, "xAnchorMode", {
+            get: function () {
+                return this._xAnchorMode;
+            },
+            set: function (value) {
+                this._xAnchorMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Layout.prototype, "yAnchorMode", {
+            get: function () {
+                return this._yAnchorMode;
+            },
+            set: function (value) {
+                this._yAnchorMode = value;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Layout.prototype.setAnchorMode = function (xMode, yMode) {
+            this.xAnchorMode = xMode;
+            this.yAnchorMode = yMode;
+            return this;
+        };
+        Object.defineProperty(Layout.prototype, "anchorModePivot", {
+            get: function () {
+                return this._anchorModePivot;
+            },
+            set: function (value) {
+                this._anchorModePivot[0] = s2d.SMath.clamp(value[0], -1, 1);
+                this._anchorModePivot[1] = s2d.SMath.clamp(value[1], -1, 1);
+                ;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Layout.prototype.setAnchorModePivot = function (x, y) {
+            this._anchorModePivot[0] = s2d.SMath.clamp(x, -1, 1);
+            this._anchorModePivot[1] = s2d.SMath.clamp(y, -1, 1);
+            ;
+            return this;
+        };
+        Object.defineProperty(Layout.prototype, "anchorModeOffset", {
+            get: function () {
+                return this._anchorModeOffset;
+            },
+            set: function (value) {
+                s2d.Vector2.copy(this._anchorModeOffset, value);
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Layout.prototype.setAnchorModeOffset = function (x, y) {
+            this._anchorModeOffset[0] = x;
+            this._anchorModeOffset[1] = y;
+            return this;
+        };
         Layout.prototype.updateLayout = function () {
+            var transform = this.entity.transform;
             if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest ||
                 this._heightSizeMode === LayoutSizeMode.MatchDrawerBest) {
                 var drawer = this.entity.firstDrawer;
@@ -6040,9 +6006,9 @@ var s2d;
                     //DON'T MUTATE THIS VECTOR!!
                     var bestSize = drawer.getBestSize();
                     if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest)
-                        this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                        transform.sizeX = bestSize[0] + this._sizeOffset[0];
                     if (this._heightSizeMode === LayoutSizeMode.MatchDrawerBest)
-                        this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                        transform.sizeY = bestSize[1] + this._sizeOffset[1];
                 }
                 else {
                     s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchThisDrawerBest' but drawer is missing", this);
@@ -6057,16 +6023,29 @@ var s2d;
                         //DON'T MUTATE THIS VECTOR!!
                         var bestSize = firstChildDrawer.getBestSize();
                         if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest)
-                            this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                            transform.sizeX = bestSize[0] + this._sizeOffset[0];
                         if (this._heightSizeMode === LayoutSizeMode.MatchChildrenBest)
-                            this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                            transform.sizeY = bestSize[1] + this._sizeOffset[1];
                     }
                     else {
                         s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but children with drawer is missing", this);
                     }
                 }
                 else {
-                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but not children found", this);
+                    s2d.EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but no children found", this);
+                }
+            }
+            if (this._xAnchorMode === LayoutAnchorMode.RelativeToParent || this._yAnchorMode === LayoutAnchorMode.RelativeToParent) {
+                var parent_1 = transform.parent;
+                if (parent_1 !== null) {
+                    var parentPivot = parent_1.pivot;
+                    if (this._xAnchorMode === LayoutAnchorMode.RelativeToParent)
+                        transform.localX = -parentPivot[0] * parent_1.sizeX / 2 + (parent_1.sizeX / 2) * this._anchorModePivot[0] + this._anchorModeOffset[0];
+                    if (this._yAnchorMode === LayoutAnchorMode.RelativeToParent)
+                        transform.localY = -parentPivot[1] * parent_1.sizeY / 2 + (parent_1.sizeY / 2) * this._anchorModePivot[1] + this._anchorModeOffset[1];
+                }
+                else {
+                    s2d.EngineConsole.error("Layout.updateLayout(): Anchor mode is 'RelativeToParent' but no parent found", this);
                 }
             }
         };
@@ -6314,6 +6293,211 @@ var s2d;
         return TextVertextGenerator;
     }());
     s2d.TextVertextGenerator = TextVertextGenerator;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    (function (LoaderState) {
+        LoaderState[LoaderState["WaitingStart"] = 0] = "WaitingStart";
+        LoaderState[LoaderState["Loading"] = 1] = "Loading";
+        LoaderState[LoaderState["Complete"] = 2] = "Complete";
+    })(s2d.LoaderState || (s2d.LoaderState = {}));
+    var LoaderState = s2d.LoaderState;
+    var Loader = (function () {
+        function Loader(id) {
+            this._id = null;
+            this._onLoadComplete = new s2d.Event();
+            this._state = LoaderState.WaitingStart;
+            this._asset = null;
+            this._id = id;
+        }
+        Object.defineProperty(Loader.prototype, "id", {
+            get: function () {
+                return this._id;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "state", {
+            get: function () {
+                return this._state;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "asset", {
+            get: function () {
+                return this._asset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Loader.prototype, "onLoadComplete", {
+            get: function () {
+                return this._onLoadComplete;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Loader.prototype.start = function () {
+            if (this._state == LoaderState.WaitingStart) {
+                this._state = LoaderState.Loading;
+                this.onStart();
+            }
+        };
+        Loader.prototype.onStart = function () {
+            //Must be overriden in subclass to start downloading
+        };
+        //Must be called by subclass when the asset has finished downloading
+        Loader.prototype.setAsset = function (asset) {
+            this._asset = asset;
+            this._onLoadComplete.post(this);
+        };
+        return Loader;
+    }());
+    s2d.Loader = Loader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+var s2d;
+(function (s2d) {
+    var ImageLoader = (function (_super) {
+        __extends(ImageLoader, _super);
+        function ImageLoader(id, url) {
+            _super.call(this, id);
+            this._image = null;
+            this._url = url;
+        }
+        ImageLoader.prototype.onStart = function () {
+            var _this = this;
+            this._image = new Image();
+            this._image.setAttribute('crossOrigin', 'anonymous');
+            this._image.addEventListener('load', function () { return _this.onImageLoadComplete(); });
+            this._image.src = this._url;
+        };
+        ImageLoader.prototype.onImageLoadComplete = function () {
+            var tmp = this._image;
+            this._image = null;
+            this.setAsset(tmp);
+        };
+        return ImageLoader;
+    }(s2d.Loader));
+    s2d.ImageLoader = ImageLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="../../Render/RenderFont.ts" />
+var s2d;
+(function (s2d) {
+    var RenderFontLoader = (function (_super) {
+        __extends(RenderFontLoader, _super);
+        function RenderFontLoader(id, fontXmlUrl) {
+            _super.call(this, id);
+            this._fontXmlUrl = null;
+            this._fontJson = null;
+            this._fontXmlUrl = fontXmlUrl;
+        }
+        RenderFontLoader.prototype.onStart = function () {
+            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._fontXmlUrl, this.onXmlLoadComplete, this);
+        };
+        RenderFontLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
+            var xml = xmlLoader.asset;
+            this._fontJson = JXON.stringToJs(xml);
+            var url = "assets/" + this._fontJson.font.pages.page.$file;
+            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
+        };
+        RenderFontLoader.prototype.onTextureLoadComplete = function (loader) {
+            var font = new s2d.RenderFont(loader.asset, this._fontJson);
+            this._fontJson = null;
+            this.setAsset(font);
+        };
+        return RenderFontLoader;
+    }(s2d.Loader));
+    s2d.RenderFontLoader = RenderFontLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="../../Render/RenderSpriteAtlas.ts" />
+var s2d;
+(function (s2d) {
+    var RenderSpriteAtlasLoader = (function (_super) {
+        __extends(RenderSpriteAtlasLoader, _super);
+        function RenderSpriteAtlasLoader(id, spriteAtlasXmlUrl) {
+            _super.call(this, id);
+            this._spriteAtlasXmlUrl = null;
+            this._spriteAtlasJson = null;
+            this._spriteAtlasXmlUrl = spriteAtlasXmlUrl;
+        }
+        RenderSpriteAtlasLoader.prototype.onStart = function () {
+            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
+        };
+        RenderSpriteAtlasLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
+            var xml = xmlLoader.asset;
+            this._spriteAtlasJson = JXON.stringToJs(xml);
+            var url = "assets/" + this._spriteAtlasJson.atlas.info.$file;
+            var hasAlpha = true;
+            if (typeof this._spriteAtlasJson.atlas.info.$alpha === "string") {
+                if (this._spriteAtlasJson.atlas.info.$alpha.trim().toLowerCase() === "true")
+                    hasAlpha = true;
+                else
+                    hasAlpha = false;
+            }
+            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, hasAlpha, this.onTextureLoadComplete, this);
+        };
+        RenderSpriteAtlasLoader.prototype.onTextureLoadComplete = function (textureLoader) {
+            var atlas = new s2d.RenderSpriteAtlas(textureLoader.asset, this._spriteAtlasJson);
+            this._spriteAtlasJson = null;
+            this.setAsset(atlas);
+        };
+        return RenderSpriteAtlasLoader;
+    }(s2d.Loader));
+    s2d.RenderSpriteAtlasLoader = RenderSpriteAtlasLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+/// <reference path="../../Render/RenderTexture.ts" />
+var s2d;
+(function (s2d) {
+    var RenderTextureLoader = (function (_super) {
+        __extends(RenderTextureLoader, _super);
+        function RenderTextureLoader(id, url, hasAlpha) {
+            _super.call(this, id);
+            this._url = null;
+            this._hasAlpha = false;
+            this._url = url;
+            this._hasAlpha = hasAlpha;
+        }
+        RenderTextureLoader.prototype.onStart = function () {
+            s2d.loader.loadImageFromUrl(this.id + "_image", this._url, this.onImageLoadComplete, this);
+        };
+        RenderTextureLoader.prototype.onImageLoadComplete = function (imageLoader) {
+            var texture = new s2d.RenderTexture(imageLoader.asset, this._hasAlpha);
+            this.setAsset(texture);
+        };
+        return RenderTextureLoader;
+    }(s2d.Loader));
+    s2d.RenderTextureLoader = RenderTextureLoader;
+})(s2d || (s2d = {}));
+/// <reference path="Loader.ts" />
+var s2d;
+(function (s2d) {
+    var XmlLoader = (function (_super) {
+        __extends(XmlLoader, _super);
+        function XmlLoader(id, url) {
+            _super.call(this, id);
+            this._xhttp = null;
+            this._url = url;
+        }
+        XmlLoader.prototype.onStart = function () {
+            var _this = this;
+            this._xhttp = new XMLHttpRequest();
+            this._xhttp.addEventListener('load', function () { return _this.onXMLLoadComplete(); });
+            this._xhttp.open("GET", this._url, true);
+            this._xhttp.send(null);
+        };
+        XmlLoader.prototype.onXMLLoadComplete = function () {
+            var tmp = this._xhttp;
+            this._xhttp = null;
+            this.setAsset(tmp.responseText);
+        };
+        return XmlLoader;
+    }(s2d.Loader));
+    s2d.XmlLoader = XmlLoader;
 })(s2d || (s2d = {}));
 
 //# sourceMappingURL=main.js.map

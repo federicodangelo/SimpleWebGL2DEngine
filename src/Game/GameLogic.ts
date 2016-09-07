@@ -16,6 +16,15 @@ class GameLogic extends s2d.Behavior {
         this.gameScreen = s2d.EntityFactory.buildWithComponent(GameScreen, "Game Screen");
         s2d.EntityFactory.buildWithComponent(GameStats, "Game Stats");
 
+        let fullScreenButton = s2d.EntityFactory.buildFullscreenTextButton("FULL\nSCREEN");
+        fullScreenButton.entity.transform.setParent(s2d.ui.root);
+        fullScreenButton.entity.transform.setPivot(1, 1); //bottom right
+
+        fullScreenButton.entity.getOrAddComponent(s2d.Layout)
+            .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent)
+            .setAnchorModePivot(1, 1) //bottom right
+            .setAnchorModeOffset(-5, -5);
+
         //this.setActiveTest(new TestTilemap());
     }
 

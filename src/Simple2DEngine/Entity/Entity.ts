@@ -64,11 +64,24 @@ module s2d {
             this._transform = this.addComponent(Transform);
         }
 
+        public getOrAddComponent<T extends Component>(clazz: { new (): T }): T {
+            let existing = this.getComponent(clazz);
+            if (existing !== null)
+                return existing;
+            else 
+                return this.addComponent(clazz);
+        }
+
         public addComponent<T extends Component>(clazz: { new (): T }): T {
 
             if (this._destroyed) {
                 EngineConsole.error("Can't add components to a destroyed entity", this);
-                return;
+                return null;
+            }
+
+            if (this.getComponent(clazz) !== null) {
+                EngineConsole.warning("Can't add the same component more than once, returning existing component", this);
+                return this.getComponent(clazz);
             }
 
             let comp = new clazz();

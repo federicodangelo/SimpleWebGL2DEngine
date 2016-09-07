@@ -254,8 +254,8 @@ module s2d {
         }
 
         public setPivot(x: number, y: number) {
-            this.pivotX = x;
-            this.pivotY = y;
+            this._pivot[0] = SMath.clamp(x, -1, 1);
+            this._pivot[1] = SMath.clamp(y, -1, 1);
             return this;
         }
 

@@ -63,8 +63,11 @@ module s2d {
             ev.preventDefault();
             this.updateLastPositions(ev);
 
-            //TEST!!
-            //this.engine.renderer.enterFullscreen();
+            if (this.touches.length == 1 && FullscreenButton.activeInstance !== null) {
+                //Fullscreen needs to be triggered from the down event..
+                if (input.getInteractableUnderPointer() === FullscreenButton.activeInstance)
+                    renderer.enterFullscreen();
+            }
         }
 
         private onTouchEnd = (ev: TouchEvent) => {

@@ -29,8 +29,10 @@ module s2d {
         private _heightSizeMode: LayoutSizeMode = LayoutSizeMode.None;
         private _sizeOffset: Vector2 = Vector2.create();
 
-        //private _xAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
-        //private _yAnchorMode : LayoutAnchorMode = LayoutAnchorMode.None;
+        private _xAnchorMode: LayoutAnchorMode = LayoutAnchorMode.None;
+        private _yAnchorMode: LayoutAnchorMode = LayoutAnchorMode.None;
+        private _anchorModePivot: Vector2 = Vector2.create();
+        private _anchorModeOffset: Vector2 = Vector2.create();
 
         public get widthSizeMode(): LayoutSizeMode {
             return this._widthSizeMode;
@@ -52,6 +54,12 @@ module s2d {
             this._heightSizeMode = this._widthSizeMode = value;
         }
 
+        public setSizeMode(widthSizeMode: LayoutSizeMode, heightSizeMode: LayoutSizeMode) {
+            this._widthSizeMode = widthSizeMode;
+            this._heightSizeMode = heightSizeMode;
+            return this;
+        }
+
         public get sizeOffset(): Vector2 {
             return this._sizeOffset;
         }
@@ -60,7 +68,66 @@ module s2d {
             Vector2.copy(this._sizeOffset, value);
         }
 
+        public setSizeOffset(x: number, y: number) {
+            this._sizeOffset[0] = x;
+            this._sizeOffset[1] = y;
+            return this;
+        }
+
+        public get xAnchorMode(): LayoutAnchorMode {
+            return this._xAnchorMode;
+        }
+
+        public set xAnchorMode(value: LayoutAnchorMode) {
+            this._xAnchorMode = value;
+        }
+
+        public get yAnchorMode(): LayoutAnchorMode {
+            return this._yAnchorMode;
+        }
+
+        public set yAnchorMode(value: LayoutAnchorMode) {
+            this._yAnchorMode = value;
+        }
+
+        public setAnchorMode(xMode: LayoutAnchorMode, yMode: LayoutAnchorMode) {
+            this.xAnchorMode = xMode;
+            this.yAnchorMode = yMode;
+            return this;
+        }
+
+        public get anchorModePivot(): Vector2 {
+            return this._anchorModePivot;
+        }
+
+        public set anchorModePivot(value: Vector2) {
+            this._anchorModePivot[0] = SMath.clamp(value[0], -1, 1);
+            this._anchorModePivot[1] = SMath.clamp(value[1], -1, 1);;
+        }
+
+        public setAnchorModePivot(x: number, y: number) {
+            this._anchorModePivot[0] = SMath.clamp(x, -1, 1);
+            this._anchorModePivot[1] = SMath.clamp(y, -1, 1);;
+            return this;
+        }
+
+        public get anchorModeOffset(): Vector2 {
+            return this._anchorModeOffset;
+        }
+
+        public set anchorModeOffset(value: Vector2) {
+            Vector2.copy(this._anchorModeOffset, value);
+        }
+
+        public setAnchorModeOffset(x: number, y: number) {
+            this._anchorModeOffset[0] = x;
+            this._anchorModeOffset[1] = y;
+            return this;
+        }
+
         public updateLayout() {
+
+            let transform = this.entity.transform;
 
             if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest ||
                 this._heightSizeMode === LayoutSizeMode.MatchDrawerBest) {
@@ -72,10 +139,10 @@ module s2d {
                     let bestSize = drawer.getBestSize();
 
                     if (this._widthSizeMode === LayoutSizeMode.MatchDrawerBest)
-                        this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                        transform.sizeX = bestSize[0] + this._sizeOffset[0];
 
                     if (this._heightSizeMode === LayoutSizeMode.MatchDrawerBest)
-                        this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                        transform.sizeY = bestSize[1] + this._sizeOffset[1];
                 } else {
                     EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchThisDrawerBest' but drawer is missing", this);
                 }
@@ -88,25 +155,43 @@ module s2d {
 
                 if (firstChild !== null) {
                     let firstChildDrawer = firstChild.entity.firstDrawer;
-                    
+
                     if (firstChildDrawer !== null) {
 
                         //DON'T MUTATE THIS VECTOR!!
                         let bestSize = firstChildDrawer.getBestSize();
 
                         if (this._widthSizeMode === LayoutSizeMode.MatchChildrenBest)
-                            this.entity.transform.sizeX = bestSize[0] + this._sizeOffset[0];
+                            transform.sizeX = bestSize[0] + this._sizeOffset[0];
 
                         if (this._heightSizeMode === LayoutSizeMode.MatchChildrenBest)
-                            this.entity.transform.sizeY = bestSize[1] + this._sizeOffset[1];
+                            transform.sizeY = bestSize[1] + this._sizeOffset[1];
 
                     } else {
                         EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but children with drawer is missing", this);
                     }
                 } else {
-                    EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but not children found", this);
+                    EngineConsole.error("Layout.updateLayout(): Size mode is 'MatchChildrenBest' but no children found", this);
                 }
-            }        
+            }
+
+            if (this._xAnchorMode === LayoutAnchorMode.RelativeToParent || this._yAnchorMode === LayoutAnchorMode.RelativeToParent) {
+                let parent = transform.parent;
+
+                if (parent !== null) {
+
+                    let parentPivot = parent.pivot;
+
+                    if (this._xAnchorMode === LayoutAnchorMode.RelativeToParent)
+                        transform.localX = -parentPivot[0] * parent.sizeX / 2 + (parent.sizeX / 2) * this._anchorModePivot[0] + this._anchorModeOffset[0];
+
+                    if (this._yAnchorMode === LayoutAnchorMode.RelativeToParent)
+                        transform.localY = -parentPivot[1] * parent.sizeY / 2 + (parent.sizeY / 2) * this._anchorModePivot[1] + this._anchorModeOffset[1];
+
+                } else {
+                    EngineConsole.error("Layout.updateLayout(): Anchor mode is 'RelativeToParent' but no parent found", this);
+                }
+            }
         }
     }
 }

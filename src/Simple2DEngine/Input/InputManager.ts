@@ -10,29 +10,29 @@ module s2d {
         private _inputPointer: InputPointer;
 
         private _lastInteractableDown: Interactable = null;
+        private _lastPointerX: number = 0;
+        private _lastPointerY: number = 0;
 
         public get pointerDown(): boolean {
             return this._inputMouse.isDown || this._inputTouch.touches.length > 0;
         }
 
         public get pointerX(): number {
-            if (this._inputMouse.isDown)
-                return this._inputMouse.x;
+            if (this._inputMouse.isDown || this._inputMouse.moved)
+                this._lastPointerX = this._inputMouse.x;
+            else if (this._inputTouch.touches.length > 0)
+                this._lastPointerX = this._inputTouch.touches[0].x;
 
-            if (this._inputTouch.touches.length > 0)
-                return this._inputTouch.touches[0].x;
-
-            return 0;
+            return this._lastPointerX;
         }
 
         public get pointerY(): number {
-            if (this._inputMouse.isDown)
-                return this._inputMouse.y;
+            if (this._inputMouse.isDown || this._inputMouse.moved)
+                this._lastPointerY = this._inputMouse.y;
+            else if (this._inputTouch.touches.length > 0)
+                this._lastPointerY = this._inputTouch.touches[0].y;
 
-            if (this._inputTouch.touches.length > 0)
-                return this._inputTouch.touches[0].y;
-
-            return 0;
+            return this._lastPointerY;
         }
 
         public get pointer(): InputPointer {
@@ -51,18 +51,16 @@ module s2d {
         public update(): void {
             this.updatePointer();
 
-            let newInteractable = this.getInteractableUnderPointer();
+            let newInteractable: Interactable = this.getInteractableUnderPointer();
             let pointer = this._inputPointer;
 
             if (pointer.down) {
 
                 if (pointer.downFrames === 0) {
-                    
                     if (newInteractable !== null) {
                         this._lastInteractableDown = newInteractable;
                         newInteractable.onPointerDown(pointer);
                     }
-
                 }
 
             } else {
@@ -73,7 +71,7 @@ module s2d {
                     tmp.onPointerUp(pointer);
                 }
             }
-            
+
         }
 
         private updatePointer(): void {
@@ -96,6 +94,8 @@ module s2d {
                 inputPointer.down = down;
                 inputPointer.downFrames = 0;
             }
+
+            this._inputMouse.resetMoved();
         }
 
         private tmpInteractables: Array<Interactable> = new Array<Interactable>(1024);

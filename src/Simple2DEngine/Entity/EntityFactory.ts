@@ -35,13 +35,41 @@ module s2d {
             entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
 
             //Layout used to make the button match the size of the text inside
-            var layout = entity.addComponent(Layout);
-            layout.sizeMode = LayoutSizeMode.MatchChildrenBest;
-            layout.sizeOffset = Vector2.fromValues(8, 4); //4px on X, 2px on Y
+            var layout = entity.addComponent(Layout)
+                .setSizeMode(LayoutSizeMode.MatchChildrenBest, LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
 
             //Text drawer
             var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.transform.setPivot(-1, -1).setLocalPosition(4, 2);
+            textDrawer.entity.getOrAddComponent(Layout)
+                .setAnchorMode(LayoutAnchorMode.RelativeToParent, LayoutAnchorMode.RelativeToParent);
+
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            
+            return button;
+        }
+
+        public static buildFullscreenTextButton(text:string) : FullscreenButton {
+
+            var entity = new Entity("Button");
+            entity.addComponent(SpriteDrawer);
+            var button = entity.addComponent(FullscreenButton);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+
+            //Layout used to make the button match the size of the text inside
+            entity.addComponent(Layout)
+                .setSizeMode(LayoutSizeMode.MatchChildrenBest, LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
+
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.getOrAddComponent(Layout)
+                .setAnchorMode(LayoutAnchorMode.RelativeToParent, LayoutAnchorMode.RelativeToParent);
+                
             textDrawer.color.setFromRgba(0, 0, 0);
             textDrawer.fontScale = 1;
 
