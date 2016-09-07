@@ -3687,6 +3687,225 @@ var GameStats = (function (_super) {
     };
     return GameStats;
 }(s2d.Behavior));
+/// <reference path="../../Simple2DEngine/Component/Behavior.ts" />
+var Test = (function () {
+    function Test() {
+    }
+    Test.prototype.init = function (gameLogic) {
+        this.gameLogic = gameLogic;
+        this.testContainer = new s2d.Entity("Test Container").transform;
+        this.uiContainer = new s2d.Entity("UI Container").transform;
+        this.uiContainer.entity.transform.parent = s2d.ui.root;
+        var exitButton = s2d.EntityFactory.buildTextButton("Exit Test");
+        exitButton.entity.transform.setLocalPosition(8, 128).setParent(this.uiContainer);
+        exitButton.onClick.attach(this.onExitButtonClicked, this);
+        this.onInit();
+    };
+    Test.prototype.onExitButtonClicked = function () {
+        this.gameLogic.setActiveTest(null);
+    };
+    Test.prototype.onInit = function () {
+    };
+    Test.prototype.update = function () {
+        this.onUpdate();
+    };
+    Test.prototype.onUpdate = function () {
+    };
+    Test.prototype.destroy = function () {
+        this.onDestroy();
+        this.uiContainer.entity.destroy();
+        this.testContainer.entity.destroy();
+    };
+    Test.prototype.onDestroy = function () {
+    };
+    return Test;
+}());
+var TestMovingTriangles = (function (_super) {
+    __extends(TestMovingTriangles, _super);
+    function TestMovingTriangles() {
+        _super.apply(this, arguments);
+        this.entities = new Array();
+        this.loadCompleted = false;
+        this.lastEntitiesCount = 0;
+    }
+    TestMovingTriangles.prototype.onInit = function () {
+        var _this = this;
+        var resetButton = s2d.EntityFactory.buildTextButton("Reset");
+        resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
+        resetButton.onClick.attach(this.onResetButtonClicked, this);
+        var clearButton = s2d.EntityFactory.buildTextButton("Clear");
+        clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
+        clearButton.onClick.attach(this.onClearButtonClicked, this);
+        var addMore = s2d.EntityFactory.buildTextButton("Add\nMore");
+        addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
+        addMore.onClick.attach(this.initTest, this);
+        var toggleRotationButton = s2d.EntityFactory.buildTextButton("Toggle\nRotation");
+        toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
+        toggleRotationButton.onClick.attach(function () { return TestMovingTriangles.TEST_MOVING = !TestMovingTriangles.TEST_MOVING; });
+        var toggleNestingButton = s2d.EntityFactory.buildTextButton("Toggle\nNesting");
+        toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
+        toggleNestingButton.onClick.attach(function () { TestMovingTriangles.TEST_NESTING = !TestMovingTriangles.TEST_NESTING; _this.clear(); _this.initTest(); });
+        var toggleActiveButton = s2d.EntityFactory.buildTextButton("Toggle\nActive");
+        toggleActiveButton.entity.transform.setLocalPosition(800, 100).setParent(this.uiContainer);
+        toggleActiveButton.onClick.attach(this.toggleActive, this);
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestMovingTriangles.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestMovingTriangles.prototype.onLoadComplete = function () {
+        this.texture = s2d.loader.getAsset("test.png");
+        this.loadCompleted = true;
+        this.initTest();
+    };
+    TestMovingTriangles.prototype.onResetButtonClicked = function (button) {
+        this.clear();
+        this.initTest();
+    };
+    TestMovingTriangles.prototype.onClearButtonClicked = function (button) {
+        this.clear();
+    };
+    TestMovingTriangles.prototype.clear = function () {
+        for (var i = 0; i < this.entities.length; i++)
+            this.entities[i].destroy();
+        this.entities.length = 0;
+    };
+    TestMovingTriangles.prototype.initTest = function () {
+        if (!this.loadCompleted)
+            return;
+        this.testContainer.entity.active = true;
+        var sWidth = s2d.engine.renderer.screenWidth;
+        var sHeight = s2d.engine.renderer.screenHeight;
+        for (var i = 0; i < TestMovingTriangles.RECTS_COUNT; i++) {
+            var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+            e.name = "Entity " + i;
+            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
+            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
+            if (TestMovingTriangles.TEST_NESTING) {
+                if (i > 0 && i % 3 == 0)
+                    e.transform.parent = this.entities[i - 2].transform;
+                else if (i > 0 && i % 5 == 0)
+                    e.transform.parent = this.entities[i - 4].transform;
+                else if (i > 0 && i % 7 == 0)
+                    e.transform.parent = this.entities[i - 6].transform;
+                else
+                    e.transform.parent = this.testContainer;
+            }
+            else {
+                e.transform.parent = this.testContainer;
+            }
+            this.entities.push(e);
+        }
+    };
+    TestMovingTriangles.prototype.onUpdate = function () {
+        if (TestMovingTriangles.TEST_MOVING) {
+            var entities = this.entities;
+            for (var i = 0; i < entities.length; i++)
+                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
+        }
+        //if (s2d.input.pointerDown)
+        //    this.cam.clearColor.setFromRgba(255, 0, 0); //red
+        //else
+        //    this.cam.clearColor.setFromRgba(0, 0, 0); //black        
+    };
+    TestMovingTriangles.TEST_NESTING = true;
+    TestMovingTriangles.TEST_MOVING = true;
+    TestMovingTriangles.RECTS_COUNT = 1024;
+    return TestMovingTriangles;
+}(Test));
+var TestSimple = (function (_super) {
+    __extends(TestSimple, _super);
+    function TestSimple() {
+        _super.apply(this, arguments);
+        this.entities = new Array();
+        this.loadCompleted = false;
+    }
+    TestSimple.prototype.onInit = function () {
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestSimple.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestSimple.prototype.onLoadComplete = function () {
+        this.texture = s2d.loader.getAsset("test.png");
+        this.loadCompleted = true;
+        this.initTestSimple();
+    };
+    TestSimple.prototype.initTestSimple = function () {
+        if (!this.loadCompleted)
+            return;
+        var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        var e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        var e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        e1.transform.localX = 300;
+        e1.transform.localY = 300;
+        e2.transform.parent = e1.transform;
+        e2.transform.localX = 200;
+        e3.transform.parent = e2.transform;
+        e3.transform.localX = 100;
+        this.entities.push(e1);
+        this.entities.push(e2);
+        this.entities.push(e3);
+    };
+    TestSimple.prototype.onUpdate = function () {
+        var entities = this.entities;
+        for (var i = 0; i < entities.length; i++)
+            entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
+    };
+    TestSimple.prototype.onDestroy = function () {
+        for (var i = 0; i < this.entities.length; i++)
+            this.entities[i].destroy();
+        this.entities.length = 0;
+    };
+    return TestSimple;
+}(Test));
+var TestTilemap = (function (_super) {
+    __extends(TestTilemap, _super);
+    function TestTilemap() {
+        _super.apply(this, arguments);
+        this.loadCompleted = false;
+    }
+    TestTilemap.prototype.onInit = function () {
+        s2d.loader.loadRenderSpriteAtlasFromUrl("spritesheet", "assets/spritesheet.xml");
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestTilemap.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestTilemap.prototype.onLoadComplete = function () {
+        this.spritesheet = s2d.loader.getAsset("spritesheet");
+        this.loadCompleted = true;
+        this.initTilemap();
+    };
+    TestTilemap.prototype.initTilemap = function () {
+        if (!this.loadCompleted)
+            return;
+        var spritesheet = this.spritesheet;
+        var tiles = new Array();
+        for (var spriteId in spritesheet.sprites.data) {
+            var sprite = spritesheet.sprites.data[spriteId];
+            tiles.push(new s2d.Tile(sprite.id, sprite));
+        }
+        var tilemap = new s2d.Tilemap(128, 64, tiles);
+        var data = tilemap.data;
+        for (var x = 0; x < tilemap.width; x++) {
+            for (var y = 0; y < tilemap.height; y++) {
+                data[y][x] = tiles[(x + y) % tiles.length];
+            }
+        }
+        var tilemapDrawer = s2d.EntityFactory.buildWithComponent(s2d.TilemapDrawer);
+        tilemapDrawer.tilemap = tilemap;
+        tilemapDrawer.entity.transform.setPivot(-1, -1);
+        tilemapDrawer.entity.transform.parent = this.testContainer;
+    };
+    TestTilemap.prototype.onUpdate = function () {
+    };
+    TestTilemap.prototype.onDestroy = function () {
+    };
+    return TestTilemap;
+}(Test));
 /// <reference path="../Render/RenderSprite.ts" />
 var s2d;
 (function (s2d) {
@@ -3778,79 +3997,6 @@ var s2d;
         return Tilemap;
     }());
     s2d.Tilemap = Tilemap;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EntityFactory = (function () {
-        function EntityFactory() {
-        }
-        EntityFactory.buildCamera = function () {
-            return new s2d.Entity("Camera").addComponent(s2d.Camera);
-        };
-        EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
-            textureDrawer.texture = texture;
-            return textureDrawer;
-        };
-        EntityFactory.buildTextDrawer = function () {
-            var entity = new s2d.Entity("Text");
-            var textDrawer = entity.addComponent(s2d.TextDrawer);
-            textDrawer.fontScale = 3;
-            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
-            return textDrawer;
-        };
-        EntityFactory.buildButton = function () {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            return button;
-        };
-        EntityFactory.buildTextButton = function (text) {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.Button);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            //Layout used to make the button match the size of the text inside
-            var layout = entity.addComponent(s2d.Layout)
-                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
-                .setSizeOffset(8, 4); //4px on X, 2px on Y
-            //Text drawer
-            var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.getOrAddComponent(s2d.Layout)
-                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
-            textDrawer.color.setFromRgba(0, 0, 0);
-            textDrawer.fontScale = 1;
-            textDrawer.text = text;
-            textDrawer.entity.transform.parent = entity.transform;
-            return button;
-        };
-        EntityFactory.buildFullscreenTextButton = function (text) {
-            var entity = new s2d.Entity("Button");
-            entity.addComponent(s2d.SpriteDrawer);
-            var button = entity.addComponent(s2d.FullscreenButton);
-            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
-            //Layout used to make the button match the size of the text inside
-            entity.addComponent(s2d.Layout)
-                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
-                .setSizeOffset(8, 4); //4px on X, 2px on Y
-            //Text drawer
-            var textDrawer = EntityFactory.buildTextDrawer();
-            textDrawer.entity.getOrAddComponent(s2d.Layout)
-                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
-            textDrawer.color.setFromRgba(0, 0, 0);
-            textDrawer.fontScale = 1;
-            textDrawer.text = text;
-            textDrawer.entity.transform.parent = entity.transform;
-            return button;
-        };
-        EntityFactory.buildWithComponent = function (clazz, name) {
-            if (name === void 0) { name = "Entity"; }
-            return new s2d.Entity(name).addComponent(clazz);
-        };
-        return EntityFactory;
-    }());
-    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 /// <reference path="Component.ts" />
 var s2d;
@@ -4074,16 +4220,76 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
-    var InputPointer = (function () {
-        function InputPointer() {
-            this.down = false;
-            this.downFrames = 0;
-            this.position = s2d.Vector2.create();
-            this.delta = s2d.Vector2.create();
+    var EntityFactory = (function () {
+        function EntityFactory() {
         }
-        return InputPointer;
+        EntityFactory.buildCamera = function () {
+            return new s2d.Entity("Camera").addComponent(s2d.Camera);
+        };
+        EntityFactory.buildTextureDrawer = function (texture) {
+            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            textureDrawer.texture = texture;
+            return textureDrawer;
+        };
+        EntityFactory.buildTextDrawer = function () {
+            var entity = new s2d.Entity("Text");
+            var textDrawer = entity.addComponent(s2d.TextDrawer);
+            textDrawer.fontScale = 3;
+            entity.addComponent(s2d.Layout).sizeMode = s2d.LayoutSizeMode.MatchDrawerBest;
+            return textDrawer;
+        };
+        EntityFactory.buildButton = function () {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            return button;
+        };
+        EntityFactory.buildTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.Button);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            var layout = entity.addComponent(s2d.Layout)
+                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.getOrAddComponent(s2d.Layout)
+                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildFullscreenTextButton = function (text) {
+            var entity = new s2d.Entity("Button");
+            entity.addComponent(s2d.SpriteDrawer);
+            var button = entity.addComponent(s2d.FullscreenButton);
+            entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
+            //Layout used to make the button match the size of the text inside
+            entity.addComponent(s2d.Layout)
+                .setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest)
+                .setSizeOffset(8, 4); //4px on X, 2px on Y
+            //Text drawer
+            var textDrawer = EntityFactory.buildTextDrawer();
+            textDrawer.entity.getOrAddComponent(s2d.Layout)
+                .setAnchorMode(s2d.LayoutAnchorMode.RelativeToParent, s2d.LayoutAnchorMode.RelativeToParent);
+            textDrawer.color.setFromRgba(0, 0, 0);
+            textDrawer.fontScale = 1;
+            textDrawer.text = text;
+            textDrawer.entity.transform.parent = entity.transform;
+            return button;
+        };
+        EntityFactory.buildWithComponent = function (clazz, name) {
+            if (name === void 0) { name = "Entity"; }
+            return new s2d.Entity(name).addComponent(clazz);
+        };
+        return EntityFactory;
     }());
-    s2d.InputPointer = InputPointer;
+    s2d.EntityFactory = EntityFactory;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -5064,6 +5270,19 @@ var s2d;
     }());
     s2d.SMath = SMath;
 })(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var InputPointer = (function () {
+        function InputPointer() {
+            this.down = false;
+            this.downFrames = 0;
+            this.position = s2d.Vector2.create();
+            this.delta = s2d.Vector2.create();
+        }
+        return InputPointer;
+    }());
+    s2d.InputPointer = InputPointer;
+})(s2d || (s2d = {}));
 /// <reference path="RenderBuffer.ts" />
 /// <reference path="RenderProgram.ts" />
 var s2d;
@@ -5505,225 +5724,6 @@ var s2d;
     }());
     s2d.Stats = Stats;
 })(s2d || (s2d = {}));
-/// <reference path="../../Simple2DEngine/Component/Behavior.ts" />
-var Test = (function () {
-    function Test() {
-    }
-    Test.prototype.init = function (gameLogic) {
-        this.gameLogic = gameLogic;
-        this.testContainer = new s2d.Entity("Test Container").transform;
-        this.uiContainer = new s2d.Entity("UI Container").transform;
-        this.uiContainer.entity.transform.parent = s2d.ui.root;
-        var exitButton = s2d.EntityFactory.buildTextButton("Exit Test");
-        exitButton.entity.transform.setLocalPosition(8, 128).setParent(this.uiContainer);
-        exitButton.onClick.attach(this.onExitButtonClicked, this);
-        this.onInit();
-    };
-    Test.prototype.onExitButtonClicked = function () {
-        this.gameLogic.setActiveTest(null);
-    };
-    Test.prototype.onInit = function () {
-    };
-    Test.prototype.update = function () {
-        this.onUpdate();
-    };
-    Test.prototype.onUpdate = function () {
-    };
-    Test.prototype.destroy = function () {
-        this.onDestroy();
-        this.uiContainer.entity.destroy();
-        this.testContainer.entity.destroy();
-    };
-    Test.prototype.onDestroy = function () {
-    };
-    return Test;
-}());
-var TestMovingTriangles = (function (_super) {
-    __extends(TestMovingTriangles, _super);
-    function TestMovingTriangles() {
-        _super.apply(this, arguments);
-        this.entities = new Array();
-        this.loadCompleted = false;
-        this.lastEntitiesCount = 0;
-    }
-    TestMovingTriangles.prototype.onInit = function () {
-        var _this = this;
-        var resetButton = s2d.EntityFactory.buildTextButton("Reset");
-        resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
-        resetButton.onClick.attach(this.onResetButtonClicked, this);
-        var clearButton = s2d.EntityFactory.buildTextButton("Clear");
-        clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
-        clearButton.onClick.attach(this.onClearButtonClicked, this);
-        var addMore = s2d.EntityFactory.buildTextButton("Add\nMore");
-        addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
-        addMore.onClick.attach(this.initTest, this);
-        var toggleRotationButton = s2d.EntityFactory.buildTextButton("Toggle\nRotation");
-        toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
-        toggleRotationButton.onClick.attach(function () { return TestMovingTriangles.TEST_MOVING = !TestMovingTriangles.TEST_MOVING; });
-        var toggleNestingButton = s2d.EntityFactory.buildTextButton("Toggle\nNesting");
-        toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
-        toggleNestingButton.onClick.attach(function () { TestMovingTriangles.TEST_NESTING = !TestMovingTriangles.TEST_NESTING; _this.clear(); _this.initTest(); });
-        var toggleActiveButton = s2d.EntityFactory.buildTextButton("Toggle\nActive");
-        toggleActiveButton.entity.transform.setLocalPosition(800, 100).setParent(this.uiContainer);
-        toggleActiveButton.onClick.attach(this.toggleActive, this);
-        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
-        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
-    };
-    TestMovingTriangles.prototype.toggleActive = function () {
-        this.testContainer.entity.active = !this.testContainer.entity.active;
-    };
-    TestMovingTriangles.prototype.onLoadComplete = function () {
-        this.texture = s2d.loader.getAsset("test.png");
-        this.loadCompleted = true;
-        this.initTest();
-    };
-    TestMovingTriangles.prototype.onResetButtonClicked = function (button) {
-        this.clear();
-        this.initTest();
-    };
-    TestMovingTriangles.prototype.onClearButtonClicked = function (button) {
-        this.clear();
-    };
-    TestMovingTriangles.prototype.clear = function () {
-        for (var i = 0; i < this.entities.length; i++)
-            this.entities[i].destroy();
-        this.entities.length = 0;
-    };
-    TestMovingTriangles.prototype.initTest = function () {
-        if (!this.loadCompleted)
-            return;
-        this.testContainer.entity.active = true;
-        var sWidth = s2d.engine.renderer.screenWidth;
-        var sHeight = s2d.engine.renderer.screenHeight;
-        for (var i = 0; i < TestMovingTriangles.RECTS_COUNT; i++) {
-            var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-            e.name = "Entity " + i;
-            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
-            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
-            if (TestMovingTriangles.TEST_NESTING) {
-                if (i > 0 && i % 3 == 0)
-                    e.transform.parent = this.entities[i - 2].transform;
-                else if (i > 0 && i % 5 == 0)
-                    e.transform.parent = this.entities[i - 4].transform;
-                else if (i > 0 && i % 7 == 0)
-                    e.transform.parent = this.entities[i - 6].transform;
-                else
-                    e.transform.parent = this.testContainer;
-            }
-            else {
-                e.transform.parent = this.testContainer;
-            }
-            this.entities.push(e);
-        }
-    };
-    TestMovingTriangles.prototype.onUpdate = function () {
-        if (TestMovingTriangles.TEST_MOVING) {
-            var entities = this.entities;
-            for (var i = 0; i < entities.length; i++)
-                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
-        }
-        //if (s2d.input.pointerDown)
-        //    this.cam.clearColor.setFromRgba(255, 0, 0); //red
-        //else
-        //    this.cam.clearColor.setFromRgba(0, 0, 0); //black        
-    };
-    TestMovingTriangles.TEST_NESTING = true;
-    TestMovingTriangles.TEST_MOVING = true;
-    TestMovingTriangles.RECTS_COUNT = 1024;
-    return TestMovingTriangles;
-}(Test));
-var TestSimple = (function (_super) {
-    __extends(TestSimple, _super);
-    function TestSimple() {
-        _super.apply(this, arguments);
-        this.entities = new Array();
-        this.loadCompleted = false;
-    }
-    TestSimple.prototype.onInit = function () {
-        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
-        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
-    };
-    TestSimple.prototype.toggleActive = function () {
-        this.testContainer.entity.active = !this.testContainer.entity.active;
-    };
-    TestSimple.prototype.onLoadComplete = function () {
-        this.texture = s2d.loader.getAsset("test.png");
-        this.loadCompleted = true;
-        this.initTestSimple();
-    };
-    TestSimple.prototype.initTestSimple = function () {
-        if (!this.loadCompleted)
-            return;
-        var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        var e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        var e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        e1.transform.localX = 300;
-        e1.transform.localY = 300;
-        e2.transform.parent = e1.transform;
-        e2.transform.localX = 200;
-        e3.transform.parent = e2.transform;
-        e3.transform.localX = 100;
-        this.entities.push(e1);
-        this.entities.push(e2);
-        this.entities.push(e3);
-    };
-    TestSimple.prototype.onUpdate = function () {
-        var entities = this.entities;
-        for (var i = 0; i < entities.length; i++)
-            entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
-    };
-    TestSimple.prototype.onDestroy = function () {
-        for (var i = 0; i < this.entities.length; i++)
-            this.entities[i].destroy();
-        this.entities.length = 0;
-    };
-    return TestSimple;
-}(Test));
-var TestTilemap = (function (_super) {
-    __extends(TestTilemap, _super);
-    function TestTilemap() {
-        _super.apply(this, arguments);
-        this.loadCompleted = false;
-    }
-    TestTilemap.prototype.onInit = function () {
-        s2d.loader.loadRenderSpriteAtlasFromUrl("spritesheet", "assets/spritesheet.xml");
-        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
-    };
-    TestTilemap.prototype.toggleActive = function () {
-        this.testContainer.entity.active = !this.testContainer.entity.active;
-    };
-    TestTilemap.prototype.onLoadComplete = function () {
-        this.spritesheet = s2d.loader.getAsset("spritesheet");
-        this.loadCompleted = true;
-        this.initTilemap();
-    };
-    TestTilemap.prototype.initTilemap = function () {
-        if (!this.loadCompleted)
-            return;
-        var spritesheet = this.spritesheet;
-        var tiles = new Array();
-        for (var spriteId in spritesheet.sprites.data) {
-            var sprite = spritesheet.sprites.data[spriteId];
-            tiles.push(new s2d.Tile(sprite.id, sprite));
-        }
-        var tilemap = new s2d.Tilemap(128, 64, tiles);
-        var data = tilemap.data;
-        for (var x = 0; x < tilemap.width; x++) {
-            for (var y = 0; y < tilemap.height; y++) {
-                data[y][x] = tiles[(x + y) % tiles.length];
-            }
-        }
-        var tilemapDrawer = s2d.EntityFactory.buildWithComponent(s2d.TilemapDrawer);
-        tilemapDrawer.tilemap = tilemap;
-        tilemapDrawer.entity.transform.setPivot(-1, -1);
-        tilemapDrawer.entity.transform.parent = this.testContainer;
-    };
-    TestTilemap.prototype.onUpdate = function () {
-    };
-    TestTilemap.prototype.onDestroy = function () {
-    };
-    return TestTilemap;
-}(Test));
 var s2d;
 (function (s2d) {
     (function (LoaderState) {
