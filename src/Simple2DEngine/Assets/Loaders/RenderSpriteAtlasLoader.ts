@@ -14,7 +14,7 @@ module s2d {
         }
                 
         protected onStart() : void {
-            loader.loadXmlFromUrl(this.id + "_xml", this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
+            loader.loadXmlFromUrl(this._spriteAtlasXmlUrl, this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
         }
 
         private onXmlLoadComplete(xmlLoader:Loader<string>) {
@@ -32,7 +32,7 @@ module s2d {
                     hasAlpha = false; 
             }
 
-            loader.loadRenderTextureFromUrl(this.id + "_texture", url, hasAlpha, this.onTextureLoadComplete, this);
+            loader.loadRenderTextureFromUrl(url, url, hasAlpha, this.onTextureLoadComplete, this);
         }
 
         private onTextureLoadComplete(textureLoader:Loader<RenderTexture>) {

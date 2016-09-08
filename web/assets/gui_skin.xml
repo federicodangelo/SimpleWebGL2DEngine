@@ -3,8 +3,8 @@
   <info file="gui_skin.png"/>
 
   <sprites>
-    <sprite id="button" rect="2,2,8,8" innerRect="4,4,4,4" />
-    <sprite id="button_down" rect="12,2,8,8" innerRect="14,4,4,4" />
+    <sprite id="button" rect="0,64,8,8" innerRect="2,66,4,4" />
+    <sprite id="button_down" rect="9,64,8,8" innerRect="11,66,4,4" />
   </sprites>
 
 </atlas>

@@ -15,7 +15,7 @@ module s2d {
         }
                 
         protected onStart() : void {
-            loader.loadImageFromUrl(this.id + "_image", this._url, this.onImageLoadComplete, this);
+            loader.loadImageFromUrl(this.id + "_texture", this._url, this.onImageLoadComplete, this);
         }
 
         private onImageLoadComplete(imageLoader:Loader<HTMLImageElement>) {

@@ -3322,7 +3322,7 @@ var s2d;
         AssetsLoader.prototype.loadRenderTextureFromUrl = function (id, url, hasAlpha, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
             if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
             var loader = new s2d.RenderTextureLoader(id, url, hasAlpha);
             loader.onLoadComplete.attach(this.onLoaderComplete, this);
@@ -3334,7 +3334,7 @@ var s2d;
         AssetsLoader.prototype.loadRenderTextureFromBase64 = function (id, base64, hasAlpha, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
             if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
             var url = "data:image/png;base64," + base64;
             var loader = new s2d.RenderTextureLoader(id, url, hasAlpha);
@@ -3347,7 +3347,7 @@ var s2d;
         AssetsLoader.prototype.loadXmlFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
             if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
             var loader = new s2d.XmlLoader(id, url);
             loader.onLoadComplete.attach(this.onLoaderComplete, this);
@@ -3359,7 +3359,7 @@ var s2d;
         AssetsLoader.prototype.loadRenderSpriteAtlasFromUrl = function (id, xmlUrl, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
             if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
             var loader = new s2d.RenderSpriteAtlasLoader(id, xmlUrl);
             loader.onLoadComplete.attach(this.onLoaderComplete, this);
@@ -3371,7 +3371,7 @@ var s2d;
         AssetsLoader.prototype.loadRenderFontFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
             if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
             var loader = new s2d.RenderFontLoader(id, url);
             loader.onLoadComplete.attach(this.onLoaderComplete, this);
@@ -3383,7 +3383,7 @@ var s2d;
         AssetsLoader.prototype.loadImageFromUrl = function (id, url, onLoadComplete, onLoadCompleteBoundTo) {
             if (onLoadComplete === void 0) { onLoadComplete = null; }
             if (onLoadCompleteBoundTo === void 0) { onLoadCompleteBoundTo = null; }
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
             var loader = new s2d.ImageLoader(id, url);
             loader.onLoadComplete.attach(this.onLoaderComplete, this);
@@ -3392,13 +3392,17 @@ var s2d;
             this._loaders.add(id, loader);
             loader.start();
         };
-        AssetsLoader.prototype.validateId = function (id) {
+        AssetsLoader.prototype.validateId = function (id, onLoadComplete, onLoadCompleteBoundTo) {
             if (this._loaders.has(id)) {
-                s2d.EngineConsole.error("Asset with id " + id + " is already loading");
+                s2d.EngineConsole.info("Asset with id " + id + " is already loading, attaching request to existing loader");
+                if (onLoadComplete !== null)
+                    this._loaders.get(id).onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
                 return false;
             }
             if (this._assets.has(id)) {
-                s2d.EngineConsole.error("Asset with id " + id + " is already loaded");
+                s2d.EngineConsole.info("Asset with id " + id + " is already loaded, dispatching onLoadComplete() with existing asset");
+                if (onLoadComplete !== null)
+                    onLoadComplete.call(onLoadCompleteBoundTo, this._assets.get(id));
                 return false;
             }
             return true;
@@ -5287,6 +5291,180 @@ var s2d;
     }());
     s2d.SMath = SMath;
 })(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedAssets = (function () {
+        function EmbeddedAssets() {
+        }
+        EmbeddedAssets.init = function () {
+            s2d.loader.loadRenderFontFromUrl("defaultFont", "assets/font.xml");
+            s2d.loader.loadRenderSpriteAtlasFromUrl("defaultSkinAtlas", "assets/gui_skin.xml");
+        };
+        Object.defineProperty(EmbeddedAssets, "defaultFont", {
+            get: function () {
+                if (EmbeddedAssets._defaultFont === null)
+                    EmbeddedAssets._defaultFont = s2d.loader.getAsset("defaultFont");
+                return EmbeddedAssets._defaultFont;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
+            get: function () {
+                if (EmbeddedAssets._defaultSkinAtlas === null)
+                    EmbeddedAssets._defaultSkinAtlas = s2d.loader.getAsset("defaultSkinAtlas");
+                return EmbeddedAssets._defaultSkinAtlas;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        //Default font is KenPixel.ttf at 12px height
+        EmbeddedAssets._defaultFont = null;
+        EmbeddedAssets._defaultSkinAtlas = null;
+        return EmbeddedAssets;
+    }());
+    s2d.EmbeddedAssets = EmbeddedAssets;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedData = (function () {
+        function EmbeddedData() {
+        }
+        return EmbeddedData;
+    }());
+    s2d.EmbeddedData = EmbeddedData;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EngineConfiguration = (function () {
+        function EngineConfiguration() {
+        }
+        EngineConfiguration.RENDER_ENABLED = true;
+        EngineConfiguration.LOG_PERFORMANCE = false;
+        return EngineConfiguration;
+    }());
+    s2d.EngineConfiguration = EngineConfiguration;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EngineConsole = (function () {
+        function EngineConsole() {
+        }
+        EngineConsole.error = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.error(prefix + message);
+        };
+        EngineConsole.warning = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.warn(prefix + message);
+        };
+        EngineConsole.info = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.info(prefix + message);
+        };
+        EngineConsole.getClassName = function (instance) {
+            var funcNameRegex = /function (.{1,})\(/;
+            var results = (funcNameRegex).exec(instance["constructor"].toString());
+            return (results && results.length > 1) ? results[1] : "";
+        };
+        return EngineConsole;
+    }());
+    s2d.EngineConsole = EngineConsole;
+})(s2d || (s2d = {}));
+/// <reference path="EngineConfiguration.ts" />
+var s2d;
+(function (s2d) {
+    var Stats = (function () {
+        function Stats() {
+            this.lastFpsTime = 0;
+            this.fpsCounter = 0;
+            this.accumulatedUpdateTime = 0;
+            this._lastFps = 0;
+            this._lastUpdateTime = 0;
+            this._lastDrawcalls = 0;
+            this._drawcalls = 0;
+        }
+        Object.defineProperty(Stats.prototype, "lastFps", {
+            get: function () {
+                return this._lastFps;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Stats.prototype, "lastUpdateTime", {
+            get: function () {
+                return this._lastUpdateTime;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Stats.prototype, "lastDrawcalls", {
+            get: function () {
+                return this._lastDrawcalls;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Stats.prototype.init = function () {
+            this.lastFpsTime = performance.now();
+        };
+        Stats.prototype.startFrame = function () {
+            this._drawcalls = 0;
+        };
+        Stats.prototype.incrmentDrawcalls = function () {
+            this._drawcalls++;
+        };
+        Stats.prototype.endFrame = function () {
+            this._lastDrawcalls = this._drawcalls;
+        };
+        Stats.prototype.startUpdate = function () {
+            this.updateStartTime = performance.now();
+        };
+        Stats.prototype.endUpdate = function () {
+            var endTime = performance.now();
+            this.accumulatedUpdateTime += endTime - this.updateStartTime;
+            this.fpsCounter++;
+            if (this.updateStartTime - this.lastFpsTime > 1000) {
+                var delta = this.updateStartTime - this.lastFpsTime;
+                var fps = this.fpsCounter / (delta / 1000);
+                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
+                this.lastFpsTime = this.updateStartTime;
+                this.fpsCounter = 0;
+                this.accumulatedUpdateTime = 0;
+                this._lastFps = fps;
+                this._lastUpdateTime = updateTime;
+                if (s2d.EngineConfiguration.LOG_PERFORMANCE)
+                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
+            }
+        };
+        return Stats;
+    }());
+    s2d.Stats = Stats;
+})(s2d || (s2d = {}));
 /// <reference path="RenderBuffer.ts" />
 /// <reference path="RenderProgram.ts" />
 var s2d;
@@ -5568,168 +5746,6 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
-    var EmbeddedAssets = (function () {
-        function EmbeddedAssets() {
-        }
-        EmbeddedAssets.init = function () {
-            s2d.loader.loadRenderFontFromUrl("defaultFont", "assets/font.xml");
-            s2d.loader.loadRenderSpriteAtlasFromUrl("defaultSkinAtlas", "assets/gui_skin.xml");
-        };
-        Object.defineProperty(EmbeddedAssets, "defaultFont", {
-            get: function () {
-                if (EmbeddedAssets._defaultFont === null)
-                    EmbeddedAssets._defaultFont = s2d.loader.getAsset("defaultFont");
-                return EmbeddedAssets._defaultFont;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
-            get: function () {
-                if (EmbeddedAssets._defaultSkinAtlas === null)
-                    EmbeddedAssets._defaultSkinAtlas = s2d.loader.getAsset("defaultSkinAtlas");
-                return EmbeddedAssets._defaultSkinAtlas;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        //Default font is KenPixel.ttf at 12px height
-        EmbeddedAssets._defaultFont = null;
-        EmbeddedAssets._defaultSkinAtlas = null;
-        return EmbeddedAssets;
-    }());
-    s2d.EmbeddedAssets = EmbeddedAssets;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EmbeddedData = (function () {
-        function EmbeddedData() {
-        }
-        return EmbeddedData;
-    }());
-    s2d.EmbeddedData = EmbeddedData;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EngineConfiguration = (function () {
-        function EngineConfiguration() {
-        }
-        EngineConfiguration.RENDER_ENABLED = true;
-        EngineConfiguration.LOG_PERFORMANCE = false;
-        return EngineConfiguration;
-    }());
-    s2d.EngineConfiguration = EngineConfiguration;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EngineConsole = (function () {
-        function EngineConsole() {
-        }
-        EngineConsole.error = function (message, target) {
-            if (target === void 0) { target = null; }
-            var prefix = "";
-            if (target instanceof s2d.Component) {
-                var componentClassName = EngineConsole.getClassName(target);
-                prefix = target.entity.name + "->" + componentClassName + ": ";
-            }
-            else if (target instanceof s2d.Entity) {
-                prefix = target.name + ": ";
-            }
-            console.error(prefix + message);
-        };
-        EngineConsole.warning = function (message, target) {
-            if (target === void 0) { target = null; }
-            var prefix = "";
-            if (target instanceof s2d.Component) {
-                var componentClassName = EngineConsole.getClassName(target);
-                prefix = target.entity.name + "->" + componentClassName + ": ";
-            }
-            else if (target instanceof s2d.Entity) {
-                prefix = target.name + ": ";
-            }
-            console.warn(prefix + message);
-        };
-        EngineConsole.getClassName = function (instance) {
-            var funcNameRegex = /function (.{1,})\(/;
-            var results = (funcNameRegex).exec(instance["constructor"].toString());
-            return (results && results.length > 1) ? results[1] : "";
-        };
-        return EngineConsole;
-    }());
-    s2d.EngineConsole = EngineConsole;
-})(s2d || (s2d = {}));
-/// <reference path="EngineConfiguration.ts" />
-var s2d;
-(function (s2d) {
-    var Stats = (function () {
-        function Stats() {
-            this.lastFpsTime = 0;
-            this.fpsCounter = 0;
-            this.accumulatedUpdateTime = 0;
-            this._lastFps = 0;
-            this._lastUpdateTime = 0;
-            this._lastDrawcalls = 0;
-            this._drawcalls = 0;
-        }
-        Object.defineProperty(Stats.prototype, "lastFps", {
-            get: function () {
-                return this._lastFps;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Stats.prototype, "lastUpdateTime", {
-            get: function () {
-                return this._lastUpdateTime;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Stats.prototype, "lastDrawcalls", {
-            get: function () {
-                return this._lastDrawcalls;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Stats.prototype.init = function () {
-            this.lastFpsTime = performance.now();
-        };
-        Stats.prototype.startFrame = function () {
-            this._drawcalls = 0;
-        };
-        Stats.prototype.incrmentDrawcalls = function () {
-            this._drawcalls++;
-        };
-        Stats.prototype.endFrame = function () {
-            this._lastDrawcalls = this._drawcalls;
-        };
-        Stats.prototype.startUpdate = function () {
-            this.updateStartTime = performance.now();
-        };
-        Stats.prototype.endUpdate = function () {
-            var endTime = performance.now();
-            this.accumulatedUpdateTime += endTime - this.updateStartTime;
-            this.fpsCounter++;
-            if (this.updateStartTime - this.lastFpsTime > 1000) {
-                var delta = this.updateStartTime - this.lastFpsTime;
-                var fps = this.fpsCounter / (delta / 1000);
-                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
-                this.lastFpsTime = this.updateStartTime;
-                this.fpsCounter = 0;
-                this.accumulatedUpdateTime = 0;
-                this._lastFps = fps;
-                this._lastUpdateTime = updateTime;
-                if (s2d.EngineConfiguration.LOG_PERFORMANCE)
-                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
-            }
-        };
-        return Stats;
-    }());
-    s2d.Stats = Stats;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
     (function (LoaderState) {
         LoaderState[LoaderState["WaitingStart"] = 0] = "WaitingStart";
         LoaderState[LoaderState["Loading"] = 1] = "Loading";
@@ -5829,16 +5845,16 @@ var s2d;
             this._fontXmlUrl = fontXmlUrl;
         }
         RenderFontLoader.prototype.onStart = function () {
-            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._fontXmlUrl, this.onXmlLoadComplete, this);
+            s2d.loader.loadXmlFromUrl(this._fontXmlUrl, this._fontXmlUrl, this.onXmlLoadComplete, this);
         };
         RenderFontLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
             var xml = xmlLoader.asset;
             this._fontJson = JXON.stringToJs(xml);
             var url = "assets/" + this._fontJson.font.pages.page.$file;
-            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, true, this.onTextureLoadComplete, this);
+            s2d.loader.loadRenderTextureFromUrl(url, url, true, this.onTextureLoadComplete, this);
         };
-        RenderFontLoader.prototype.onTextureLoadComplete = function (loader) {
-            var font = new s2d.RenderFont(loader.asset, this._fontJson);
+        RenderFontLoader.prototype.onTextureLoadComplete = function (textureLoader) {
+            var font = new s2d.RenderFont(textureLoader.asset, this._fontJson);
             this._fontJson = null;
             this.setAsset(font);
         };
@@ -5859,7 +5875,7 @@ var s2d;
             this._spriteAtlasXmlUrl = spriteAtlasXmlUrl;
         }
         RenderSpriteAtlasLoader.prototype.onStart = function () {
-            s2d.loader.loadXmlFromUrl(this.id + "_xml", this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
+            s2d.loader.loadXmlFromUrl(this._spriteAtlasXmlUrl, this._spriteAtlasXmlUrl, this.onXmlLoadComplete, this);
         };
         RenderSpriteAtlasLoader.prototype.onXmlLoadComplete = function (xmlLoader) {
             var xml = xmlLoader.asset;
@@ -5872,7 +5888,7 @@ var s2d;
                 else
                     hasAlpha = false;
             }
-            s2d.loader.loadRenderTextureFromUrl(this.id + "_texture", url, hasAlpha, this.onTextureLoadComplete, this);
+            s2d.loader.loadRenderTextureFromUrl(url, url, hasAlpha, this.onTextureLoadComplete, this);
         };
         RenderSpriteAtlasLoader.prototype.onTextureLoadComplete = function (textureLoader) {
             var atlas = new s2d.RenderSpriteAtlas(textureLoader.asset, this._spriteAtlasJson);
@@ -5897,7 +5913,7 @@ var s2d;
             this._hasAlpha = hasAlpha;
         }
         RenderTextureLoader.prototype.onStart = function () {
-            s2d.loader.loadImageFromUrl(this.id + "_image", this._url, this.onImageLoadComplete, this);
+            s2d.loader.loadImageFromUrl(this.id + "_texture", this._url, this.onImageLoadComplete, this);
         };
         RenderTextureLoader.prototype.onImageLoadComplete = function (imageLoader) {
             var texture = new s2d.RenderTexture(imageLoader.asset, this._hasAlpha);

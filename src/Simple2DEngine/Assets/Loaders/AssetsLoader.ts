@@ -24,8 +24,7 @@ module s2d {
         }
 
         public loadRenderTextureFromUrl(id:string, url:string, hasAlpha:boolean, onLoadComplete:(loader:Loader<RenderTexture>) => void = null, onLoadCompleteBoundTo:Object = null) {
-
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
 
             var loader = new RenderTextureLoader(id, url, hasAlpha)
@@ -37,8 +36,7 @@ module s2d {
         }
 
         public loadRenderTextureFromBase64(id:string, base64:string, hasAlpha:boolean, onLoadComplete:(loader:Loader<RenderTexture>) => void = null, onLoadCompleteBoundTo:Object = null) {
-
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
 
             var url = "data:image/png;base64," + base64;
@@ -52,7 +50,7 @@ module s2d {
         }
 
         public loadXmlFromUrl(id:string, url:string, onLoadComplete:(loader:Loader<string>) => void = null, onLoadCompleteBoundTo:Object = null) {
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
 
             var loader = new XmlLoader(id, url);
@@ -64,7 +62,7 @@ module s2d {
         }
 
         public loadRenderSpriteAtlasFromUrl(id:string, xmlUrl:string, onLoadComplete:(loader:Loader<RenderSpriteAtlas>) => void = null, onLoadCompleteBoundTo:Object = null) {
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
 
             var loader = new RenderSpriteAtlasLoader(id, xmlUrl);
@@ -76,7 +74,7 @@ module s2d {
         }
 
         public loadRenderFontFromUrl(id:string, url:string, onLoadComplete:(loader:Loader<RenderFont>) => void = null, onLoadCompleteBoundTo:Object = null) {
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
 
             var loader = new RenderFontLoader(id, url);
@@ -88,7 +86,7 @@ module s2d {
         }
 
         public loadImageFromUrl(id:string, url:string, onLoadComplete:(loader:Loader<HTMLImageElement>) => void = null, onLoadCompleteBoundTo:Object = null) {
-            if (!this.validateId(id))
+            if (!this.validateId(id, onLoadComplete, onLoadCompleteBoundTo))
                 return;
 
             var loader = new ImageLoader(id, url);
@@ -99,14 +97,19 @@ module s2d {
             loader.start();
         }
 
-        private validateId(id:string) {
+        private validateId(id:string, onLoadComplete:(loader:Loader<any>) => void, onLoadCompleteBoundTo:Object) {
+
             if (this._loaders.has(id)) {
-                EngineConsole.error("Asset with id " + id + " is already loading");
+                EngineConsole.info("Asset with id " + id + " is already loading, attaching request to existing loader");
+                if (onLoadComplete !== null)
+                    this._loaders.get(id).onLoadComplete.attach(onLoadComplete, onLoadCompleteBoundTo);
                 return false;
             }
 
             if (this._assets.has(id)) {
-                EngineConsole.error("Asset with id " + id + " is already loaded");
+                EngineConsole.info("Asset with id " + id + " is already loaded, dispatching onLoadComplete() with existing asset");
+                if (onLoadComplete !== null)
+                    onLoadComplete.call(onLoadCompleteBoundTo, this._assets.get(id));
                 return false;
             }
 
