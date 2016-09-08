@@ -1,5 +1,6 @@
 /// <reference path="RenderBuffer.ts" />
 /// <reference path="RenderProgram.ts" />
+/// <reference path="RenderVertex.ts" />
 
 module s2d {
     export class RenderMesh {
@@ -57,10 +58,10 @@ module s2d {
             this.indexes = new Uint16Array(this.backingIndexArray);
         }
 
-        private tmpV1: RenderVertex = new RenderVertex();
-        private tmpV2: RenderVertex = new RenderVertex();
-        private tmpV3: RenderVertex = new RenderVertex();
-        private tmpV4: RenderVertex = new RenderVertex();
+        private static tmpV1: RenderVertex = new RenderVertex();
+        private static tmpV2: RenderVertex = new RenderVertex();
+        private static tmpV3: RenderVertex = new RenderVertex();
+        private static tmpV4: RenderVertex = new RenderVertex();
 
         public reset() {
             this.vertexOffset = 0;
@@ -68,15 +69,15 @@ module s2d {
         }
 
         public canDrawRectSimple() : boolean {
-            return this.vertexOffset + 4 < this.maxVertex && this.indexesOffset + 6 < this.maxIndex;
+            return this.vertexOffset + 4 <= this.maxVertex && this.indexesOffset + 6 <= this.maxIndex;
         }
 
         public drawRectSimple(mat: Matrix2d, size: Vector2, pivot: Vector2, uvRect: Rect, color: Color): void {
 
-            let tmpV1 = this.tmpV1;
-            let tmpV2 = this.tmpV2;
-            let tmpV3 = this.tmpV3;
-            let tmpV4 = this.tmpV4;
+            let tmpV1 = RenderMesh.tmpV1;
+            let tmpV2 = RenderMesh.tmpV2;
+            let tmpV3 = RenderMesh.tmpV3;
+            let tmpV4 = RenderMesh.tmpV4;
 
             let halfSizeX = size[0] * 0.5;
             let halfSizeY = size[1] * 0.5;
@@ -127,15 +128,15 @@ module s2d {
 
         public canDrawRect9Slice() : boolean {
             //Draws 9 rects
-            return this.vertexOffset + 4 * 9 < this.maxVertex && this.indexesOffset + 6 * 9 < this.maxIndex;
+            return this.vertexOffset + 4 * 9 <= this.maxVertex && this.indexesOffset + 6 * 9 <= this.maxIndex;
         }
 
         public drawRect9Slice(mat: Matrix2d, size: Vector2, pivot: Vector2, rect:Rect, uvRect: Rect, innerRect:Rect, innerUvRect: Rect, color: Color): void {
 
-            let tmpV1 = this.tmpV1;
-            let tmpV2 = this.tmpV2;
-            let tmpV3 = this.tmpV3;
-            let tmpV4 = this.tmpV4;
+            let tmpV1 = RenderMesh.tmpV1;
+            let tmpV2 = RenderMesh.tmpV2;
+            let tmpV3 = RenderMesh.tmpV3;
+            let tmpV4 = RenderMesh.tmpV4;
 
             let halfSizeX = size[0] * 0.5;
             let halfSizeY = size[1] * 0.5;
@@ -260,12 +261,12 @@ module s2d {
         }        
 
         public canDrawRect() : boolean {
-            return this.vertexOffset + 4 < this.maxVertex && this.indexesOffset + 6 < this.maxIndex;
+            return this.vertexOffset + 4 <= this.maxVertex && this.indexesOffset + 6 <= this.maxIndex;
         }
 
         public drawRect(tmpV1: RenderVertex, tmpV2: RenderVertex, tmpV3: RenderVertex, tmpV4: RenderVertex): void {
 
-            if (this.vertexOffset + 4 >= this.maxVertex || this.indexesOffset + 6 >= this.maxIndex) {
+            if (this.vertexOffset + 4 > this.maxVertex || this.indexesOffset + 6 > this.maxIndex) {
                 EngineConsole.error("Mesh is full!!!");
                 return;
             }
