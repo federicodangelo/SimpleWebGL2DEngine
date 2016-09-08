@@ -42,12 +42,8 @@ class TestTilemap extends Test {
             }
         }
 
-        let tilemapDrawer = s2d.EntityFactory.buildWithComponent(s2d.TilemapDrawer);
-        tilemapDrawer.tilemap = tilemap;
-        tilemapDrawer.entity.addComponent(s2d.Layout).setSizeMode(s2d.LayoutSizeMode.MatchDrawerBest, s2d.LayoutSizeMode.MatchDrawerBest);
-        tilemapDrawer.entity.transform.setPivot(-1, -1);
+        let tilemapDrawer = s2d.EntityFactory.buildTilemapDrawer(tilemap);
         tilemapDrawer.entity.transform.parent = this.testContainer;
-
     }
 
     protected onUpdate() {

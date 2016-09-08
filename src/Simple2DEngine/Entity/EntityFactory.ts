@@ -79,6 +79,15 @@ module s2d {
             return button;
         }
 
+        public static buildTilemapDrawer(tilemap:Tilemap) : TilemapDrawer {
+            let entity = new Entity("Tilemap");
+            let tilemapDrawer = entity.addComponent(TilemapDrawer);
+            tilemapDrawer.tilemap = tilemap;
+            entity.transform.setPivot(-1, -1);
+            entity.addComponent(s2d.Layout).setSizeMode(s2d.LayoutSizeMode.MatchDrawerBest, s2d.LayoutSizeMode.MatchDrawerBest);
+            return tilemapDrawer;
+        }
+
         public static buildWithComponent<T extends Component>(clazz: { new (): T }, name: String = "Entity"): T {
             return new Entity(name).addComponent(clazz);
         }
