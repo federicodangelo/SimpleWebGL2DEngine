@@ -8,7 +8,7 @@ module s2d {
         private _position: Vector2 = Vector2.create();
         private _rotation: number = 0;
         private _scale: Vector2 = Vector2.fromValues(1, 1);
-        private _size: Vector2 = Vector2.fromValues(32, 32);
+        private _size: Vector2 = Vector2.fromValues(0, 0);
         private _pivot: Vector2 = Vector2.create();
 
         //Linked list of children
@@ -19,9 +19,8 @@ module s2d {
         private _prevSibling: Transform = null;
         private _nextSibling: Transform = null;
 
+        private _localMatrixDirty: boolean = true;
         private _localMatrix: Matrix2d = Matrix2d.create();
-        //private _localMatrixDirty : boolean = true;
-
 
         public get parent() {
             return this._parent;
@@ -29,6 +28,7 @@ module s2d {
 
         protected onInit(): void {
             engine.entities.root.addChildLast(this);
+            this.updateLocalMatrix();
         }
 
         protected onDestroy(): void {
@@ -73,10 +73,7 @@ module s2d {
 
         public set localPosition(p: Vector2) {
             Vector2.copy(this._position, p);
-            //this._localMatrixDirty = true;
-
-            this._localMatrix[4] = this._position[0];
-            this._localMatrix[5] = this._position[1];
+            this.updateLocalMatrix();        
         }
 
         public get localX() {
@@ -85,9 +82,7 @@ module s2d {
 
         public set localX(v: number) {
             this._position[0] = v;
-            //this._localMatrixDirty = true;
-
-            this._localMatrix[4] = this._position[0];
+            this.updateLocalMatrix();        
         }
 
         public get localY() {
@@ -96,14 +91,13 @@ module s2d {
 
         public set localY(v: number) {
             this._position[1] = v;
-            //this._localMatrixDirty = true;
-
-            this._localMatrix[5] = this._position[1];
+            this.updateLocalMatrix();
         }
 
         public setLocalPosition(x: number, y: number) {
-            this.localX = x;
-            this.localY = y;
+            this._position[0] = x;
+            this._position[1] = y;
+            this.updateLocalMatrix();
             return this;
         }
 
@@ -113,16 +107,7 @@ module s2d {
 
         public set localRotationRadians(rad: number) {
             this._rotation = rad;
-            //this._localMatrixDirty = true;
-
-            let ss = this._scale;
-            let s = Math.sin(rad);
-            let c = Math.cos(rad);
-
-            this._localMatrix[0] = ss[0] * c;
-            this._localMatrix[1] = ss[1] * s;
-            this._localMatrix[2] = ss[0] * -s;
-            this._localMatrix[3] = ss[1] * c;
+            this.updateLocalMatrix();
         }
 
         public get localRotationDegrees() {
@@ -139,7 +124,7 @@ module s2d {
         }
 
         public setlocalRotationDegrees(deg: number) {
-            this.localRotationRadians = deg;
+            this.localRotationDegrees = deg;
             return this;
         }
 
@@ -149,15 +134,7 @@ module s2d {
 
         public set localScale(ss: Vector2) {
             Vector2.copy(this._scale, ss);
-            //this._localMatrixDirty = true;
-
-            let s = Math.sin(this._rotation);
-            let c = Math.cos(this._rotation);
-
-            this._localMatrix[0] = ss[0] * c;
-            this._localMatrix[1] = ss[1] * s;
-            this._localMatrix[2] = ss[0] * -s;
-            this._localMatrix[3] = ss[1] * c;
+            this.updateLocalMatrix();
         }
 
         public get localScaleX() {
@@ -166,14 +143,7 @@ module s2d {
 
         public set localScaleX(v: number) {
             this._scale[0] = v;
-            //this._localMatrixDirty = true;
-
-            let ss = this._scale;
-            let s = Math.sin(this._rotation);
-            let c = Math.cos(this._rotation);
-
-            this._localMatrix[0] = ss[0] * c;
-            this._localMatrix[2] = ss[0] * -s;
+            this.updateLocalMatrix();
         }
 
         public get localScaleY() {
@@ -182,19 +152,13 @@ module s2d {
 
         public set localScaleY(v: number) {
             this._scale[1] = v;
-            //this._localMatrixDirty = true;
-
-            let ss = this._scale;
-            let s = Math.sin(this._rotation);
-            let c = Math.cos(this._rotation);
-
-            this._localMatrix[1] = ss[1] * s;
-            this._localMatrix[3] = ss[1] * c;
+            this.updateLocalMatrix();
         }
 
         public setLocalScale(x: number, y: number) {
-            this.localScaleX = x;
-            this.localScaleY = y;
+            this._scale[0] = x;
+            this._scale[1] = y;
+            this.updateLocalMatrix();
             return this;
         }
 
@@ -204,6 +168,7 @@ module s2d {
 
         public set size(s: Vector2) {
             Vector2.copy(this._size, s);
+            this.updateLocalMatrix();
         }
 
         public get sizeX() {
@@ -212,6 +177,7 @@ module s2d {
 
         public set sizeX(v: number) {
             this._size[0] = v;
+            this.updateLocalMatrix();
         }
 
         public get sizeY() {
@@ -220,11 +186,13 @@ module s2d {
 
         public set sizeY(v: number) {
             this._size[1] = v;
+            this.updateLocalMatrix();
         }
 
         public setSize(x: number, y: number) {
-            this.sizeX = x;
-            this.sizeY = y;
+            this._size[0] = x;
+            this._size[1] = y;
+            this.updateLocalMatrix();
             return this;
         }
 
@@ -235,6 +203,7 @@ module s2d {
         public set pivot(p: Vector2) {
             this._pivot[0] = SMath.clamp(p[0], -1, 1);
             this._pivot[1] = SMath.clamp(p[1], -1, 1);
+            this.updateLocalMatrix();
         }
 
         public get pivotX() {
@@ -243,6 +212,7 @@ module s2d {
 
         public set pivotX(v: number) {
             this._pivot[0] = SMath.clamp(v, -1, 1);
+            this.updateLocalMatrix();
         }
 
         public get pivotY() {
@@ -251,12 +221,18 @@ module s2d {
 
         public set pivotY(v: number) {
             this._pivot[1] = SMath.clamp(v, -1, 1);
+            this.updateLocalMatrix();
         }
 
         public setPivot(x: number, y: number) {
-            this._pivot[0] = SMath.clamp(x, -1, 1);
-            this._pivot[1] = SMath.clamp(y, -1, 1);
+            this.pivot[0] = SMath.clamp(x, -1, 1);
+            this.pivot[1] = SMath.clamp(y, -1, 1);
+            this.updateLocalMatrix();
             return this;
+        }
+
+        private updateLocalMatrix() : void {
+            this._localMatrixDirty = true;
         }
 
         private static tmpV1: Vector2;
@@ -264,6 +240,7 @@ module s2d {
         private static tmpV3: Vector2;
         private static tmpV4: Vector2;
         private static tmpMatrix: Matrix2d;
+        private static tmpSizeAndPivtot: Vector2;
 
         public static initStatic() {
             Transform.tmpV1 = Vector2.create();
@@ -271,6 +248,7 @@ module s2d {
             Transform.tmpV3 = Vector2.create();
             Transform.tmpV4 = Vector2.create();
             Transform.tmpMatrix = Matrix2d.create();
+            Transform.tmpSizeAndPivtot = Vector2.create();
         }
 
         public getBounds(out: Rect): Rect {
@@ -282,27 +260,21 @@ module s2d {
 
             this.getLocalToGlobalMatrix(tmpMatrix);
 
-            let halfSizeX = this.size[0] * 0.5;
-            let halfSizeY = this.size[1] * 0.5;
-
-            let dx = -this.pivot[0] * halfSizeX;
-            let dy = -this.pivot[1] * halfSizeY;
-
             //Top left
-            tmpV1[0] = -halfSizeX + dx;
-            tmpV1[1] = -halfSizeY + dy;
+            tmpV1[0] = 0;
+            tmpV1[1] = 0;
 
             //Top right
-            tmpV2[0] = halfSizeX + dx;
-            tmpV2[1] = -halfSizeY + dy;
+            tmpV2[0] = this._size[0];
+            tmpV2[1] = 0;
 
             //Bottom right
-            tmpV3[0] = halfSizeX + dx;
-            tmpV3[1] = halfSizeY + dy;
+            tmpV3[0] = this._size[0];
+            tmpV3[1] = this._size[1];
 
             //Bottom left
-            tmpV4[0] = -halfSizeX + dx;
-            tmpV4[1] = halfSizeY + dy;
+            tmpV4[0] = 0;
+            tmpV4[1] = this._size[1];
 
             Vector2.transformMat2d(tmpV1, tmpV1, tmpMatrix);
             Vector2.transformMat2d(tmpV2, tmpV2, tmpMatrix);
@@ -320,42 +292,36 @@ module s2d {
             return out;
         }
 
-        /*
         private getLocalMatrix(): Matrix2d {
             let localMatrix = this._localMatrix;
 
             if (this._localMatrixDirty) {
 
-                //Matrix2d.fromTranslation(localMatrix, this._position);
-                //Matrix2d.scale(localMatrix,localMatrix, this._scale);
-                //Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
+                let localMatrix = this._localMatrix;
+                let size = this._size;
+                let pivot = this._pivot;
+                let sizeAndPivot = Transform.tmpSizeAndPivtot;
 
-                let pp = this._position;
-                let ss = this._scale;
+                sizeAndPivot[0] = -size[0] * 0.5 * (pivot[0] + 1);
+                sizeAndPivot[1] = -size[1] * 0.5 * (pivot[1] + 1);
 
-                let s = Math.sin(this._rotation);
-                let c = Math.cos(this._rotation);
-
-                localMatrix[0] = ss[0] * c;
-                localMatrix[1] = ss[1] * s;
-                localMatrix[2] = ss[0] * -s;
-                localMatrix[3] = ss[1] * c;
-                localMatrix[4] = pp[0];
-                localMatrix[5] = pp[1];
+                Matrix2d.fromTranslation(localMatrix, this._position);
+                Matrix2d.scale(localMatrix, localMatrix, this._scale);
+                Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
+                Matrix2d.translate(localMatrix, localMatrix, sizeAndPivot);
 
                 this._localMatrixDirty = false;
             }
 
             return localMatrix;
         }
-        */
 
         public getLocalToGlobalMatrix(out: Matrix2d): Matrix2d {
 
-            Matrix2d.copy(out, this._localMatrix);
+            Matrix2d.copy(out, this.getLocalMatrix());
             let p = this._parent;
             while (p !== null) {
-                Matrix2d.mul(out, p._localMatrix, out);
+                Matrix2d.mul(out, p.getLocalMatrix(), out);
                 p = p._parent;
             }
 

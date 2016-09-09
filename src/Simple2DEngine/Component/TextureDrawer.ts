@@ -36,7 +36,7 @@ module s2d {
             if (this._texture !== null) {
                 let trans = this.entity.transform;
                 trans.getLocalToGlobalMatrix(Drawer.tmpMatrix);
-                commands.drawRectSimple(Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvRect, this._color);
+                commands.drawRectSimple(Drawer.tmpMatrix, trans.size, this._texture, this._uvRect, this._color);
             }
         }
     }

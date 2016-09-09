@@ -28,7 +28,7 @@ class TestSimple extends Test {
         let e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
         let e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
         let e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        
+
         e1.transform.localX = 300;
         e1.transform.localY = 300;
 

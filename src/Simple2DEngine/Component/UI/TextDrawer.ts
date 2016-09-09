@@ -94,13 +94,6 @@ module s2d {
             let tmpV3 = TextDrawer.tmpV3;
             let tmpV4 = TextDrawer.tmpV4;
 
-            //Offset matrix by pivot, vertex coordinates are generated starting at (0,0) and going (right,down)
-            //so we need to offset the pivot by (1, 1) to get the expected behavior
-
-            tmpVector[0] = -trans.sizeX * 0.5 * (trans.pivotX + 1);
-            tmpVector[1] = -trans.sizeY * 0.5 * (trans.pivotY + 1);
-            Matrix2d.translate(tmpMatrix, tmpMatrix, tmpVector);
-            
             for (let i = 0; i < vertexChars.length; i++) {
 
                 let vertexChar = vertexChars[i];

@@ -10,29 +10,21 @@ module s2d {
         private _inputPointer: InputPointer;
 
         private _lastInteractableDown: Interactable = null;
-        private _lastPointerX: number = 0;
-        private _lastPointerY: number = 0;
 
         public get pointerDown(): boolean {
-            return this._inputMouse.isDown || this._inputTouch.touches.length > 0;
+            return this._inputPointer.down;
+        }
+
+        public get pointerDownNow(): boolean {
+            return this._inputPointer.down && this._inputPointer.downFrames == 0;
         }
 
         public get pointerX(): number {
-            if (this._inputMouse.isDown || this._inputMouse.moved)
-                this._lastPointerX = this._inputMouse.x;
-            else if (this._inputTouch.touches.length > 0)
-                this._lastPointerX = this._inputTouch.touches[0].x;
-
-            return this._lastPointerX;
+            return this._inputPointer.position[0];
         }
 
         public get pointerY(): number {
-            if (this._inputMouse.isDown || this._inputMouse.moved)
-                this._lastPointerY = this._inputMouse.y;
-            else if (this._inputTouch.touches.length > 0)
-                this._lastPointerY = this._inputTouch.touches[0].y;
-
-            return this._lastPointerY;
+            return this._inputPointer.position[1];
         }
 
         public get pointer(): InputPointer {
@@ -78,9 +70,18 @@ module s2d {
 
             let inputPointer = this._inputPointer;
 
-            let x = this.pointerX;
-            let y = this.pointerY;
-            let down = this.pointerDown;
+            let x = this._inputPointer.position[0];
+            let y = this._inputPointer.position[1];
+
+            if (this._inputMouse.isDown || this._inputMouse.moved) {
+                x = this._inputMouse.x;
+                y = this._inputMouse.y;
+            } else if (this._inputTouch.touches.length > 0) {
+                x = this._inputTouch.touches[0].x;
+                y = this._inputTouch.touches[0].y;
+            }
+
+            let down = (this._inputMouse.isDown || this._inputTouch.touches.length > 0);
 
             inputPointer.delta[0] = x - inputPointer.position[0];
             inputPointer.delta[1] = y - inputPointer.position[1];

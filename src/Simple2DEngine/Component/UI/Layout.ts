@@ -180,13 +180,13 @@ module s2d {
 
                 if (parent !== null) {
 
-                    let parentPivot = parent.pivot;
+                    let parentSize = parent.size;
 
                     if (this._xAnchorMode === LayoutAnchorMode.RelativeToParent)
-                        transform.localX = -parentPivot[0] * parent.sizeX / 2 + (parent.sizeX / 2) * this._anchorModePivot[0] + this._anchorModeOffset[0];
+                        transform.localX = parentSize[0] * 0.5 * (this._anchorModePivot[0] + 1) + this._anchorModeOffset[0];
 
                     if (this._yAnchorMode === LayoutAnchorMode.RelativeToParent)
-                        transform.localY = -parentPivot[1] * parent.sizeY / 2 + (parent.sizeY / 2) * this._anchorModePivot[1] + this._anchorModeOffset[1];
+                        transform.localY = parentSize[1] * 0.5 * (this._anchorModePivot[1] + 1) + this._anchorModeOffset[1];
 
                 } else {
                     EngineConsole.error("Layout.updateLayout(): Anchor mode is 'RelativeToParent' but no parent found", this);

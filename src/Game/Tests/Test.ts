@@ -12,7 +12,7 @@ class Test {
 
         this.testContainer = new s2d.Entity("Test Container").transform;
         this.uiContainer = new s2d.Entity("UI Container").transform;
-        this.uiContainer.entity.transform.parent = s2d.ui.root;
+        this.uiContainer.entity.transform.setParent(s2d.ui.root);
 
         let exitButton = s2d.EntityFactory.buildTextButton("Exit Test");
         exitButton.entity.transform.setLocalPosition(8, 128).setParent(this.uiContainer);

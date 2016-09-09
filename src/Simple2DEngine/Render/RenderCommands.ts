@@ -100,7 +100,7 @@ module s2d {
             this.renderMesh.reset();
         }
 
-        public drawRectSimple(mat: Matrix2d, size: Vector2, pivot: Vector2, texture: RenderTexture, uvRect: Rect, color: Color): void {
+        public drawRectSimple(mat: Matrix2d, size: Vector2, texture: RenderTexture, uvRect: Rect, color: Color): void {
 
             let renderMesh = this.renderMesh;
 
@@ -110,10 +110,10 @@ module s2d {
                 this.currentTexture = texture;
             }
             
-            renderMesh.drawRectSimple(mat, size, pivot, uvRect, color);
+            renderMesh.drawRectSimple(mat, size, uvRect, color);
         }
 
-        public drawRect9Slice(mat: Matrix2d, size: Vector2, pivot: Vector2, texture: RenderTexture, rect:Rect, uvRect: Rect, innerRect:Rect, innerUvRect: Rect, color: Color): void {
+        public drawRect9Slice(mat: Matrix2d, size: Vector2, texture: RenderTexture, rect:Rect, uvRect: Rect, innerRect:Rect, innerUvRect: Rect, color: Color): void {
 
             let renderMesh = this.renderMesh;
 
@@ -123,7 +123,7 @@ module s2d {
                 this.currentTexture = texture;
             }
             
-            renderMesh.drawRect9Slice(mat, size, pivot, rect, uvRect, innerRect, innerUvRect, color);
+            renderMesh.drawRect9Slice(mat, size, rect, uvRect, innerRect, innerUvRect, color);
         }        
 
         public drawRect(tmpV1: RenderVertex, tmpV2: RenderVertex, tmpV3: RenderVertex, tmpV4: RenderVertex, texture: RenderTexture): void {

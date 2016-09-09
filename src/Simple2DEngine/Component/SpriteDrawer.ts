@@ -31,11 +31,11 @@ module s2d {
 
                 switch (sprite.drawMode) {
                     case RenderSpriteDrawMode.Normal:
-                        commands.drawRectSimple(Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, this._color);
+                        commands.drawRectSimple(Drawer.tmpMatrix, trans.size, sprite.texture, sprite.uvRect, this._color);
                         break;
 
                     case RenderSpriteDrawMode.Slice9:
-                        commands.drawRect9Slice(Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.rect, sprite.uvRect, sprite.innerRect, sprite.innerUvRect, this._color);
+                        commands.drawRect9Slice(Drawer.tmpMatrix, trans.size, sprite.texture, sprite.rect, sprite.uvRect, sprite.innerRect, sprite.innerUvRect, this._color);
                         break;
                 }
             }

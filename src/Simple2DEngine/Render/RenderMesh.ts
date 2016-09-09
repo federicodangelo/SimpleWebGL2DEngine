@@ -72,18 +72,12 @@ module s2d {
             return this.vertexOffset + 4 <= this.maxVertex && this.indexesOffset + 6 <= this.maxIndex;
         }
 
-        public drawRectSimple(mat: Matrix2d, size: Vector2, pivot: Vector2, uvRect: Rect, color: Color): void {
+        public drawRectSimple(mat: Matrix2d, size: Vector2, uvRect: Rect, color: Color): void {
 
             let tmpV1 = RenderMesh.tmpV1;
             let tmpV2 = RenderMesh.tmpV2;
             let tmpV3 = RenderMesh.tmpV3;
             let tmpV4 = RenderMesh.tmpV4;
-
-            let halfSizeX = size[0] * 0.5;
-            let halfSizeY = size[1] * 0.5;
-
-            let dx = -pivot[0] * halfSizeX;
-            let dy = -pivot[1] * halfSizeY;
 
             let u0 = uvRect[0];
             let v0 = uvRect[1];
@@ -91,29 +85,29 @@ module s2d {
             let v1 = uvRect[1] + uvRect[3];
 
             //Top left
-            tmpV1.x = -halfSizeX + dx;
-            tmpV1.y = -halfSizeY + dy;
+            tmpV1.x = 0;
+            tmpV1.y = 0;
             tmpV1.color = color.abgrHex;
             tmpV1.u = u0;
             tmpV1.v = v0;
 
             //Top right
-            tmpV2.x = halfSizeX + dx;
-            tmpV2.y = -halfSizeY + dy;
+            tmpV2.x = size[0];
+            tmpV2.y = 0;
             tmpV2.color = color.abgrHex;
             tmpV2.u = u1;
             tmpV2.v = v0;
 
             //Bottom right
-            tmpV3.x = halfSizeX + dx;
-            tmpV3.y = halfSizeY + dy;
+            tmpV3.x = size[0];
+            tmpV3.y = size[1];
             tmpV3.color = color.abgrHex;
             tmpV3.u = u1;
             tmpV3.v = v1;
 
             //Bottom left
-            tmpV4.x = -halfSizeX + dx;
-            tmpV4.y = halfSizeY + dy;
+            tmpV4.x = 0;
+            tmpV4.y = size[1];
             tmpV4.color = color.abgrHex;
             tmpV4.u = u0;
             tmpV4.v = v1;
@@ -131,18 +125,12 @@ module s2d {
             return this.vertexOffset + 4 * 9 <= this.maxVertex && this.indexesOffset + 6 * 9 <= this.maxIndex;
         }
 
-        public drawRect9Slice(mat: Matrix2d, size: Vector2, pivot: Vector2, rect:Rect, uvRect: Rect, innerRect:Rect, innerUvRect: Rect, color: Color): void {
+        public drawRect9Slice(mat: Matrix2d, size: Vector2, rect:Rect, uvRect: Rect, innerRect:Rect, innerUvRect: Rect, color: Color): void {
 
             let tmpV1 = RenderMesh.tmpV1;
             let tmpV2 = RenderMesh.tmpV2;
             let tmpV3 = RenderMesh.tmpV3;
             let tmpV4 = RenderMesh.tmpV4;
-
-            let halfSizeX = size[0] * 0.5;
-            let halfSizeY = size[1] * 0.5;
-
-            let dx = -pivot[0] * halfSizeX;
-            let dy = -pivot[1] * halfSizeY;
 
             let u0 = uvRect[0];
             let v0 = uvRect[1];
@@ -157,10 +145,10 @@ module s2d {
             //Draws a total of 9 rects
             tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = color.abgrHex;
 
-            let x0 = -halfSizeX + dx;
-            let y0 = -halfSizeY + dy;
-            let x1 = halfSizeX + dx;
-            let y1 = halfSizeY + dy;
+            let x0 = 0;
+            let y0 = 0;
+            let x1 = size[0];
+            let y1 = size[1];
 
             let leftWidth = innerRect[0] - rect[0];
             let rightWidth = rect[0] + rect[2] - (innerRect[0] + innerRect[2]);

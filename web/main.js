@@ -205,36 +205,33 @@ var s2d;
     var InputManager = (function () {
         function InputManager() {
             this._lastInteractableDown = null;
-            this._lastPointerX = 0;
-            this._lastPointerY = 0;
             this.tmpInteractables = new Array(1024);
             this.tmpRect = s2d.Rect.create();
         }
         Object.defineProperty(InputManager.prototype, "pointerDown", {
             get: function () {
-                return this._inputMouse.isDown || this._inputTouch.touches.length > 0;
+                return this._inputPointer.down;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(InputManager.prototype, "pointerDownNow", {
+            get: function () {
+                return this._inputPointer.down && this._inputPointer.downFrames == 0;
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(InputManager.prototype, "pointerX", {
             get: function () {
-                if (this._inputMouse.isDown || this._inputMouse.moved)
-                    this._lastPointerX = this._inputMouse.x;
-                else if (this._inputTouch.touches.length > 0)
-                    this._lastPointerX = this._inputTouch.touches[0].x;
-                return this._lastPointerX;
+                return this._inputPointer.position[0];
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(InputManager.prototype, "pointerY", {
             get: function () {
-                if (this._inputMouse.isDown || this._inputMouse.moved)
-                    this._lastPointerY = this._inputMouse.y;
-                else if (this._inputTouch.touches.length > 0)
-                    this._lastPointerY = this._inputTouch.touches[0].y;
-                return this._lastPointerY;
+                return this._inputPointer.position[1];
             },
             enumerable: true,
             configurable: true
@@ -273,9 +270,17 @@ var s2d;
         };
         InputManager.prototype.updatePointer = function () {
             var inputPointer = this._inputPointer;
-            var x = this.pointerX;
-            var y = this.pointerY;
-            var down = this.pointerDown;
+            var x = this._inputPointer.position[0];
+            var y = this._inputPointer.position[1];
+            if (this._inputMouse.isDown || this._inputMouse.moved) {
+                x = this._inputMouse.x;
+                y = this._inputMouse.y;
+            }
+            else if (this._inputTouch.touches.length > 0) {
+                x = this._inputTouch.touches[0].x;
+                y = this._inputTouch.touches[0].y;
+            }
+            var down = (this._inputMouse.isDown || this._inputTouch.touches.length > 0);
             inputPointer.delta[0] = x - inputPointer.position[0];
             inputPointer.delta[1] = y - inputPointer.position[1];
             inputPointer.position[0] = x;
@@ -457,23 +462,23 @@ var s2d;
         RenderCommands.prototype.start = function () {
             this.renderMesh.reset();
         };
-        RenderCommands.prototype.drawRectSimple = function (mat, size, pivot, texture, uvRect, color) {
+        RenderCommands.prototype.drawRectSimple = function (mat, size, texture, uvRect, color) {
             var renderMesh = this.renderMesh;
             if (!renderMesh.canDrawRect() || texture !== this.currentTexture) {
                 this.end();
                 this.start();
                 this.currentTexture = texture;
             }
-            renderMesh.drawRectSimple(mat, size, pivot, uvRect, color);
+            renderMesh.drawRectSimple(mat, size, uvRect, color);
         };
-        RenderCommands.prototype.drawRect9Slice = function (mat, size, pivot, texture, rect, uvRect, innerRect, innerUvRect, color) {
+        RenderCommands.prototype.drawRect9Slice = function (mat, size, texture, rect, uvRect, innerRect, innerUvRect, color) {
             var renderMesh = this.renderMesh;
             if (!renderMesh.canDrawRect9Slice() || texture !== this.currentTexture) {
                 this.end();
                 this.start();
                 this.currentTexture = texture;
             }
-            renderMesh.drawRect9Slice(mat, size, pivot, rect, uvRect, innerRect, innerUvRect, color);
+            renderMesh.drawRect9Slice(mat, size, rect, uvRect, innerRect, innerUvRect, color);
         };
         RenderCommands.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4, texture) {
             var renderMesh = this.renderMesh;
@@ -743,7 +748,7 @@ var s2d;
             this._position = s2d.Vector2.create();
             this._rotation = 0;
             this._scale = s2d.Vector2.fromValues(1, 1);
-            this._size = s2d.Vector2.fromValues(32, 32);
+            this._size = s2d.Vector2.fromValues(0, 0);
             this._pivot = s2d.Vector2.create();
             //Linked list of children
             this._firstChild = null;
@@ -751,10 +756,10 @@ var s2d;
             //Linked list of siblings
             this._prevSibling = null;
             this._nextSibling = null;
+            this._localMatrixDirty = true;
             this._localMatrix = s2d.Matrix2d.create();
         }
         Object.defineProperty(Transform.prototype, "parent", {
-            //private _localMatrixDirty : boolean = true;
             get: function () {
                 return this._parent;
             },
@@ -774,6 +779,7 @@ var s2d;
         });
         Transform.prototype.onInit = function () {
             s2d.engine.entities.root.addChildLast(this);
+            this.updateLocalMatrix();
         };
         Transform.prototype.onDestroy = function () {
             //Destroy child entities
@@ -799,9 +805,7 @@ var s2d;
             },
             set: function (p) {
                 s2d.Vector2.copy(this._position, p);
-                //this._localMatrixDirty = true;
-                this._localMatrix[4] = this._position[0];
-                this._localMatrix[5] = this._position[1];
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -812,8 +816,7 @@ var s2d;
             },
             set: function (v) {
                 this._position[0] = v;
-                //this._localMatrixDirty = true;
-                this._localMatrix[4] = this._position[0];
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -824,15 +827,15 @@ var s2d;
             },
             set: function (v) {
                 this._position[1] = v;
-                //this._localMatrixDirty = true;
-                this._localMatrix[5] = this._position[1];
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setLocalPosition = function (x, y) {
-            this.localX = x;
-            this.localY = y;
+            this._position[0] = x;
+            this._position[1] = y;
+            this.updateLocalMatrix();
             return this;
         };
         Object.defineProperty(Transform.prototype, "localRotationRadians", {
@@ -841,14 +844,7 @@ var s2d;
             },
             set: function (rad) {
                 this._rotation = rad;
-                //this._localMatrixDirty = true;
-                var ss = this._scale;
-                var s = Math.sin(rad);
-                var c = Math.cos(rad);
-                this._localMatrix[0] = ss[0] * c;
-                this._localMatrix[1] = ss[1] * s;
-                this._localMatrix[2] = ss[0] * -s;
-                this._localMatrix[3] = ss[1] * c;
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -868,7 +864,7 @@ var s2d;
             return this;
         };
         Transform.prototype.setlocalRotationDegrees = function (deg) {
-            this.localRotationRadians = deg;
+            this.localRotationDegrees = deg;
             return this;
         };
         Object.defineProperty(Transform.prototype, "localScale", {
@@ -877,13 +873,7 @@ var s2d;
             },
             set: function (ss) {
                 s2d.Vector2.copy(this._scale, ss);
-                //this._localMatrixDirty = true;
-                var s = Math.sin(this._rotation);
-                var c = Math.cos(this._rotation);
-                this._localMatrix[0] = ss[0] * c;
-                this._localMatrix[1] = ss[1] * s;
-                this._localMatrix[2] = ss[0] * -s;
-                this._localMatrix[3] = ss[1] * c;
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -894,12 +884,7 @@ var s2d;
             },
             set: function (v) {
                 this._scale[0] = v;
-                //this._localMatrixDirty = true;
-                var ss = this._scale;
-                var s = Math.sin(this._rotation);
-                var c = Math.cos(this._rotation);
-                this._localMatrix[0] = ss[0] * c;
-                this._localMatrix[2] = ss[0] * -s;
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -910,19 +895,15 @@ var s2d;
             },
             set: function (v) {
                 this._scale[1] = v;
-                //this._localMatrixDirty = true;
-                var ss = this._scale;
-                var s = Math.sin(this._rotation);
-                var c = Math.cos(this._rotation);
-                this._localMatrix[1] = ss[1] * s;
-                this._localMatrix[3] = ss[1] * c;
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setLocalScale = function (x, y) {
-            this.localScaleX = x;
-            this.localScaleY = y;
+            this._scale[0] = x;
+            this._scale[1] = y;
+            this.updateLocalMatrix();
             return this;
         };
         Object.defineProperty(Transform.prototype, "size", {
@@ -931,6 +912,7 @@ var s2d;
             },
             set: function (s) {
                 s2d.Vector2.copy(this._size, s);
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -941,6 +923,7 @@ var s2d;
             },
             set: function (v) {
                 this._size[0] = v;
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -951,13 +934,15 @@ var s2d;
             },
             set: function (v) {
                 this._size[1] = v;
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setSize = function (x, y) {
-            this.sizeX = x;
-            this.sizeY = y;
+            this._size[0] = x;
+            this._size[1] = y;
+            this.updateLocalMatrix();
             return this;
         };
         Object.defineProperty(Transform.prototype, "pivot", {
@@ -967,6 +952,7 @@ var s2d;
             set: function (p) {
                 this._pivot[0] = s2d.SMath.clamp(p[0], -1, 1);
                 this._pivot[1] = s2d.SMath.clamp(p[1], -1, 1);
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -977,6 +963,7 @@ var s2d;
             },
             set: function (v) {
                 this._pivot[0] = s2d.SMath.clamp(v, -1, 1);
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
@@ -987,14 +974,19 @@ var s2d;
             },
             set: function (v) {
                 this._pivot[1] = s2d.SMath.clamp(v, -1, 1);
+                this.updateLocalMatrix();
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setPivot = function (x, y) {
-            this._pivot[0] = s2d.SMath.clamp(x, -1, 1);
-            this._pivot[1] = s2d.SMath.clamp(y, -1, 1);
+            this.pivot[0] = s2d.SMath.clamp(x, -1, 1);
+            this.pivot[1] = s2d.SMath.clamp(y, -1, 1);
+            this.updateLocalMatrix();
             return this;
+        };
+        Transform.prototype.updateLocalMatrix = function () {
+            this._localMatrixDirty = true;
         };
         Transform.initStatic = function () {
             Transform.tmpV1 = s2d.Vector2.create();
@@ -1002,6 +994,7 @@ var s2d;
             Transform.tmpV3 = s2d.Vector2.create();
             Transform.tmpV4 = s2d.Vector2.create();
             Transform.tmpMatrix = s2d.Matrix2d.create();
+            Transform.tmpSizeAndPivtot = s2d.Vector2.create();
         };
         Transform.prototype.getBounds = function (out) {
             var tmpV1 = Transform.tmpV1;
@@ -1010,22 +1003,18 @@ var s2d;
             var tmpV4 = Transform.tmpV4;
             var tmpMatrix = Transform.tmpMatrix;
             this.getLocalToGlobalMatrix(tmpMatrix);
-            var halfSizeX = this.size[0] * 0.5;
-            var halfSizeY = this.size[1] * 0.5;
-            var dx = -this.pivot[0] * halfSizeX;
-            var dy = -this.pivot[1] * halfSizeY;
             //Top left
-            tmpV1[0] = -halfSizeX + dx;
-            tmpV1[1] = -halfSizeY + dy;
+            tmpV1[0] = 0;
+            tmpV1[1] = 0;
             //Top right
-            tmpV2[0] = halfSizeX + dx;
-            tmpV2[1] = -halfSizeY + dy;
+            tmpV2[0] = this._size[0];
+            tmpV2[1] = 0;
             //Bottom right
-            tmpV3[0] = halfSizeX + dx;
-            tmpV3[1] = halfSizeY + dy;
+            tmpV3[0] = this._size[0];
+            tmpV3[1] = this._size[1];
             //Bottom left
-            tmpV4[0] = -halfSizeX + dx;
-            tmpV4[1] = halfSizeY + dy;
+            tmpV4[0] = 0;
+            tmpV4[1] = this._size[1];
             s2d.Vector2.transformMat2d(tmpV1, tmpV1, tmpMatrix);
             s2d.Vector2.transformMat2d(tmpV2, tmpV2, tmpMatrix);
             s2d.Vector2.transformMat2d(tmpV3, tmpV3, tmpMatrix);
@@ -1037,40 +1026,28 @@ var s2d;
             s2d.Rect.set(out, minX, minY, maxX - minX, maxY - minY);
             return out;
         };
-        /*
-        private getLocalMatrix(): Matrix2d {
-            let localMatrix = this._localMatrix;
-
+        Transform.prototype.getLocalMatrix = function () {
+            var localMatrix = this._localMatrix;
             if (this._localMatrixDirty) {
-
-                //Matrix2d.fromTranslation(localMatrix, this._position);
-                //Matrix2d.scale(localMatrix,localMatrix, this._scale);
-                //Matrix2d.rotate(localMatrix, localMatrix, this._rotation);
-
-                let pp = this._position;
-                let ss = this._scale;
-
-                let s = Math.sin(this._rotation);
-                let c = Math.cos(this._rotation);
-
-                localMatrix[0] = ss[0] * c;
-                localMatrix[1] = ss[1] * s;
-                localMatrix[2] = ss[0] * -s;
-                localMatrix[3] = ss[1] * c;
-                localMatrix[4] = pp[0];
-                localMatrix[5] = pp[1];
-
+                var localMatrix_1 = this._localMatrix;
+                var size = this._size;
+                var pivot = this._pivot;
+                var sizeAndPivot = Transform.tmpSizeAndPivtot;
+                sizeAndPivot[0] = -size[0] * 0.5 * (pivot[0] + 1);
+                sizeAndPivot[1] = -size[1] * 0.5 * (pivot[1] + 1);
+                s2d.Matrix2d.fromTranslation(localMatrix_1, this._position);
+                s2d.Matrix2d.scale(localMatrix_1, localMatrix_1, this._scale);
+                s2d.Matrix2d.rotate(localMatrix_1, localMatrix_1, this._rotation);
+                s2d.Matrix2d.translate(localMatrix_1, localMatrix_1, sizeAndPivot);
                 this._localMatrixDirty = false;
             }
-
             return localMatrix;
-        }
-        */
+        };
         Transform.prototype.getLocalToGlobalMatrix = function (out) {
-            s2d.Matrix2d.copy(out, this._localMatrix);
+            s2d.Matrix2d.copy(out, this.getLocalMatrix());
             var p = this._parent;
             while (p !== null) {
-                s2d.Matrix2d.mul(out, p._localMatrix, out);
+                s2d.Matrix2d.mul(out, p.getLocalMatrix(), out);
                 p = p._parent;
             }
             return out;
@@ -2443,7 +2420,7 @@ var s2d;
             _super.apply(this, arguments);
         }
         Drawer.initStatic = function () {
-            Drawer.tmpMatrix = s2d.Matrix3.create();
+            Drawer.tmpMatrix = s2d.Matrix2d.create();
             Drawer.tmpVector = s2d.Vector2.create();
         };
         Drawer.prototype.draw = function (commands) {
@@ -2613,18 +2590,13 @@ var s2d;
             configurable: true
         });
         EntityManager.prototype.init = function () {
-            //this._root.pivotX = -1;
-            //this._root.pivotY = -1;
-            //this._root.sizeX = renderer.screenWidth;
-            //this._root.sizeY = renderer.screenHeight;
+            this._root.setSize(0, 0).setPivot(-1, -1);
         };
         EntityManager.prototype.getComponentsInChildren = function (clazz, toReturn, includeInactive) {
             if (includeInactive === void 0) { includeInactive = false; }
             return this._root.getComponentsInChildren(clazz, toReturn, includeInactive);
         };
         EntityManager.prototype.update = function () {
-            //this._root.sizeX = renderer.screenWidth;
-            //this._root.sizeY = renderer.screenHeight;
             var behaviors = this.tmpBehaviors;
             var behaviorsLen = this.getComponentsInChildren(s2d.Behavior, behaviors);
             for (var i = 0; i < behaviorsLen; i++) {
@@ -3484,6 +3456,7 @@ var s2d;
         Engine.prototype.init = function (onInitCompleteCallback) {
             if (onInitCompleteCallback === void 0) { onInitCompleteCallback = null; }
             this._onInitCompleteCallback = onInitCompleteCallback;
+            s2d.Pools.initPools();
             s2d.Drawer.initStatic();
             s2d.TextDrawer.initStatic();
             s2d.Time.initStatic();
@@ -3680,7 +3653,8 @@ var GameStats = (function (_super) {
         this.textFPS = s2d.EntityFactory.buildTextDrawer();
         this.textFPS.entity.transform.setPivot(-1, -1).setLocalPosition(8, 8).setParent(this.entity.transform);
         this.textFPS.color.setFromRgba(0, 255, 0);
-        this.entity.transform.parent = s2d.ui.root;
+        this.entity.addComponent(s2d.Layout).setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest);
+        this.entity.transform.setPivot(-1, -1).setParent(s2d.ui.root);
     };
     GameStats.prototype.update = function () {
         var stats = s2d.engine.stats;
@@ -3695,6 +3669,236 @@ var GameStats = (function (_super) {
     };
     return GameStats;
 }(s2d.Behavior));
+/// <reference path="../../Simple2DEngine/Component/Behavior.ts" />
+var Test = (function () {
+    function Test() {
+    }
+    Test.prototype.init = function (gameLogic) {
+        this.gameLogic = gameLogic;
+        this.testContainer = new s2d.Entity("Test Container").transform;
+        this.uiContainer = new s2d.Entity("UI Container").transform;
+        this.uiContainer.entity.transform.setParent(s2d.ui.root);
+        var exitButton = s2d.EntityFactory.buildTextButton("Exit Test");
+        exitButton.entity.transform.setLocalPosition(8, 128).setParent(this.uiContainer);
+        exitButton.onClick.attach(this.onExitButtonClicked, this);
+        this.onInit();
+    };
+    Test.prototype.onExitButtonClicked = function () {
+        this.gameLogic.setActiveTest(null);
+    };
+    Test.prototype.onInit = function () {
+    };
+    Test.prototype.update = function () {
+        this.onUpdate();
+    };
+    Test.prototype.onUpdate = function () {
+    };
+    Test.prototype.destroy = function () {
+        this.onDestroy();
+        this.uiContainer.entity.destroy();
+        this.testContainer.entity.destroy();
+    };
+    Test.prototype.onDestroy = function () {
+    };
+    return Test;
+}());
+var TestMovingTriangles = (function (_super) {
+    __extends(TestMovingTriangles, _super);
+    function TestMovingTriangles() {
+        _super.apply(this, arguments);
+        this.entities = new Array();
+        this.loadCompleted = false;
+        this.lastEntitiesCount = 0;
+    }
+    TestMovingTriangles.prototype.onInit = function () {
+        var _this = this;
+        var resetButton = s2d.EntityFactory.buildTextButton("Reset");
+        resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
+        resetButton.onClick.attach(this.onResetButtonClicked, this);
+        var clearButton = s2d.EntityFactory.buildTextButton("Clear");
+        clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
+        clearButton.onClick.attach(this.onClearButtonClicked, this);
+        var addMore = s2d.EntityFactory.buildTextButton("Add\nMore");
+        addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
+        addMore.onClick.attach(this.initTest, this);
+        var toggleRotationButton = s2d.EntityFactory.buildTextButton("Toggle\nRotation");
+        toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
+        toggleRotationButton.onClick.attach(function () { return TestMovingTriangles.TEST_MOVING = !TestMovingTriangles.TEST_MOVING; });
+        var toggleNestingButton = s2d.EntityFactory.buildTextButton("Toggle\nNesting");
+        toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
+        toggleNestingButton.onClick.attach(function () { TestMovingTriangles.TEST_NESTING = !TestMovingTriangles.TEST_NESTING; _this.clear(); _this.initTest(); });
+        var toggleActiveButton = s2d.EntityFactory.buildTextButton("Toggle\nActive");
+        toggleActiveButton.entity.transform.setLocalPosition(800, 100).setParent(this.uiContainer);
+        toggleActiveButton.onClick.attach(this.toggleActive, this);
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestMovingTriangles.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestMovingTriangles.prototype.onLoadComplete = function () {
+        this.texture = s2d.loader.getAsset("test.png");
+        this.loadCompleted = true;
+        this.initTest();
+    };
+    TestMovingTriangles.prototype.onResetButtonClicked = function (button) {
+        this.clear();
+        this.initTest();
+    };
+    TestMovingTriangles.prototype.onClearButtonClicked = function (button) {
+        this.clear();
+    };
+    TestMovingTriangles.prototype.clear = function () {
+        for (var i = 0; i < this.entities.length; i++)
+            this.entities[i].destroy();
+        this.entities.length = 0;
+    };
+    TestMovingTriangles.prototype.initTest = function () {
+        if (!this.loadCompleted)
+            return;
+        this.testContainer.entity.active = true;
+        var sWidth = s2d.engine.renderer.screenWidth;
+        var sHeight = s2d.engine.renderer.screenHeight;
+        for (var i = 0; i < TestMovingTriangles.RECTS_COUNT; i++) {
+            var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+            e.name = "Entity " + i;
+            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
+            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
+            if (TestMovingTriangles.TEST_NESTING) {
+                if (i > 0 && i % 3 == 0)
+                    e.transform.parent = this.entities[i - 2].transform;
+                else if (i > 0 && i % 5 == 0)
+                    e.transform.parent = this.entities[i - 4].transform;
+                else if (i > 0 && i % 7 == 0)
+                    e.transform.parent = this.entities[i - 6].transform;
+                else
+                    e.transform.parent = this.testContainer;
+            }
+            else {
+                e.transform.parent = this.testContainer;
+            }
+            this.entities.push(e);
+        }
+    };
+    TestMovingTriangles.prototype.onUpdate = function () {
+        if (TestMovingTriangles.TEST_MOVING) {
+            var entities = this.entities;
+            for (var i = 0; i < entities.length; i++)
+                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
+        }
+        //if (s2d.input.pointerDown)
+        //    this.cam.clearColor.setFromRgba(255, 0, 0); //red
+        //else
+        //    this.cam.clearColor.setFromRgba(0, 0, 0); //black        
+    };
+    TestMovingTriangles.TEST_NESTING = true;
+    TestMovingTriangles.TEST_MOVING = true;
+    TestMovingTriangles.RECTS_COUNT = 1024;
+    return TestMovingTriangles;
+}(Test));
+var TestSimple = (function (_super) {
+    __extends(TestSimple, _super);
+    function TestSimple() {
+        _super.apply(this, arguments);
+        this.entities = new Array();
+        this.loadCompleted = false;
+    }
+    TestSimple.prototype.onInit = function () {
+        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestSimple.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestSimple.prototype.onLoadComplete = function () {
+        this.texture = s2d.loader.getAsset("test.png");
+        this.loadCompleted = true;
+        this.initTestSimple();
+    };
+    TestSimple.prototype.initTestSimple = function () {
+        if (!this.loadCompleted)
+            return;
+        var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        var e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        var e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
+        e1.transform.localX = 300;
+        e1.transform.localY = 300;
+        e2.transform.parent = e1.transform;
+        e2.transform.localX = 200;
+        e3.transform.parent = e2.transform;
+        e3.transform.localX = 100;
+        this.entities.push(e1);
+        this.entities.push(e2);
+        this.entities.push(e3);
+    };
+    TestSimple.prototype.onUpdate = function () {
+        var entities = this.entities;
+        for (var i = 0; i < entities.length; i++)
+            entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
+    };
+    TestSimple.prototype.onDestroy = function () {
+        for (var i = 0; i < this.entities.length; i++)
+            this.entities[i].destroy();
+        this.entities.length = 0;
+    };
+    return TestSimple;
+}(Test));
+var TestTilemap = (function (_super) {
+    __extends(TestTilemap, _super);
+    function TestTilemap() {
+        _super.apply(this, arguments);
+        this.loadCompleted = false;
+        this.tilemapDrawer = null;
+        this.tileCoords = s2d.Vector2.create();
+    }
+    TestTilemap.prototype.onInit = function () {
+        s2d.loader.loadRenderSpriteAtlasFromUrl("spritesheet", "assets/spritesheet.xml");
+        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
+    };
+    TestTilemap.prototype.toggleActive = function () {
+        this.testContainer.entity.active = !this.testContainer.entity.active;
+    };
+    TestTilemap.prototype.onLoadComplete = function () {
+        this.spritesheet = s2d.loader.getAsset("spritesheet");
+        this.loadCompleted = true;
+        this.initTilemap();
+    };
+    TestTilemap.prototype.initTilemap = function () {
+        if (!this.loadCompleted)
+            return;
+        var spritesheet = this.spritesheet;
+        var tiles = new Array();
+        for (var spriteId in spritesheet.sprites.data) {
+            var sprite = spritesheet.sprites.data[spriteId];
+            tiles.push(new s2d.Tile(sprite.id, sprite));
+        }
+        var tilemap = new s2d.Tilemap(128, 64, tiles);
+        var data = tilemap.data;
+        for (var x = 0; x < tilemap.width; x++)
+            for (var y = 0; y < tilemap.height; y++)
+                data[y][x] = tiles[(x + y) % tiles.length];
+        this.tilemapDrawer = s2d.EntityFactory.buildTilemapDrawer(tilemap);
+        this.tilemapDrawer.entity.transform.parent = this.testContainer;
+        this.tilemapDrawer.entity.transform.setLocalPosition(0, 0).setPivot(-1, -1);
+    };
+    TestTilemap.prototype.onUpdate = function () {
+        if (this.tilemapDrawer !== null && s2d.input.pointerDownNow) {
+            this.tileCoords = this.tilemapDrawer.getTileCoordsAtGlobalPosition(s2d.input.pointer.position, this.tileCoords);
+            if (this.tileCoords[0] != -1 && this.tileCoords[1] != -1) {
+                var tilemap = this.tilemapDrawer.tilemap;
+                var x = this.tileCoords[0];
+                var y = this.tileCoords[1];
+                var existingTile = tilemap.getTile(x, y);
+                //new tile is next tile in the array
+                var newTile = tilemap.tiles[(tilemap.tiles.indexOf(existingTile) + 1) % tilemap.tiles.length];
+                tilemap.setTile(x, y, newTile);
+            }
+        }
+    };
+    TestTilemap.prototype.onDestroy = function () {
+    };
+    return TestTilemap;
+}(Test));
 /// <reference path="../Render/RenderSprite.ts" />
 var s2d;
 (function (s2d) {
@@ -3783,6 +3987,15 @@ var s2d;
             enumerable: true,
             configurable: true
         });
+        Tilemap.prototype.getTile = function (x, y) {
+            return this._data[y][x];
+        };
+        Tilemap.prototype.setTile = function (x, y, tile) {
+            if (this._data[y][x] !== tile) {
+                this._data[y][x] = tile;
+                this.dirty = true;
+            }
+        };
         return Tilemap;
     }());
     s2d.Tilemap = Tilemap;
@@ -3840,10 +4053,10 @@ var s2d;
                 var color = this._color;
                 switch (sprite.drawMode) {
                     case s2d.RenderSpriteDrawMode.Normal:
-                        commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.uvRect, this._color);
+                        commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, sprite.texture, sprite.uvRect, this._color);
                         break;
                     case s2d.RenderSpriteDrawMode.Slice9:
-                        commands.drawRect9Slice(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, sprite.texture, sprite.rect, sprite.uvRect, sprite.innerRect, sprite.innerUvRect, this._color);
+                        commands.drawRect9Slice(s2d.Drawer.tmpMatrix, trans.size, sprite.texture, sprite.rect, sprite.uvRect, sprite.innerRect, sprite.innerUvRect, this._color);
                         break;
                 }
             }
@@ -3897,7 +4110,7 @@ var s2d;
             if (this._texture !== null) {
                 var trans = this.entity.transform;
                 trans.getLocalToGlobalMatrix(s2d.Drawer.tmpMatrix);
-                commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, trans.pivot, this._texture, this._uvRect, this._color);
+                commands.drawRectSimple(s2d.Drawer.tmpMatrix, trans.size, this._texture, this._uvRect, this._color);
             }
         };
         return TextureDrawer;
@@ -3918,7 +4131,6 @@ var s2d;
             this._mesh = null;
             this._dirty = true;
             this._bestSize = s2d.Vector2.create();
-            this.tmpTileSize = s2d.Vector2.create();
             this.lastDrawnMatrix = s2d.Matrix2d.create();
         }
         Object.defineProperty(TilemapDrawer.prototype, "tilemap", {
@@ -3961,6 +4173,41 @@ var s2d;
             }
             return this._bestSize;
         };
+        TilemapDrawer.prototype.getTileAtGlobalPosition = function (globalPosition) {
+            var tile = null;
+            var tileCoords = this.getTileCoordsAtGlobalPosition(globalPosition, s2d.Pools.vector2.get());
+            {
+                if (tileCoords[0] !== -1 && tileCoords[1] !== -1)
+                    tile = this.tilemap.getTile(tileCoords[0], tileCoords[1]);
+            }
+            s2d.Pools.vector2.return(tileCoords);
+            return tile;
+        };
+        TilemapDrawer.prototype.getTileCoordsAtGlobalPosition = function (globalPosition, toReturn) {
+            if (toReturn === void 0) { toReturn = null; }
+            if (toReturn === null)
+                toReturn = s2d.Pools.vector2.get();
+            s2d.Vector2.set(toReturn, -1, -1);
+            var tilemap = this.tilemap;
+            var trans = this.entity.transform;
+            var width = tilemap.width;
+            var height = tilemap.height;
+            var matrixInv = s2d.Pools.matrix2d.get();
+            var localPosition = s2d.Pools.vector2.get();
+            {
+                var tileSizeX = trans.sizeX / tilemap.width;
+                var tileSizeY = trans.sizeY / tilemap.height;
+                trans.getGlobalToLocalMatrix(matrixInv);
+                s2d.Vector2.transformMat2d(localPosition, globalPosition, matrixInv);
+                var tileX = Math.floor(localPosition[0] / tileSizeX);
+                var tileY = Math.floor(localPosition[1] / tileSizeY);
+                if (tileX >= 0 && tileX < width && tileY >= 0 && tileY < height)
+                    s2d.Vector2.set(toReturn, tileX, tileY);
+            }
+            s2d.Pools.matrix2d.return(matrixInv);
+            s2d.Pools.vector2.return(localPosition);
+            return toReturn;
+        };
         TilemapDrawer.prototype.buildRenderMesh = function (matrix) {
             var tilemap = this.tilemap;
             var trans = this.entity.transform;
@@ -3969,14 +4216,15 @@ var s2d;
             var width = tilemap.width;
             var height = tilemap.height;
             var data = tilemap.data;
-            var tileSize = this.tmpTileSize;
+            var size = trans.size;
+            var tileSize = s2d.Pools.vector2.get();
             s2d.Vector2.copy(tileSize, this.tileSize);
             tileSize[0] = trans.sizeX / tilemap.width;
             tileSize[1] = trans.sizeY / tilemap.height;
             var right = s2d.Vector2.fromValues(tileSize[0], 0);
             var down = s2d.Vector2.fromValues(0, tileSize[1]);
-            s2d.Vector2.transformMat2d(right, right, matrix);
-            s2d.Vector2.transformMat2d(down, down, matrix);
+            s2d.Vector2.transformMat2dNormal(right, right, matrix);
+            s2d.Vector2.transformMat2dNormal(down, down, matrix);
             var startingPosition = s2d.Vector2.fromValues(matrix[4], matrix[5]);
             var mesh = this._mesh;
             if (mesh === null || mesh.maxTriangles !== width * height * 2) {
@@ -3994,7 +4242,7 @@ var s2d;
                     var tile = line[x];
                     if (tile !== null) {
                         var sprite = tile.sprite;
-                        mesh.drawRectSimple(matrix, tileSize, pivot, sprite.uvRect, this._color);
+                        mesh.drawRectSimple(matrix, tileSize, sprite.uvRect, this._color);
                     }
                     matrix[4] += right[0];
                     matrix[5] += right[1];
@@ -4002,6 +4250,7 @@ var s2d;
             }
             tilemap.dirty = false;
             this._dirty = false;
+            s2d.Pools.vector2.return(tileSize);
         };
         TilemapDrawer.prototype.draw = function (commands) {
             var tilemap = this._tilemap;
@@ -4034,8 +4283,10 @@ var s2d;
             return new s2d.Entity("Camera").addComponent(s2d.Camera);
         };
         EntityFactory.buildTextureDrawer = function (texture) {
-            var textureDrawer = new s2d.Entity("Texture").addComponent(s2d.TextureDrawer);
+            var entity = new s2d.Entity("Texture");
+            var textureDrawer = entity.addComponent(s2d.TextureDrawer);
             textureDrawer.texture = texture;
+            entity.transform.setSize(32, 32);
             return textureDrawer;
         };
         EntityFactory.buildTextDrawer = function () {
@@ -4118,460 +4369,6 @@ var s2d;
         return InputPointer;
     }());
     s2d.InputPointer = InputPointer;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var RenderVertex = (function () {
-        function RenderVertex() {
-        }
-        RenderVertex.prototype.copyFrom = function (v) {
-            this.x = v.x;
-            this.y = v.y;
-            this.color = v.color;
-            this.u = v.u;
-            this.v = v.v;
-            return this;
-        };
-        RenderVertex.prototype.transformMat2d = function (m) {
-            var x = this.x, y = this.y;
-            this.x = m[0] * x + m[2] * y + m[4];
-            this.y = m[1] * x + m[3] * y + m[5];
-            return this;
-        };
-        RenderVertex.prototype.setXYUV = function (x, y, u, v) {
-            this.x = x;
-            this.y = y;
-            this.u = u;
-            this.v = v;
-            return this;
-        };
-        return RenderVertex;
-    }());
-    s2d.RenderVertex = RenderVertex;
-})(s2d || (s2d = {}));
-/// <reference path="RenderBuffer.ts" />
-/// <reference path="RenderProgram.ts" />
-/// <reference path="RenderVertex.ts" />
-var s2d;
-(function (s2d) {
-    var RenderMesh = (function () {
-        function RenderMesh(maxTriangles) {
-            if (maxTriangles === void 0) { maxTriangles = 1024; }
-            this.backingVertexArray = null;
-            this.positions = null;
-            this.colors = null;
-            this.uvs = null;
-            this.backingIndexArray = null;
-            this.indexes = null;
-            this.indexesOffset = 0;
-            this.vertexOffset = 0;
-            this.maxVertex = 0;
-            this.maxIndex = 0;
-            this._maxTriangles = 0;
-            this._maxTriangles = maxTriangles;
-            this.maxVertex = maxTriangles * 3;
-            this.maxIndex = maxTriangles * 3;
-            this.backingVertexArray = new ArrayBuffer(this.maxVertex * RenderMesh.VERTEX_SIZE);
-            this.positions = new Float32Array(this.backingVertexArray);
-            this.colors = new Uint32Array(this.backingVertexArray);
-            this.uvs = new Uint16Array(this.backingVertexArray);
-            this.backingIndexArray = new ArrayBuffer(this.maxIndex * RenderMesh.INDEX_SIZE);
-            this.indexes = new Uint16Array(this.backingIndexArray);
-        }
-        Object.defineProperty(RenderMesh.prototype, "vertexCount", {
-            get: function () {
-                return this.vertexOffset;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderMesh.prototype, "indexCount", {
-            get: function () {
-                return this.indexesOffset;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderMesh.prototype, "vertexArray", {
-            get: function () {
-                return this.backingVertexArray;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderMesh.prototype, "indexArray", {
-            get: function () {
-                return this.backingIndexArray;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(RenderMesh.prototype, "maxTriangles", {
-            get: function () {
-                return this._maxTriangles;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        RenderMesh.prototype.reset = function () {
-            this.vertexOffset = 0;
-            this.indexesOffset = 0;
-        };
-        RenderMesh.prototype.canDrawRectSimple = function () {
-            return this.vertexOffset + 4 <= this.maxVertex && this.indexesOffset + 6 <= this.maxIndex;
-        };
-        RenderMesh.prototype.drawRectSimple = function (mat, size, pivot, uvRect, color) {
-            var tmpV1 = RenderMesh.tmpV1;
-            var tmpV2 = RenderMesh.tmpV2;
-            var tmpV3 = RenderMesh.tmpV3;
-            var tmpV4 = RenderMesh.tmpV4;
-            var halfSizeX = size[0] * 0.5;
-            var halfSizeY = size[1] * 0.5;
-            var dx = -pivot[0] * halfSizeX;
-            var dy = -pivot[1] * halfSizeY;
-            var u0 = uvRect[0];
-            var v0 = uvRect[1];
-            var u1 = uvRect[0] + uvRect[2];
-            var v1 = uvRect[1] + uvRect[3];
-            //Top left
-            tmpV1.x = -halfSizeX + dx;
-            tmpV1.y = -halfSizeY + dy;
-            tmpV1.color = color.abgrHex;
-            tmpV1.u = u0;
-            tmpV1.v = v0;
-            //Top right
-            tmpV2.x = halfSizeX + dx;
-            tmpV2.y = -halfSizeY + dy;
-            tmpV2.color = color.abgrHex;
-            tmpV2.u = u1;
-            tmpV2.v = v0;
-            //Bottom right
-            tmpV3.x = halfSizeX + dx;
-            tmpV3.y = halfSizeY + dy;
-            tmpV3.color = color.abgrHex;
-            tmpV3.u = u1;
-            tmpV3.v = v1;
-            //Bottom left
-            tmpV4.x = -halfSizeX + dx;
-            tmpV4.y = halfSizeY + dy;
-            tmpV4.color = color.abgrHex;
-            tmpV4.u = u0;
-            tmpV4.v = v1;
-            tmpV1.transformMat2d(mat);
-            tmpV2.transformMat2d(mat);
-            tmpV3.transformMat2d(mat);
-            tmpV4.transformMat2d(mat);
-            this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4);
-        };
-        RenderMesh.prototype.canDrawRect9Slice = function () {
-            //Draws 9 rects
-            return this.vertexOffset + 4 * 9 <= this.maxVertex && this.indexesOffset + 6 * 9 <= this.maxIndex;
-        };
-        RenderMesh.prototype.drawRect9Slice = function (mat, size, pivot, rect, uvRect, innerRect, innerUvRect, color) {
-            var tmpV1 = RenderMesh.tmpV1;
-            var tmpV2 = RenderMesh.tmpV2;
-            var tmpV3 = RenderMesh.tmpV3;
-            var tmpV4 = RenderMesh.tmpV4;
-            var halfSizeX = size[0] * 0.5;
-            var halfSizeY = size[1] * 0.5;
-            var dx = -pivot[0] * halfSizeX;
-            var dy = -pivot[1] * halfSizeY;
-            var u0 = uvRect[0];
-            var v0 = uvRect[1];
-            var u1 = uvRect[0] + uvRect[2];
-            var v1 = uvRect[1] + uvRect[3];
-            var iu0 = innerUvRect[0];
-            var iv0 = innerUvRect[1];
-            var iu1 = innerUvRect[0] + innerUvRect[2];
-            var iv1 = innerUvRect[1] + innerUvRect[3];
-            //Draws a total of 9 rects
-            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = color.abgrHex;
-            var x0 = -halfSizeX + dx;
-            var y0 = -halfSizeY + dy;
-            var x1 = halfSizeX + dx;
-            var y1 = halfSizeY + dy;
-            var leftWidth = innerRect[0] - rect[0];
-            var rightWidth = rect[0] + rect[2] - (innerRect[0] + innerRect[2]);
-            var topHeight = innerRect[1] - rect[1];
-            var bottomHeight = rect[1] + rect[3] - (innerRect[1] + innerRect[3]);
-            var ix0 = x0 + leftWidth;
-            var iy0 = y0 + topHeight;
-            var ix1 = x1 - rightWidth;
-            var iy1 = y1 - bottomHeight;
-            /**
-             * Reference:
-             *
-             *  x0,y0                             x1,y0
-             *   /----------------------------------\
-             *   |                                  |
-             *   |  ix0,iy0               ix1,iy0   |
-             *   |   /-----------------------\      |
-             *   |   |                       |      |
-             *   |   |                       |      |
-             *   |   |                       |      |
-             *   |   \-----------------------/      |
-             *   |  ix0,iy1               ix1,iy1   |
-             *   |                                  |
-             *   \----------------------------------/
-             *  x0,y1                             x1,y1
-             *
-             *
-             *
-             */
-            //TODO: OPTIMIZE!!!
-            //This can be done with only 16 vertexes, since all vertexes share uv / colors 
-            //Top left corner
-            this.drawRect(tmpV1.setXYUV(x0, y0, u0, v0).transformMat2d(mat), tmpV2.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV4.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat));
-            //Top middle
-            this.drawRect(tmpV1.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV2.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat));
-            //Top right corner
-            this.drawRect(tmpV1.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV2.setXYUV(x1, y0, u1, v0).transformMat2d(mat), tmpV3.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat));
-            //Center left
-            this.drawRect(tmpV1.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV4.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat));
-            //Center middle
-            this.drawRect(tmpV1.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat));
-            //Center right
-            this.drawRect(tmpV1.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV2.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV3.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat));
-            //Bottom left corner
-            this.drawRect(tmpV1.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV3.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat), tmpV4.setXYUV(x0, y1, u0, v1).transformMat2d(mat));
-            //Bottom middle
-            this.drawRect(tmpV1.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV3.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat), tmpV4.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat));
-            //Bottom right corner
-            this.drawRect(tmpV1.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV2.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV3.setXYUV(x1, y1, u1, v1).transformMat2d(mat), tmpV4.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat));
-        };
-        RenderMesh.prototype.canDrawRect = function () {
-            return this.vertexOffset + 4 <= this.maxVertex && this.indexesOffset + 6 <= this.maxIndex;
-        };
-        RenderMesh.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4) {
-            if (this.vertexOffset + 4 > this.maxVertex || this.indexesOffset + 6 > this.maxIndex) {
-                s2d.EngineConsole.error("Mesh is full!!!");
-                return;
-            }
-            var vertexOffset = this.vertexOffset;
-            var indexesOffset = this.indexesOffset;
-            var positions = this.positions;
-            var colors = this.colors;
-            var uvs = this.uvs;
-            var indexes = this.indexes;
-            var positionsOffset = vertexOffset * 4;
-            var colorsOffset = vertexOffset * 4;
-            var uvsOffset = vertexOffset * 8;
-            //Add 4 vertexes
-            positions[positionsOffset + 0] = tmpV1.x;
-            positions[positionsOffset + 1] = tmpV1.y;
-            colors[colorsOffset + 2] = tmpV1.color;
-            uvs[uvsOffset + 6] = tmpV1.u * 65535;
-            uvs[uvsOffset + 7] = tmpV1.v * 65535;
-            positions[positionsOffset + 4] = tmpV2.x;
-            positions[positionsOffset + 5] = tmpV2.y;
-            colors[colorsOffset + 6] = tmpV2.color;
-            uvs[uvsOffset + 14] = tmpV2.u * 65535;
-            uvs[uvsOffset + 15] = tmpV2.v * 65535;
-            positions[positionsOffset + 8] = tmpV3.x;
-            positions[positionsOffset + 9] = tmpV3.y;
-            colors[colorsOffset + 10] = tmpV3.color;
-            uvs[uvsOffset + 22] = tmpV3.u * 65535;
-            uvs[uvsOffset + 23] = tmpV3.v * 65535;
-            positions[positionsOffset + 12] = tmpV4.x;
-            positions[positionsOffset + 13] = tmpV4.y;
-            colors[colorsOffset + 14] = tmpV4.color;
-            uvs[uvsOffset + 30] = tmpV4.u * 65535;
-            uvs[uvsOffset + 31] = tmpV4.v * 65535;
-            //Add 2 triangles
-            //First triangle (0 -> 1 -> 2)
-            indexes[indexesOffset + 0] = vertexOffset + 0;
-            indexes[indexesOffset + 1] = vertexOffset + 1;
-            indexes[indexesOffset + 2] = vertexOffset + 2;
-            //Second triangle (2 -> 3 -> 0)
-            indexes[indexesOffset + 3] = vertexOffset + 2;
-            indexes[indexesOffset + 4] = vertexOffset + 3;
-            indexes[indexesOffset + 5] = vertexOffset + 0;
-            this.vertexOffset += 4;
-            this.indexesOffset += 6;
-        };
-        RenderMesh.VERTEX_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
-        RenderMesh.INDEX_SIZE = 2; //16 bits
-        RenderMesh.tmpV1 = new s2d.RenderVertex();
-        RenderMesh.tmpV2 = new s2d.RenderVertex();
-        RenderMesh.tmpV3 = new s2d.RenderVertex();
-        RenderMesh.tmpV4 = new s2d.RenderVertex();
-        return RenderMesh;
-    }());
-    s2d.RenderMesh = RenderMesh;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EmbeddedAssets = (function () {
-        function EmbeddedAssets() {
-        }
-        EmbeddedAssets.init = function () {
-            s2d.loader.loadRenderFontFromUrl("defaultFont", "assets/font.xml");
-            s2d.loader.loadRenderSpriteAtlasFromUrl("defaultSkinAtlas", "assets/gui_skin.xml");
-        };
-        Object.defineProperty(EmbeddedAssets, "defaultFont", {
-            get: function () {
-                if (EmbeddedAssets._defaultFont === null)
-                    EmbeddedAssets._defaultFont = s2d.loader.getAsset("defaultFont");
-                return EmbeddedAssets._defaultFont;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
-            get: function () {
-                if (EmbeddedAssets._defaultSkinAtlas === null)
-                    EmbeddedAssets._defaultSkinAtlas = s2d.loader.getAsset("defaultSkinAtlas");
-                return EmbeddedAssets._defaultSkinAtlas;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        //Default font is KenPixel.ttf at 12px height
-        EmbeddedAssets._defaultFont = null;
-        EmbeddedAssets._defaultSkinAtlas = null;
-        return EmbeddedAssets;
-    }());
-    s2d.EmbeddedAssets = EmbeddedAssets;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EmbeddedData = (function () {
-        function EmbeddedData() {
-        }
-        return EmbeddedData;
-    }());
-    s2d.EmbeddedData = EmbeddedData;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EngineConfiguration = (function () {
-        function EngineConfiguration() {
-        }
-        EngineConfiguration.RENDER_ENABLED = true;
-        EngineConfiguration.LOG_PERFORMANCE = false;
-        return EngineConfiguration;
-    }());
-    s2d.EngineConfiguration = EngineConfiguration;
-})(s2d || (s2d = {}));
-var s2d;
-(function (s2d) {
-    var EngineConsole = (function () {
-        function EngineConsole() {
-        }
-        EngineConsole.error = function (message, target) {
-            if (target === void 0) { target = null; }
-            var prefix = "";
-            if (target instanceof s2d.Component) {
-                var componentClassName = EngineConsole.getClassName(target);
-                prefix = target.entity.name + "->" + componentClassName + ": ";
-            }
-            else if (target instanceof s2d.Entity) {
-                prefix = target.name + ": ";
-            }
-            console.error(prefix + message);
-        };
-        EngineConsole.warning = function (message, target) {
-            if (target === void 0) { target = null; }
-            var prefix = "";
-            if (target instanceof s2d.Component) {
-                var componentClassName = EngineConsole.getClassName(target);
-                prefix = target.entity.name + "->" + componentClassName + ": ";
-            }
-            else if (target instanceof s2d.Entity) {
-                prefix = target.name + ": ";
-            }
-            console.warn(prefix + message);
-        };
-        EngineConsole.info = function (message, target) {
-            if (target === void 0) { target = null; }
-            var prefix = "";
-            if (target instanceof s2d.Component) {
-                var componentClassName = EngineConsole.getClassName(target);
-                prefix = target.entity.name + "->" + componentClassName + ": ";
-            }
-            else if (target instanceof s2d.Entity) {
-                prefix = target.name + ": ";
-            }
-            console.info(prefix + message);
-        };
-        EngineConsole.getClassName = function (instance) {
-            var funcNameRegex = /function (.{1,})\(/;
-            var results = (funcNameRegex).exec(instance["constructor"].toString());
-            return (results && results.length > 1) ? results[1] : "";
-        };
-        return EngineConsole;
-    }());
-    s2d.EngineConsole = EngineConsole;
-})(s2d || (s2d = {}));
-/// <reference path="EngineConfiguration.ts" />
-var s2d;
-(function (s2d) {
-    var Stats = (function () {
-        function Stats() {
-            this.lastFpsTime = 0;
-            this.fpsCounter = 0;
-            this.accumulatedUpdateTime = 0;
-            this._lastFps = 0;
-            this._lastUpdateTime = 0;
-            this._lastDrawcalls = 0;
-            this._drawcalls = 0;
-        }
-        Object.defineProperty(Stats.prototype, "lastFps", {
-            get: function () {
-                return this._lastFps;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Stats.prototype, "lastUpdateTime", {
-            get: function () {
-                return this._lastUpdateTime;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Stats.prototype, "lastDrawcalls", {
-            get: function () {
-                return this._lastDrawcalls;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Stats.prototype.init = function () {
-            this.lastFpsTime = performance.now();
-        };
-        Stats.prototype.startFrame = function () {
-            this._drawcalls = 0;
-        };
-        Stats.prototype.incrmentDrawcalls = function () {
-            this._drawcalls++;
-        };
-        Stats.prototype.endFrame = function () {
-            this._lastDrawcalls = this._drawcalls;
-        };
-        Stats.prototype.startUpdate = function () {
-            this.updateStartTime = performance.now();
-        };
-        Stats.prototype.endUpdate = function () {
-            var endTime = performance.now();
-            this.accumulatedUpdateTime += endTime - this.updateStartTime;
-            this.fpsCounter++;
-            if (this.updateStartTime - this.lastFpsTime > 1000) {
-                var delta = this.updateStartTime - this.lastFpsTime;
-                var fps = this.fpsCounter / (delta / 1000);
-                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
-                this.lastFpsTime = this.updateStartTime;
-                this.fpsCounter = 0;
-                this.accumulatedUpdateTime = 0;
-                this._lastFps = fps;
-                this._lastUpdateTime = updateTime;
-                if (s2d.EngineConfiguration.LOG_PERFORMANCE)
-                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
-            }
-        };
-        return Stats;
-    }());
-    s2d.Stats = Stats;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
@@ -5552,223 +5349,507 @@ var s2d;
     }());
     s2d.SMath = SMath;
 })(s2d || (s2d = {}));
-/// <reference path="../../Simple2DEngine/Component/Behavior.ts" />
-var Test = (function () {
-    function Test() {
-    }
-    Test.prototype.init = function (gameLogic) {
-        this.gameLogic = gameLogic;
-        this.testContainer = new s2d.Entity("Test Container").transform;
-        this.uiContainer = new s2d.Entity("UI Container").transform;
-        this.uiContainer.entity.transform.parent = s2d.ui.root;
-        var exitButton = s2d.EntityFactory.buildTextButton("Exit Test");
-        exitButton.entity.transform.setLocalPosition(8, 128).setParent(this.uiContainer);
-        exitButton.onClick.attach(this.onExitButtonClicked, this);
-        this.onInit();
-    };
-    Test.prototype.onExitButtonClicked = function () {
-        this.gameLogic.setActiveTest(null);
-    };
-    Test.prototype.onInit = function () {
-    };
-    Test.prototype.update = function () {
-        this.onUpdate();
-    };
-    Test.prototype.onUpdate = function () {
-    };
-    Test.prototype.destroy = function () {
-        this.onDestroy();
-        this.uiContainer.entity.destroy();
-        this.testContainer.entity.destroy();
-    };
-    Test.prototype.onDestroy = function () {
-    };
-    return Test;
-}());
-var TestMovingTriangles = (function (_super) {
-    __extends(TestMovingTriangles, _super);
-    function TestMovingTriangles() {
-        _super.apply(this, arguments);
-        this.entities = new Array();
-        this.loadCompleted = false;
-        this.lastEntitiesCount = 0;
-    }
-    TestMovingTriangles.prototype.onInit = function () {
-        var _this = this;
-        var resetButton = s2d.EntityFactory.buildTextButton("Reset");
-        resetButton.entity.transform.setLocalPosition(300, 8).setParent(this.uiContainer);
-        resetButton.onClick.attach(this.onResetButtonClicked, this);
-        var clearButton = s2d.EntityFactory.buildTextButton("Clear");
-        clearButton.entity.transform.setLocalPosition(450, 8).setParent(this.uiContainer);
-        clearButton.onClick.attach(this.onClearButtonClicked, this);
-        var addMore = s2d.EntityFactory.buildTextButton("Add\nMore");
-        addMore.entity.transform.setLocalPosition(450, 60).setParent(this.uiContainer);
-        addMore.onClick.attach(this.initTest, this);
-        var toggleRotationButton = s2d.EntityFactory.buildTextButton("Toggle\nRotation");
-        toggleRotationButton.entity.transform.setLocalPosition(600, 8).setParent(this.uiContainer);
-        toggleRotationButton.onClick.attach(function () { return TestMovingTriangles.TEST_MOVING = !TestMovingTriangles.TEST_MOVING; });
-        var toggleNestingButton = s2d.EntityFactory.buildTextButton("Toggle\nNesting");
-        toggleNestingButton.entity.transform.setLocalPosition(800, 8).setParent(this.uiContainer);
-        toggleNestingButton.onClick.attach(function () { TestMovingTriangles.TEST_NESTING = !TestMovingTriangles.TEST_NESTING; _this.clear(); _this.initTest(); });
-        var toggleActiveButton = s2d.EntityFactory.buildTextButton("Toggle\nActive");
-        toggleActiveButton.entity.transform.setLocalPosition(800, 100).setParent(this.uiContainer);
-        toggleActiveButton.onClick.attach(this.toggleActive, this);
-        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
-        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
-    };
-    TestMovingTriangles.prototype.toggleActive = function () {
-        this.testContainer.entity.active = !this.testContainer.entity.active;
-    };
-    TestMovingTriangles.prototype.onLoadComplete = function () {
-        this.texture = s2d.loader.getAsset("test.png");
-        this.loadCompleted = true;
-        this.initTest();
-    };
-    TestMovingTriangles.prototype.onResetButtonClicked = function (button) {
-        this.clear();
-        this.initTest();
-    };
-    TestMovingTriangles.prototype.onClearButtonClicked = function (button) {
-        this.clear();
-    };
-    TestMovingTriangles.prototype.clear = function () {
-        for (var i = 0; i < this.entities.length; i++)
-            this.entities[i].destroy();
-        this.entities.length = 0;
-    };
-    TestMovingTriangles.prototype.initTest = function () {
-        if (!this.loadCompleted)
-            return;
-        this.testContainer.entity.active = true;
-        var sWidth = s2d.engine.renderer.screenWidth;
-        var sHeight = s2d.engine.renderer.screenHeight;
-        for (var i = 0; i < TestMovingTriangles.RECTS_COUNT; i++) {
-            var e = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-            e.name = "Entity " + i;
-            e.transform.localX = s2d.SMath.randomInRangeFloat(100, sWidth - 100);
-            e.transform.localY = s2d.SMath.randomInRangeFloat(100, sHeight - 100);
-            if (TestMovingTriangles.TEST_NESTING) {
-                if (i > 0 && i % 3 == 0)
-                    e.transform.parent = this.entities[i - 2].transform;
-                else if (i > 0 && i % 5 == 0)
-                    e.transform.parent = this.entities[i - 4].transform;
-                else if (i > 0 && i % 7 == 0)
-                    e.transform.parent = this.entities[i - 6].transform;
-                else
-                    e.transform.parent = this.testContainer;
+var s2d;
+(function (s2d) {
+    var RenderVertex = (function () {
+        function RenderVertex() {
+        }
+        RenderVertex.prototype.copyFrom = function (v) {
+            this.x = v.x;
+            this.y = v.y;
+            this.color = v.color;
+            this.u = v.u;
+            this.v = v.v;
+            return this;
+        };
+        RenderVertex.prototype.transformMat2d = function (m) {
+            var x = this.x, y = this.y;
+            this.x = m[0] * x + m[2] * y + m[4];
+            this.y = m[1] * x + m[3] * y + m[5];
+            return this;
+        };
+        RenderVertex.prototype.setXYUV = function (x, y, u, v) {
+            this.x = x;
+            this.y = y;
+            this.u = u;
+            this.v = v;
+            return this;
+        };
+        return RenderVertex;
+    }());
+    s2d.RenderVertex = RenderVertex;
+})(s2d || (s2d = {}));
+/// <reference path="RenderBuffer.ts" />
+/// <reference path="RenderProgram.ts" />
+/// <reference path="RenderVertex.ts" />
+var s2d;
+(function (s2d) {
+    var RenderMesh = (function () {
+        function RenderMesh(maxTriangles) {
+            if (maxTriangles === void 0) { maxTriangles = 1024; }
+            this.backingVertexArray = null;
+            this.positions = null;
+            this.colors = null;
+            this.uvs = null;
+            this.backingIndexArray = null;
+            this.indexes = null;
+            this.indexesOffset = 0;
+            this.vertexOffset = 0;
+            this.maxVertex = 0;
+            this.maxIndex = 0;
+            this._maxTriangles = 0;
+            this._maxTriangles = maxTriangles;
+            this.maxVertex = maxTriangles * 3;
+            this.maxIndex = maxTriangles * 3;
+            this.backingVertexArray = new ArrayBuffer(this.maxVertex * RenderMesh.VERTEX_SIZE);
+            this.positions = new Float32Array(this.backingVertexArray);
+            this.colors = new Uint32Array(this.backingVertexArray);
+            this.uvs = new Uint16Array(this.backingVertexArray);
+            this.backingIndexArray = new ArrayBuffer(this.maxIndex * RenderMesh.INDEX_SIZE);
+            this.indexes = new Uint16Array(this.backingIndexArray);
+        }
+        Object.defineProperty(RenderMesh.prototype, "vertexCount", {
+            get: function () {
+                return this.vertexOffset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "indexCount", {
+            get: function () {
+                return this.indexesOffset;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "vertexArray", {
+            get: function () {
+                return this.backingVertexArray;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "indexArray", {
+            get: function () {
+                return this.backingIndexArray;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(RenderMesh.prototype, "maxTriangles", {
+            get: function () {
+                return this._maxTriangles;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        RenderMesh.prototype.reset = function () {
+            this.vertexOffset = 0;
+            this.indexesOffset = 0;
+        };
+        RenderMesh.prototype.canDrawRectSimple = function () {
+            return this.vertexOffset + 4 <= this.maxVertex && this.indexesOffset + 6 <= this.maxIndex;
+        };
+        RenderMesh.prototype.drawRectSimple = function (mat, size, uvRect, color) {
+            var tmpV1 = RenderMesh.tmpV1;
+            var tmpV2 = RenderMesh.tmpV2;
+            var tmpV3 = RenderMesh.tmpV3;
+            var tmpV4 = RenderMesh.tmpV4;
+            var u0 = uvRect[0];
+            var v0 = uvRect[1];
+            var u1 = uvRect[0] + uvRect[2];
+            var v1 = uvRect[1] + uvRect[3];
+            //Top left
+            tmpV1.x = 0;
+            tmpV1.y = 0;
+            tmpV1.color = color.abgrHex;
+            tmpV1.u = u0;
+            tmpV1.v = v0;
+            //Top right
+            tmpV2.x = size[0];
+            tmpV2.y = 0;
+            tmpV2.color = color.abgrHex;
+            tmpV2.u = u1;
+            tmpV2.v = v0;
+            //Bottom right
+            tmpV3.x = size[0];
+            tmpV3.y = size[1];
+            tmpV3.color = color.abgrHex;
+            tmpV3.u = u1;
+            tmpV3.v = v1;
+            //Bottom left
+            tmpV4.x = 0;
+            tmpV4.y = size[1];
+            tmpV4.color = color.abgrHex;
+            tmpV4.u = u0;
+            tmpV4.v = v1;
+            tmpV1.transformMat2d(mat);
+            tmpV2.transformMat2d(mat);
+            tmpV3.transformMat2d(mat);
+            tmpV4.transformMat2d(mat);
+            this.drawRect(tmpV1, tmpV2, tmpV3, tmpV4);
+        };
+        RenderMesh.prototype.canDrawRect9Slice = function () {
+            //Draws 9 rects
+            return this.vertexOffset + 4 * 9 <= this.maxVertex && this.indexesOffset + 6 * 9 <= this.maxIndex;
+        };
+        RenderMesh.prototype.drawRect9Slice = function (mat, size, rect, uvRect, innerRect, innerUvRect, color) {
+            var tmpV1 = RenderMesh.tmpV1;
+            var tmpV2 = RenderMesh.tmpV2;
+            var tmpV3 = RenderMesh.tmpV3;
+            var tmpV4 = RenderMesh.tmpV4;
+            var u0 = uvRect[0];
+            var v0 = uvRect[1];
+            var u1 = uvRect[0] + uvRect[2];
+            var v1 = uvRect[1] + uvRect[3];
+            var iu0 = innerUvRect[0];
+            var iv0 = innerUvRect[1];
+            var iu1 = innerUvRect[0] + innerUvRect[2];
+            var iv1 = innerUvRect[1] + innerUvRect[3];
+            //Draws a total of 9 rects
+            tmpV1.color = tmpV2.color = tmpV3.color = tmpV4.color = color.abgrHex;
+            var x0 = 0;
+            var y0 = 0;
+            var x1 = size[0];
+            var y1 = size[1];
+            var leftWidth = innerRect[0] - rect[0];
+            var rightWidth = rect[0] + rect[2] - (innerRect[0] + innerRect[2]);
+            var topHeight = innerRect[1] - rect[1];
+            var bottomHeight = rect[1] + rect[3] - (innerRect[1] + innerRect[3]);
+            var ix0 = x0 + leftWidth;
+            var iy0 = y0 + topHeight;
+            var ix1 = x1 - rightWidth;
+            var iy1 = y1 - bottomHeight;
+            /**
+             * Reference:
+             *
+             *  x0,y0                             x1,y0
+             *   /----------------------------------\
+             *   |                                  |
+             *   |  ix0,iy0               ix1,iy0   |
+             *   |   /-----------------------\      |
+             *   |   |                       |      |
+             *   |   |                       |      |
+             *   |   |                       |      |
+             *   |   \-----------------------/      |
+             *   |  ix0,iy1               ix1,iy1   |
+             *   |                                  |
+             *   \----------------------------------/
+             *  x0,y1                             x1,y1
+             *
+             *
+             *
+             */
+            //TODO: OPTIMIZE!!!
+            //This can be done with only 16 vertexes, since all vertexes share uv / colors 
+            //Top left corner
+            this.drawRect(tmpV1.setXYUV(x0, y0, u0, v0).transformMat2d(mat), tmpV2.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV4.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat));
+            //Top middle
+            this.drawRect(tmpV1.setXYUV(ix0, y0, iu0, v0).transformMat2d(mat), tmpV2.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat));
+            //Top right corner
+            this.drawRect(tmpV1.setXYUV(ix1, y0, iu1, v0).transformMat2d(mat), tmpV2.setXYUV(x1, y0, u1, v0).transformMat2d(mat), tmpV3.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV4.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat));
+            //Center left
+            this.drawRect(tmpV1.setXYUV(x0, iy0, u0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV3.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV4.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat));
+            //Center middle
+            this.drawRect(tmpV1.setXYUV(ix0, iy0, iu0, iv0).transformMat2d(mat), tmpV2.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV3.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat));
+            //Center right
+            this.drawRect(tmpV1.setXYUV(ix1, iy0, iu1, iv0).transformMat2d(mat), tmpV2.setXYUV(x1, iy0, u1, iv0).transformMat2d(mat), tmpV3.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV4.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat));
+            //Bottom left corner
+            this.drawRect(tmpV1.setXYUV(x0, iy1, u0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV3.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat), tmpV4.setXYUV(x0, y1, u0, v1).transformMat2d(mat));
+            //Bottom middle
+            this.drawRect(tmpV1.setXYUV(ix0, iy1, iu0, iv1).transformMat2d(mat), tmpV2.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV3.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat), tmpV4.setXYUV(ix0, y1, iu0, v1).transformMat2d(mat));
+            //Bottom right corner
+            this.drawRect(tmpV1.setXYUV(ix1, iy1, iu1, iv1).transformMat2d(mat), tmpV2.setXYUV(x1, iy1, u1, iv1).transformMat2d(mat), tmpV3.setXYUV(x1, y1, u1, v1).transformMat2d(mat), tmpV4.setXYUV(ix1, y1, iu1, v1).transformMat2d(mat));
+        };
+        RenderMesh.prototype.canDrawRect = function () {
+            return this.vertexOffset + 4 <= this.maxVertex && this.indexesOffset + 6 <= this.maxIndex;
+        };
+        RenderMesh.prototype.drawRect = function (tmpV1, tmpV2, tmpV3, tmpV4) {
+            if (this.vertexOffset + 4 > this.maxVertex || this.indexesOffset + 6 > this.maxIndex) {
+                s2d.EngineConsole.error("Mesh is full!!!");
+                return;
             }
-            else {
-                e.transform.parent = this.testContainer;
+            var vertexOffset = this.vertexOffset;
+            var indexesOffset = this.indexesOffset;
+            var positions = this.positions;
+            var colors = this.colors;
+            var uvs = this.uvs;
+            var indexes = this.indexes;
+            var positionsOffset = vertexOffset * 4;
+            var colorsOffset = vertexOffset * 4;
+            var uvsOffset = vertexOffset * 8;
+            //Add 4 vertexes
+            positions[positionsOffset + 0] = tmpV1.x;
+            positions[positionsOffset + 1] = tmpV1.y;
+            colors[colorsOffset + 2] = tmpV1.color;
+            uvs[uvsOffset + 6] = tmpV1.u * 65535;
+            uvs[uvsOffset + 7] = tmpV1.v * 65535;
+            positions[positionsOffset + 4] = tmpV2.x;
+            positions[positionsOffset + 5] = tmpV2.y;
+            colors[colorsOffset + 6] = tmpV2.color;
+            uvs[uvsOffset + 14] = tmpV2.u * 65535;
+            uvs[uvsOffset + 15] = tmpV2.v * 65535;
+            positions[positionsOffset + 8] = tmpV3.x;
+            positions[positionsOffset + 9] = tmpV3.y;
+            colors[colorsOffset + 10] = tmpV3.color;
+            uvs[uvsOffset + 22] = tmpV3.u * 65535;
+            uvs[uvsOffset + 23] = tmpV3.v * 65535;
+            positions[positionsOffset + 12] = tmpV4.x;
+            positions[positionsOffset + 13] = tmpV4.y;
+            colors[colorsOffset + 14] = tmpV4.color;
+            uvs[uvsOffset + 30] = tmpV4.u * 65535;
+            uvs[uvsOffset + 31] = tmpV4.v * 65535;
+            //Add 2 triangles
+            //First triangle (0 -> 1 -> 2)
+            indexes[indexesOffset + 0] = vertexOffset + 0;
+            indexes[indexesOffset + 1] = vertexOffset + 1;
+            indexes[indexesOffset + 2] = vertexOffset + 2;
+            //Second triangle (2 -> 3 -> 0)
+            indexes[indexesOffset + 3] = vertexOffset + 2;
+            indexes[indexesOffset + 4] = vertexOffset + 3;
+            indexes[indexesOffset + 5] = vertexOffset + 0;
+            this.vertexOffset += 4;
+            this.indexesOffset += 6;
+        };
+        RenderMesh.VERTEX_SIZE = 2 * 4 + 4 * 1 + 2 * 2; //(2 floats [X,Y] + 4 byte [A,B,G,R] + 2 byte (U,V) )
+        RenderMesh.INDEX_SIZE = 2; //16 bits
+        RenderMesh.tmpV1 = new s2d.RenderVertex();
+        RenderMesh.tmpV2 = new s2d.RenderVertex();
+        RenderMesh.tmpV3 = new s2d.RenderVertex();
+        RenderMesh.tmpV4 = new s2d.RenderVertex();
+        return RenderMesh;
+    }());
+    s2d.RenderMesh = RenderMesh;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedAssets = (function () {
+        function EmbeddedAssets() {
+        }
+        EmbeddedAssets.init = function () {
+            s2d.loader.loadRenderFontFromUrl("defaultFont", "assets/font.xml");
+            s2d.loader.loadRenderSpriteAtlasFromUrl("defaultSkinAtlas", "assets/gui_skin.xml");
+        };
+        Object.defineProperty(EmbeddedAssets, "defaultFont", {
+            get: function () {
+                if (EmbeddedAssets._defaultFont === null)
+                    EmbeddedAssets._defaultFont = s2d.loader.getAsset("defaultFont");
+                return EmbeddedAssets._defaultFont;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(EmbeddedAssets, "defaultSkinAtlas", {
+            get: function () {
+                if (EmbeddedAssets._defaultSkinAtlas === null)
+                    EmbeddedAssets._defaultSkinAtlas = s2d.loader.getAsset("defaultSkinAtlas");
+                return EmbeddedAssets._defaultSkinAtlas;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        //Default font is KenPixel.ttf at 12px height
+        EmbeddedAssets._defaultFont = null;
+        EmbeddedAssets._defaultSkinAtlas = null;
+        return EmbeddedAssets;
+    }());
+    s2d.EmbeddedAssets = EmbeddedAssets;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EmbeddedData = (function () {
+        function EmbeddedData() {
+        }
+        return EmbeddedData;
+    }());
+    s2d.EmbeddedData = EmbeddedData;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EngineConfiguration = (function () {
+        function EngineConfiguration() {
+        }
+        EngineConfiguration.RENDER_ENABLED = true;
+        EngineConfiguration.LOG_PERFORMANCE = false;
+        return EngineConfiguration;
+    }());
+    s2d.EngineConfiguration = EngineConfiguration;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var EngineConsole = (function () {
+        function EngineConsole() {
+        }
+        EngineConsole.error = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
             }
-            this.entities.push(e);
-        }
-    };
-    TestMovingTriangles.prototype.onUpdate = function () {
-        if (TestMovingTriangles.TEST_MOVING) {
-            var entities = this.entities;
-            for (var i = 0; i < entities.length; i++)
-                entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
-        }
-        //if (s2d.input.pointerDown)
-        //    this.cam.clearColor.setFromRgba(255, 0, 0); //red
-        //else
-        //    this.cam.clearColor.setFromRgba(0, 0, 0); //black        
-    };
-    TestMovingTriangles.TEST_NESTING = true;
-    TestMovingTriangles.TEST_MOVING = true;
-    TestMovingTriangles.RECTS_COUNT = 1024;
-    return TestMovingTriangles;
-}(Test));
-var TestSimple = (function (_super) {
-    __extends(TestSimple, _super);
-    function TestSimple() {
-        _super.apply(this, arguments);
-        this.entities = new Array();
-        this.loadCompleted = false;
-    }
-    TestSimple.prototype.onInit = function () {
-        s2d.loader.loadRenderTextureFromUrl("test.png", "assets/test.png", false);
-        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
-    };
-    TestSimple.prototype.toggleActive = function () {
-        this.testContainer.entity.active = !this.testContainer.entity.active;
-    };
-    TestSimple.prototype.onLoadComplete = function () {
-        this.texture = s2d.loader.getAsset("test.png");
-        this.loadCompleted = true;
-        this.initTestSimple();
-    };
-    TestSimple.prototype.initTestSimple = function () {
-        if (!this.loadCompleted)
-            return;
-        var e1 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        var e2 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        var e3 = s2d.EntityFactory.buildTextureDrawer(this.texture).entity;
-        e1.transform.localX = 300;
-        e1.transform.localY = 300;
-        e2.transform.parent = e1.transform;
-        e2.transform.localX = 200;
-        e3.transform.parent = e2.transform;
-        e3.transform.localX = 100;
-        this.entities.push(e1);
-        this.entities.push(e2);
-        this.entities.push(e3);
-    };
-    TestSimple.prototype.onUpdate = function () {
-        var entities = this.entities;
-        for (var i = 0; i < entities.length; i++)
-            entities[i].transform.localRotationDegrees += 360 * s2d.Time.deltaTime;
-    };
-    TestSimple.prototype.onDestroy = function () {
-        for (var i = 0; i < this.entities.length; i++)
-            this.entities[i].destroy();
-        this.entities.length = 0;
-    };
-    return TestSimple;
-}(Test));
-var TestTilemap = (function (_super) {
-    __extends(TestTilemap, _super);
-    function TestTilemap() {
-        _super.apply(this, arguments);
-        this.loadCompleted = false;
-    }
-    TestTilemap.prototype.onInit = function () {
-        s2d.loader.loadRenderSpriteAtlasFromUrl("spritesheet", "assets/spritesheet.xml");
-        s2d.loader.attachOnLoadCompleteListener(this.onLoadComplete, this);
-    };
-    TestTilemap.prototype.toggleActive = function () {
-        this.testContainer.entity.active = !this.testContainer.entity.active;
-    };
-    TestTilemap.prototype.onLoadComplete = function () {
-        this.spritesheet = s2d.loader.getAsset("spritesheet");
-        this.loadCompleted = true;
-        this.initTilemap();
-    };
-    TestTilemap.prototype.initTilemap = function () {
-        if (!this.loadCompleted)
-            return;
-        var spritesheet = this.spritesheet;
-        var tiles = new Array();
-        for (var spriteId in spritesheet.sprites.data) {
-            var sprite = spritesheet.sprites.data[spriteId];
-            tiles.push(new s2d.Tile(sprite.id, sprite));
-        }
-        var tilemap = new s2d.Tilemap(128, 64, tiles);
-        var data = tilemap.data;
-        for (var x = 0; x < tilemap.width; x++) {
-            for (var y = 0; y < tilemap.height; y++) {
-                data[y][x] = tiles[(x + y) % tiles.length];
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
             }
+            console.error(prefix + message);
+        };
+        EngineConsole.warning = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.warn(prefix + message);
+        };
+        EngineConsole.info = function (message, target) {
+            if (target === void 0) { target = null; }
+            var prefix = "";
+            if (target instanceof s2d.Component) {
+                var componentClassName = EngineConsole.getClassName(target);
+                prefix = target.entity.name + "->" + componentClassName + ": ";
+            }
+            else if (target instanceof s2d.Entity) {
+                prefix = target.name + ": ";
+            }
+            console.info(prefix + message);
+        };
+        EngineConsole.getClassName = function (instance) {
+            var funcNameRegex = /function (.{1,})\(/;
+            var results = (funcNameRegex).exec(instance["constructor"].toString());
+            return (results && results.length > 1) ? results[1] : "";
+        };
+        return EngineConsole;
+    }());
+    s2d.EngineConsole = EngineConsole;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var Pool = (function () {
+        function Pool(classOrFactoryMethod, precreateCount) {
+            if (precreateCount === void 0) { precreateCount = 5; }
+            this._instances = new Array();
+            this._factoryMethod = null;
+            this._clazz = null;
+            this._createdInstancesCount = 0;
+            if (classOrFactoryMethod instanceof Function)
+                this._factoryMethod = classOrFactoryMethod;
+            else
+                this._clazz = classOrFactoryMethod;
+            for (var i = 0; i < precreateCount; i++)
+                this._instances.push(this.getNew());
         }
-        var tilemapDrawer = s2d.EntityFactory.buildTilemapDrawer(tilemap);
-        tilemapDrawer.entity.transform.parent = this.testContainer;
-    };
-    TestTilemap.prototype.onUpdate = function () {
-    };
-    TestTilemap.prototype.onDestroy = function () {
-    };
-    return TestTilemap;
-}(Test));
+        Object.defineProperty(Pool.prototype, "createdInstancesCount", {
+            get: function () {
+                return this._createdInstancesCount;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Pool.prototype.getNew = function () {
+            this._createdInstancesCount++;
+            if (this._clazz !== null)
+                return new this._clazz();
+            else
+                return this._factoryMethod.call(null);
+        };
+        Pool.prototype.get = function () {
+            if (this._instances.length > 0)
+                return this._instances.pop();
+            return this.getNew();
+        };
+        Pool.prototype.return = function (instance) {
+            this._instances.push(instance);
+        };
+        return Pool;
+    }());
+    s2d.Pool = Pool;
+})(s2d || (s2d = {}));
+var s2d;
+(function (s2d) {
+    var Pools = (function () {
+        function Pools() {
+        }
+        Pools.initPools = function () {
+            Pools.vector2 = new s2d.Pool(s2d.Vector2.create);
+            Pools.matrix2d = new s2d.Pool(s2d.Matrix2d.create);
+        };
+        return Pools;
+    }());
+    s2d.Pools = Pools;
+})(s2d || (s2d = {}));
+/// <reference path="EngineConfiguration.ts" />
+var s2d;
+(function (s2d) {
+    var Stats = (function () {
+        function Stats() {
+            this.lastFpsTime = 0;
+            this.fpsCounter = 0;
+            this.accumulatedUpdateTime = 0;
+            this._lastFps = 0;
+            this._lastUpdateTime = 0;
+            this._lastDrawcalls = 0;
+            this._drawcalls = 0;
+        }
+        Object.defineProperty(Stats.prototype, "lastFps", {
+            get: function () {
+                return this._lastFps;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Stats.prototype, "lastUpdateTime", {
+            get: function () {
+                return this._lastUpdateTime;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Stats.prototype, "lastDrawcalls", {
+            get: function () {
+                return this._lastDrawcalls;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Stats.prototype.init = function () {
+            this.lastFpsTime = performance.now();
+        };
+        Stats.prototype.startFrame = function () {
+            this._drawcalls = 0;
+        };
+        Stats.prototype.incrmentDrawcalls = function () {
+            this._drawcalls++;
+        };
+        Stats.prototype.endFrame = function () {
+            this._lastDrawcalls = this._drawcalls;
+        };
+        Stats.prototype.startUpdate = function () {
+            this.updateStartTime = performance.now();
+        };
+        Stats.prototype.endUpdate = function () {
+            var endTime = performance.now();
+            this.accumulatedUpdateTime += endTime - this.updateStartTime;
+            this.fpsCounter++;
+            if (this.updateStartTime - this.lastFpsTime > 1000) {
+                var delta = this.updateStartTime - this.lastFpsTime;
+                var fps = this.fpsCounter / (delta / 1000);
+                var updateTime = this.accumulatedUpdateTime / this.fpsCounter;
+                this.lastFpsTime = this.updateStartTime;
+                this.fpsCounter = 0;
+                this.accumulatedUpdateTime = 0;
+                this._lastFps = fps;
+                this._lastUpdateTime = updateTime;
+                if (s2d.EngineConfiguration.LOG_PERFORMANCE)
+                    console.log("fps: " + Math.round(fps) + " updateTime: " + updateTime.toFixed(2) + " ms");
+            }
+        };
+        return Stats;
+    }());
+    s2d.Stats = Stats;
+})(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
     (function (LoaderState) {
@@ -6291,11 +6372,11 @@ var s2d;
             if (this._xAnchorMode === LayoutAnchorMode.RelativeToParent || this._yAnchorMode === LayoutAnchorMode.RelativeToParent) {
                 var parent_1 = transform.parent;
                 if (parent_1 !== null) {
-                    var parentPivot = parent_1.pivot;
+                    var parentSize = parent_1.size;
                     if (this._xAnchorMode === LayoutAnchorMode.RelativeToParent)
-                        transform.localX = -parentPivot[0] * parent_1.sizeX / 2 + (parent_1.sizeX / 2) * this._anchorModePivot[0] + this._anchorModeOffset[0];
+                        transform.localX = parentSize[0] * 0.5 * (this._anchorModePivot[0] + 1) + this._anchorModeOffset[0];
                     if (this._yAnchorMode === LayoutAnchorMode.RelativeToParent)
-                        transform.localY = -parentPivot[1] * parent_1.sizeY / 2 + (parent_1.sizeY / 2) * this._anchorModePivot[1] + this._anchorModeOffset[1];
+                        transform.localY = parentSize[1] * 0.5 * (this._anchorModePivot[1] + 1) + this._anchorModeOffset[1];
                 }
                 else {
                     s2d.EngineConsole.error("Layout.updateLayout(): Anchor mode is 'RelativeToParent' but no parent found", this);
@@ -6390,11 +6471,6 @@ var s2d;
             var tmpV2 = TextDrawer.tmpV2;
             var tmpV3 = TextDrawer.tmpV3;
             var tmpV4 = TextDrawer.tmpV4;
-            //Offset matrix by pivot, vertex coordinates are generated starting at (0,0) and going (right,down)
-            //so we need to offset the pivot by (1, 1) to get the expected behavior
-            tmpVector[0] = -trans.sizeX * 0.5 * (trans.pivotX + 1);
-            tmpVector[1] = -trans.sizeY * 0.5 * (trans.pivotY + 1);
-            s2d.Matrix2d.translate(tmpMatrix, tmpMatrix, tmpVector);
             for (var i = 0; i < vertexChars.length; i++) {
                 var vertexChar = vertexChars[i];
                 tmpV1.copyFrom(vertexChar.v1);

@@ -2,11 +2,11 @@
 
 module s2d {
     export class Tilemap {
-        private _tiles:Array<Tile> = new Array<Tile>();
-        private _data:Array<Array<Tile>> = new Array<Array<Tile>>();
-        private _width:number = 0;
-        private _height:number = 0;
-        private _dirty:boolean = true;
+        private _tiles: Array<Tile> = new Array<Tile>();
+        private _data: Array<Array<Tile>> = new Array<Array<Tile>>();
+        private _width: number = 0;
+        private _height: number = 0;
+        private _dirty: boolean = true;
 
         public get data() {
             return this._data;
@@ -28,11 +28,22 @@ module s2d {
             return this._dirty;
         }
 
-        public set dirty(value:boolean) {
+        public set dirty(value: boolean) {
             this._dirty = value;
         }
 
-        public constructor(width:number, height:number, tiles:Array<Tile>) {
+        public getTile(x: number, y: number) {
+            return this._data[y][x];
+        }
+
+        public setTile(x: number, y: number, tile: Tile) {
+            if (this._data[y][x] !== tile) {
+                this._data[y][x] = tile;
+                this.dirty = true;
+            }
+        }
+
+        public constructor(width: number, height: number, tiles: Array<Tile>) {
             this._width = width;
             this._height = height;
             this._tiles = tiles;

@@ -6,8 +6,10 @@ module s2d {
         }
 
         public static buildTextureDrawer(texture: RenderTexture): TextureDrawer {
-            var textureDrawer = new Entity("Texture").addComponent(TextureDrawer);
+            var entity = new Entity("Texture");
+            var textureDrawer = entity.addComponent(TextureDrawer);
             textureDrawer.texture = texture;
+            entity.transform.setSize(32, 32);
             return textureDrawer
         }
 
@@ -57,6 +59,7 @@ module s2d {
 
             var entity = new Entity("Button");
             entity.addComponent(SpriteDrawer);
+            
             var button = entity.addComponent(FullscreenButton);
             entity.transform.setPivot(-1, -1).setLocalScale(3, 3);
 

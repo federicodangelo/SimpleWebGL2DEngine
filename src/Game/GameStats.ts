@@ -9,9 +9,12 @@ class GameStats extends s2d.Behavior {
 
     public onInit() : void {
         this.textFPS = s2d.EntityFactory.buildTextDrawer();
+        
         this.textFPS.entity.transform.setPivot(-1, -1).setLocalPosition(8, 8).setParent(this.entity.transform);
         this.textFPS.color.setFromRgba(0, 255, 0);
-        this.entity.transform.parent = s2d.ui.root;
+
+        this.entity.addComponent(s2d.Layout).setSizeMode(s2d.LayoutSizeMode.MatchChildrenBest, s2d.LayoutSizeMode.MatchChildrenBest);
+        this.entity.transform.setPivot(-1, -1).setParent(s2d.ui.root);
     }
 
     public update() : void {

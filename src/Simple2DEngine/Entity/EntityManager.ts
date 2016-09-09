@@ -5,7 +5,7 @@ module s2d {
     export class EntityManager {
 
         private _root: Transform = new Transform();
-        
+
         private _entitiesToDestroy: Array<Entity> = null;
         private _entitiesToDestroy1: Array<Entity> = new Array<Entity>();
         private _entitiesToDestroy2: Array<Entity> = new Array<Entity>();
@@ -20,10 +20,7 @@ module s2d {
         }
 
         public init() {
-            //this._root.pivotX = -1;
-            //this._root.pivotY = -1;
-            //this._root.sizeX = renderer.screenWidth;
-            //this._root.sizeY = renderer.screenHeight;
+            this._root.setSize(0, 0).setPivot(-1, -1);
         }
 
         public getComponentsInChildren<T extends Component>(clazz: { new (): T }, toReturn: Array<T>, includeInactive: boolean = false): number {
@@ -33,10 +30,6 @@ module s2d {
         private tmpBehaviors: Array<Behavior> = new Array<Behavior>(1024);
 
         public update(): void {
-
-            //this._root.sizeX = renderer.screenWidth;
-            //this._root.sizeY = renderer.screenHeight;
-
             var behaviors: Array<Behavior> = this.tmpBehaviors;
 
             var behaviorsLen = this.getComponentsInChildren(Behavior, behaviors);
@@ -50,7 +43,7 @@ module s2d {
             this.destroyEntities();
         }
 
-        private destroyEntities() : void {
+        private destroyEntities(): void {
             if (this._entitiesToDestroy.length > 0) {
 
                 this._insideDestroy = true;

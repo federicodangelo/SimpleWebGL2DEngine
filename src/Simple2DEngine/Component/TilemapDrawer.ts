@@ -45,7 +45,49 @@ module s2d {
             return this._bestSize;
         }
 
-        private tmpTileSize: Vector2 = Vector2.create();
+        public getTileAtGlobalPosition(globalPosition: Vector2): Tile {
+            let tile:Tile = null;
+            let tileCoords = this.getTileCoordsAtGlobalPosition(globalPosition, Pools.vector2.get());
+            {
+                if (tileCoords[0] !== -1 && tileCoords[1] !== -1)
+                    tile = this.tilemap.getTile(tileCoords[0], tileCoords[1]);
+            }
+            Pools.vector2.return(tileCoords);
+        
+            return tile;
+        }
+
+        public getTileCoordsAtGlobalPosition(globalPosition: Vector2, toReturn: Vector2 = null): Vector2 {
+            if (toReturn === null)
+                toReturn = Pools.vector2.get();
+            Vector2.set(toReturn, -1, -1);
+
+            let tilemap = this.tilemap;
+            let trans = this.entity.transform;
+
+            let width = tilemap.width;
+            let height = tilemap.height;
+
+            let matrixInv = Pools.matrix2d.get();
+            let localPosition = Pools.vector2.get();
+            {
+                let tileSizeX = trans.sizeX / tilemap.width;
+                let tileSizeY = trans.sizeY / tilemap.height;
+
+                trans.getGlobalToLocalMatrix(matrixInv);
+                Vector2.transformMat2d(localPosition, globalPosition, matrixInv);
+
+                let tileX = Math.floor(localPosition[0] / tileSizeX);
+                let tileY = Math.floor(localPosition[1] / tileSizeY);
+
+                if (tileX >= 0 && tileX < width && tileY >= 0 && tileY < height)
+                    Vector2.set(toReturn, tileX, tileY);
+            }
+            Pools.matrix2d.return(matrixInv);
+            Pools.vector2.return(localPosition);
+
+            return toReturn;
+        }
 
         private buildRenderMesh(matrix: Matrix2d) {
 
@@ -57,8 +99,10 @@ module s2d {
             let width = tilemap.width;
             let height = tilemap.height;
             let data = tilemap.data;
+            let size = trans.size;
 
-            let tileSize = this.tmpTileSize;
+            let tileSize = Pools.vector2.get();
+
             Vector2.copy(tileSize, this.tileSize);
             tileSize[0] = trans.sizeX / tilemap.width;
             tileSize[1] = trans.sizeY / tilemap.height;
@@ -66,8 +110,8 @@ module s2d {
             let right = Vector2.fromValues(tileSize[0], 0);
             let down = Vector2.fromValues(0, tileSize[1]);
 
-            Vector2.transformMat2d(right, right, matrix);
-            Vector2.transformMat2d(down, down, matrix);
+            Vector2.transformMat2dNormal(right, right, matrix);
+            Vector2.transformMat2dNormal(down, down, matrix);
 
             let startingPosition = Vector2.fromValues(matrix[4], matrix[5]);
 
@@ -92,7 +136,7 @@ module s2d {
                     let tile = line[x];
                     if (tile !== null) {
                         let sprite = tile.sprite;
-                        mesh.drawRectSimple(matrix, tileSize, pivot, sprite.uvRect, this._color);
+                        mesh.drawRectSimple(matrix, tileSize, sprite.uvRect, this._color);
                     }
 
                     matrix[4] += right[0];
@@ -102,6 +146,8 @@ module s2d {
 
             tilemap.dirty = false;
             this._dirty = false;
+
+            Pools.vector2.return(tileSize);
         }
 
         private lastDrawnMatrix: Matrix2d = Matrix2d.create();

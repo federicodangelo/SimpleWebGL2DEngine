@@ -42,6 +42,7 @@ module s2d {
 
             this._onInitCompleteCallback = onInitCompleteCallback;
 
+            Pools.initPools();
             Drawer.initStatic();
             TextDrawer.initStatic();
             Time.initStatic();

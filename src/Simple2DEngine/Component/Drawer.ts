@@ -6,11 +6,11 @@ module s2d {
 
     export class Drawer extends Component {
 
-        static tmpMatrix : Matrix3;
+        static tmpMatrix : Matrix2d;
         static tmpVector : Vector2;
 
         static initStatic() {
-            Drawer.tmpMatrix = Matrix3.create();
+            Drawer.tmpMatrix = Matrix2d.create();
             Drawer.tmpVector = Vector2.create();
         }
 
