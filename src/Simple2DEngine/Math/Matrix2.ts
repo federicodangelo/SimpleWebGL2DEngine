@@ -368,24 +368,8 @@ module s2d {
          * @param {Matrix2} b The second matrix.
          * @returns {Boolean} True if the matrices are equal, false otherwise.
          */
-        public static exactEquals(a: Matrix2, b: Matrix2): boolean {
-            return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
-        }
-
-        /**
-         * Returns whether or not the matrices have approximately the same elements in the same position.
-         *
-         * @param {Matrix2} a The first matrix.
-         * @param {Matrix2} b The second matrix.
-         * @returns {Boolean} True if the matrices are equal, false otherwise.
-         */
         public static equals(a: Matrix2, b: Matrix2): boolean {
-            let a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
-            let b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
-            return (Math.abs(a0 - b0) <= SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-                Math.abs(a3 - b3) <= SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)));
+            return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
         }
 
         /**

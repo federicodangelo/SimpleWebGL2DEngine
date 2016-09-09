@@ -28,7 +28,7 @@ module s2d {
 
         protected onInit(): void {
             engine.entities.root.addChildLast(this);
-            this.updateLocalMatrix();
+            this.setLocalMatrixDirty();
         }
 
         protected onDestroy(): void {
@@ -72,8 +72,10 @@ module s2d {
         }
 
         public set localPosition(p: Vector2) {
-            Vector2.copy(this._position, p);
-            this.updateLocalMatrix();        
+            if (!Vector2.equals(this._position, p)) {
+                Vector2.copy(this._position, p);
+                this.setLocalMatrixDirty();
+            }        
         }
 
         public get localX() {
@@ -81,8 +83,10 @@ module s2d {
         }
 
         public set localX(v: number) {
-            this._position[0] = v;
-            this.updateLocalMatrix();        
+            if (!SMath.equals(this._position[0], v)) {
+                this._position[0] = v;
+                this.setLocalMatrixDirty();
+            }        
         }
 
         public get localY() {
@@ -90,14 +94,20 @@ module s2d {
         }
 
         public set localY(v: number) {
-            this._position[1] = v;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._position[1], v)) {
+                this._position[1] = v;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public setLocalPosition(x: number, y: number) {
-            this._position[0] = x;
-            this._position[1] = y;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._position[0], x) ||
+                !SMath.equals(this._position[1], y)) {
+
+                this._position[0] = x;
+                this._position[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         }
 
@@ -106,8 +116,10 @@ module s2d {
         }
 
         public set localRotationRadians(rad: number) {
-            this._rotation = rad;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._rotation, rad)) {
+                this._rotation = rad;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public get localRotationDegrees() {
@@ -133,8 +145,10 @@ module s2d {
         }
 
         public set localScale(ss: Vector2) {
-            Vector2.copy(this._scale, ss);
-            this.updateLocalMatrix();
+            if (!Vector2.equals(this._scale, ss)) {
+                Vector2.copy(this._scale, ss);
+                this.setLocalMatrixDirty();
+            }
         }
 
         public get localScaleX() {
@@ -142,8 +156,10 @@ module s2d {
         }
 
         public set localScaleX(v: number) {
-            this._scale[0] = v;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._scale[0], v)) {
+                this._scale[0] = v;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public get localScaleY() {
@@ -151,14 +167,19 @@ module s2d {
         }
 
         public set localScaleY(v: number) {
-            this._scale[1] = v;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._scale[1], v)) {
+                this._scale[1] = v;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public setLocalScale(x: number, y: number) {
-            this._scale[0] = x;
-            this._scale[1] = y;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._scale[0], x) ||
+                !SMath.equals(this._scale[1], y)) {
+                this._scale[0] = x;
+                this._scale[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         }
 
@@ -167,8 +188,10 @@ module s2d {
         }
 
         public set size(s: Vector2) {
-            Vector2.copy(this._size, s);
-            this.updateLocalMatrix();
+            if (!Vector2.equals(this._size, s)) {
+                Vector2.copy(this._size, s);
+                this.setLocalMatrixDirty();
+            }
         }
 
         public get sizeX() {
@@ -176,8 +199,10 @@ module s2d {
         }
 
         public set sizeX(v: number) {
-            this._size[0] = v;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._size[0], v)) {
+                this._size[0] = v;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public get sizeY() {
@@ -185,14 +210,19 @@ module s2d {
         }
 
         public set sizeY(v: number) {
-            this._size[1] = v;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._size[1], v)) {
+                this._size[1] = v;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public setSize(x: number, y: number) {
-            this._size[0] = x;
-            this._size[1] = y;
-            this.updateLocalMatrix();
+            if (!SMath.equals(this._size[0], x) ||
+                !SMath.equals(this._size[1], y)) {
+                this._size[0] = x;
+                this._size[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         }
 
@@ -201,9 +231,14 @@ module s2d {
         }
 
         public set pivot(p: Vector2) {
-            this._pivot[0] = SMath.clamp(p[0], -1, 1);
-            this._pivot[1] = SMath.clamp(p[1], -1, 1);
-            this.updateLocalMatrix();
+            let x = SMath.clamp(p[0], -1, 1);
+            let y = SMath.clamp(p[1], -1, 1);
+            if (!SMath.equals(this._pivot[0], x) ||
+                !SMath.equals(this._pivot[1], y)) {
+                this._pivot[0] = x;
+                this._pivot[1] = y;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public get pivotX() {
@@ -211,8 +246,11 @@ module s2d {
         }
 
         public set pivotX(v: number) {
-            this._pivot[0] = SMath.clamp(v, -1, 1);
-            this.updateLocalMatrix();
+            v = SMath.clamp(v, -1, 1);
+            if (!SMath.equals(this._pivot[0], v)) {
+                this._pivot[0] = v;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public get pivotY() {
@@ -220,18 +258,26 @@ module s2d {
         }
 
         public set pivotY(v: number) {
-            this._pivot[1] = SMath.clamp(v, -1, 1);
-            this.updateLocalMatrix();
+            v = SMath.clamp(v, -1, 1);
+            if (!SMath.equals(this._pivot[1], v)) {
+                this._pivot[1] = v;
+                this.setLocalMatrixDirty();
+            }
         }
 
         public setPivot(x: number, y: number) {
-            this.pivot[0] = SMath.clamp(x, -1, 1);
-            this.pivot[1] = SMath.clamp(y, -1, 1);
-            this.updateLocalMatrix();
+            x = SMath.clamp(x, -1, 1);
+            y = SMath.clamp(x, -1, 1);
+            if (!SMath.equals(this._pivot[0], x) ||
+                !SMath.equals(this._pivot[1], y)) {
+                this._pivot[0] = x;
+                this._pivot[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         }
 
-        private updateLocalMatrix() : void {
+        private setLocalMatrixDirty() : void {
             this._localMatrixDirty = true;
         }
 

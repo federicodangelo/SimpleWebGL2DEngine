@@ -779,7 +779,7 @@ var s2d;
         });
         Transform.prototype.onInit = function () {
             s2d.engine.entities.root.addChildLast(this);
-            this.updateLocalMatrix();
+            this.setLocalMatrixDirty();
         };
         Transform.prototype.onDestroy = function () {
             //Destroy child entities
@@ -804,8 +804,10 @@ var s2d;
                 return this._position;
             },
             set: function (p) {
-                s2d.Vector2.copy(this._position, p);
-                this.updateLocalMatrix();
+                if (!s2d.Vector2.equals(this._position, p)) {
+                    s2d.Vector2.copy(this._position, p);
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -815,8 +817,10 @@ var s2d;
                 return this._position[0];
             },
             set: function (v) {
-                this._position[0] = v;
-                this.updateLocalMatrix();
+                if (!s2d.SMath.equals(this._position[0], v)) {
+                    this._position[0] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -826,16 +830,21 @@ var s2d;
                 return this._position[1];
             },
             set: function (v) {
-                this._position[1] = v;
-                this.updateLocalMatrix();
+                if (!s2d.SMath.equals(this._position[1], v)) {
+                    this._position[1] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setLocalPosition = function (x, y) {
-            this._position[0] = x;
-            this._position[1] = y;
-            this.updateLocalMatrix();
+            if (!s2d.SMath.equals(this._position[0], x) ||
+                !s2d.SMath.equals(this._position[1], y)) {
+                this._position[0] = x;
+                this._position[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         };
         Object.defineProperty(Transform.prototype, "localRotationRadians", {
@@ -843,8 +852,10 @@ var s2d;
                 return this._rotation;
             },
             set: function (rad) {
-                this._rotation = rad;
-                this.updateLocalMatrix();
+                if (!s2d.SMath.equals(this._rotation, rad)) {
+                    this._rotation = rad;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -872,8 +883,10 @@ var s2d;
                 return this._scale;
             },
             set: function (ss) {
-                s2d.Vector2.copy(this._scale, ss);
-                this.updateLocalMatrix();
+                if (!s2d.Vector2.equals(this._scale, ss)) {
+                    s2d.Vector2.copy(this._scale, ss);
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -883,8 +896,10 @@ var s2d;
                 return this._scale[0];
             },
             set: function (v) {
-                this._scale[0] = v;
-                this.updateLocalMatrix();
+                if (!s2d.SMath.equals(this._scale[0], v)) {
+                    this._scale[0] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -894,16 +909,21 @@ var s2d;
                 return this._scale[1];
             },
             set: function (v) {
-                this._scale[1] = v;
-                this.updateLocalMatrix();
+                if (!s2d.SMath.equals(this._scale[1], v)) {
+                    this._scale[1] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setLocalScale = function (x, y) {
-            this._scale[0] = x;
-            this._scale[1] = y;
-            this.updateLocalMatrix();
+            if (!s2d.SMath.equals(this._scale[0], x) ||
+                !s2d.SMath.equals(this._scale[1], y)) {
+                this._scale[0] = x;
+                this._scale[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         };
         Object.defineProperty(Transform.prototype, "size", {
@@ -911,8 +931,10 @@ var s2d;
                 return this._size;
             },
             set: function (s) {
-                s2d.Vector2.copy(this._size, s);
-                this.updateLocalMatrix();
+                if (!s2d.Vector2.equals(this._size, s)) {
+                    s2d.Vector2.copy(this._size, s);
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -922,8 +944,10 @@ var s2d;
                 return this._size[0];
             },
             set: function (v) {
-                this._size[0] = v;
-                this.updateLocalMatrix();
+                if (!s2d.SMath.equals(this._size[0], v)) {
+                    this._size[0] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -933,16 +957,21 @@ var s2d;
                 return this._size[1];
             },
             set: function (v) {
-                this._size[1] = v;
-                this.updateLocalMatrix();
+                if (!s2d.SMath.equals(this._size[1], v)) {
+                    this._size[1] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setSize = function (x, y) {
-            this._size[0] = x;
-            this._size[1] = y;
-            this.updateLocalMatrix();
+            if (!s2d.SMath.equals(this._size[0], x) ||
+                !s2d.SMath.equals(this._size[1], y)) {
+                this._size[0] = x;
+                this._size[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         };
         Object.defineProperty(Transform.prototype, "pivot", {
@@ -950,9 +979,14 @@ var s2d;
                 return this._pivot;
             },
             set: function (p) {
-                this._pivot[0] = s2d.SMath.clamp(p[0], -1, 1);
-                this._pivot[1] = s2d.SMath.clamp(p[1], -1, 1);
-                this.updateLocalMatrix();
+                var x = s2d.SMath.clamp(p[0], -1, 1);
+                var y = s2d.SMath.clamp(p[1], -1, 1);
+                if (!s2d.SMath.equals(this._pivot[0], x) ||
+                    !s2d.SMath.equals(this._pivot[1], y)) {
+                    this._pivot[0] = x;
+                    this._pivot[1] = y;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -962,8 +996,11 @@ var s2d;
                 return this._pivot[0];
             },
             set: function (v) {
-                this._pivot[0] = s2d.SMath.clamp(v, -1, 1);
-                this.updateLocalMatrix();
+                v = s2d.SMath.clamp(v, -1, 1);
+                if (!s2d.SMath.equals(this._pivot[0], v)) {
+                    this._pivot[0] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
@@ -973,19 +1010,27 @@ var s2d;
                 return this._pivot[1];
             },
             set: function (v) {
-                this._pivot[1] = s2d.SMath.clamp(v, -1, 1);
-                this.updateLocalMatrix();
+                v = s2d.SMath.clamp(v, -1, 1);
+                if (!s2d.SMath.equals(this._pivot[1], v)) {
+                    this._pivot[1] = v;
+                    this.setLocalMatrixDirty();
+                }
             },
             enumerable: true,
             configurable: true
         });
         Transform.prototype.setPivot = function (x, y) {
-            this.pivot[0] = s2d.SMath.clamp(x, -1, 1);
-            this.pivot[1] = s2d.SMath.clamp(y, -1, 1);
-            this.updateLocalMatrix();
+            x = s2d.SMath.clamp(x, -1, 1);
+            y = s2d.SMath.clamp(x, -1, 1);
+            if (!s2d.SMath.equals(this._pivot[0], x) ||
+                !s2d.SMath.equals(this._pivot[1], y)) {
+                this._pivot[0] = x;
+                this._pivot[1] = y;
+                this.setLocalMatrixDirty();
+            }
             return this;
         };
-        Transform.prototype.updateLocalMatrix = function () {
+        Transform.prototype.setLocalMatrixDirty = function () {
             this._localMatrixDirty = true;
         };
         Transform.initStatic = function () {
@@ -1852,31 +1897,10 @@ var s2d;
          * @param {Matrix3} b The second matrix.
          * @returns {Boolean} True if the matrices are equal, false otherwise.
          */
-        Matrix3.exactEquals = function (a, b) {
+        Matrix3.equals = function (a, b) {
             return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] &&
                 a[3] === b[3] && a[4] === b[4] && a[5] === b[5] &&
                 a[6] === b[6] && a[7] === b[7] && a[8] === b[8];
-        };
-        ;
-        /**
-         * Returns whether or not the matrices have approximately the same elements in the same position.
-         *
-         * @param {Matrix3} a The first matrix.
-         * @param {Matrix3} b The second matrix.
-         * @returns {Boolean} True if the matrices are equal, false otherwise.
-         */
-        Matrix3.equals = function (a, b) {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5], a6 = a[6], a7 = a[7], a8 = a[8];
-            var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5], b6 = a[6], b7 = b[7], b8 = b[8];
-            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-                Math.abs(a3 - b3) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-                Math.abs(a4 - b4) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-                Math.abs(a5 - b5) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)) &&
-                Math.abs(a6 - b6) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a6), Math.abs(b6)) &&
-                Math.abs(a7 - b7) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a7), Math.abs(b7)) &&
-                Math.abs(a8 - b8) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a8), Math.abs(b8)));
         };
         ;
         return Matrix3;
@@ -2300,21 +2324,8 @@ var s2d;
          * @param {Vector2} b The second vector.
          * @returns {Boolean} True if the vectors are equal, false otherwise.
          */
-        Vector2.exactEquals = function (a, b) {
-            return a[0] === b[0] && a[1] === b[1];
-        };
-        /**
-         * Returns whether or not the vectors have approximately the same elements in the same position.
-         *
-         * @param {Vector2} a The first vector.
-         * @param {Vector2} b The second vector.
-         * @returns {Boolean} True if the vectors are equal, false otherwise.
-         */
         Vector2.equals = function (a, b) {
-            var a0 = a[0], a1 = a[1];
-            var b0 = b[0], b1 = b[1];
-            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)));
+            return a[0] === b[0] && a[1] === b[1];
         };
         /**
          * Math.ceil the components of a Vector2
@@ -4730,23 +4741,8 @@ var s2d;
          * @param {Matrix2} b The second matrix.
          * @returns {Boolean} True if the matrices are equal, false otherwise.
          */
-        Matrix2.exactEquals = function (a, b) {
-            return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
-        };
-        /**
-         * Returns whether or not the matrices have approximately the same elements in the same position.
-         *
-         * @param {Matrix2} a The first matrix.
-         * @param {Matrix2} b The second matrix.
-         * @returns {Boolean} True if the matrices are equal, false otherwise.
-         */
         Matrix2.equals = function (a, b) {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3];
-            var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3];
-            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-                Math.abs(a3 - b3) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)));
+            return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3];
         };
         /**
          * Multiply each element of the matrix by a scalar.
@@ -5237,25 +5233,8 @@ var s2d;
          * @param {Matrix2d} b The second matrix.
          * @returns {Boolean} True if the matrices are equal, false otherwise.
          */
-        Matrix2d.exactEquals = function (a, b) {
-            return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3] && a[4] === b[4] && a[5] === b[5];
-        };
-        /**
-         * Returns whether or not the matrices have approximately the same elements in the same position.
-         *
-         * @param {Matrix2d} a The first matrix.
-         * @param {Matrix2d} b The second matrix.
-         * @returns {Boolean} True if the matrices are equal, false otherwise.
-         */
         Matrix2d.equals = function (a, b) {
-            var a0 = a[0], a1 = a[1], a2 = a[2], a3 = a[3], a4 = a[4], a5 = a[5];
-            var b0 = b[0], b1 = b[1], b2 = b[2], b3 = b[3], b4 = b[4], b5 = b[5];
-            return (Math.abs(a0 - b0) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a0), Math.abs(b0)) &&
-                Math.abs(a1 - b1) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a1), Math.abs(b1)) &&
-                Math.abs(a2 - b2) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a2), Math.abs(b2)) &&
-                Math.abs(a3 - b3) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a3), Math.abs(b3)) &&
-                Math.abs(a4 - b4) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a4), Math.abs(b4)) &&
-                Math.abs(a5 - b5) <= s2d.SMath.EPSILON * Math.max(1.0, Math.abs(a5), Math.abs(b5)));
+            return a[0] === b[0] && a[1] === b[1] && a[2] === b[2] && a[3] === b[3] && a[4] === b[4] && a[5] === b[5];
         };
         return Matrix2d;
     }(Float32Array));
@@ -5343,7 +5322,7 @@ var s2d;
         SMath.rad2deg = 180 / Math.PI;
         SMath.EPSILON = 0.000001;
         SMath.equals = function (a, b) {
-            return Math.abs(a - b) <= SMath.EPSILON * Math.max(1.0, Math.abs(a), Math.abs(b));
+            return Math.abs(a - b) <= SMath.EPSILON;
         };
         return SMath;
     }());
