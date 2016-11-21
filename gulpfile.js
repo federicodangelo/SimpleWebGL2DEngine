@@ -9,7 +9,7 @@ gulp.task('scripts', function() {
     
     var tsResult = tsProject.src()
         .pipe(sourcemaps.init())
-		.pipe(ts(tsProject));
+		.pipe(tsProject());
         
     return tsResult.js
         .pipe(sourcemaps.write('.', {includeContent: false, sourceRoot: '../src/'}))

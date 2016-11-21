@@ -7,6 +7,7 @@
     "gulp": "*",
     "gulp-typescript": "*",
     "gulp-sourcemaps": "*",
-    "gulp-webserver": "*"
+    "gulp-webserver": "*",
+    "typescript": "*"
   }
 }
