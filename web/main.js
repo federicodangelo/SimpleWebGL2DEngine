@@ -3138,11 +3138,11 @@ var s2d;
 /// <reference path="RenderTexture.ts" />
 var s2d;
 (function (s2d) {
+    var RenderSpriteDrawMode;
     (function (RenderSpriteDrawMode) {
         RenderSpriteDrawMode[RenderSpriteDrawMode["Normal"] = 0] = "Normal";
         RenderSpriteDrawMode[RenderSpriteDrawMode["Slice9"] = 1] = "Slice9";
-    })(s2d.RenderSpriteDrawMode || (s2d.RenderSpriteDrawMode = {}));
-    var RenderSpriteDrawMode = s2d.RenderSpriteDrawMode;
+    })(RenderSpriteDrawMode = s2d.RenderSpriteDrawMode || (s2d.RenderSpriteDrawMode = {}));
     var RenderSprite = (function () {
         function RenderSprite(id, texture, rect, drawMode, innerRect) {
             if (drawMode === void 0) { drawMode = RenderSpriteDrawMode.Normal; }
@@ -3922,12 +3922,12 @@ function update() {
 }
 var s2d;
 (function (s2d) {
+    var LoaderState;
     (function (LoaderState) {
         LoaderState[LoaderState["WaitingStart"] = 0] = "WaitingStart";
         LoaderState[LoaderState["Loading"] = 1] = "Loading";
         LoaderState[LoaderState["Complete"] = 2] = "Complete";
-    })(s2d.LoaderState || (s2d.LoaderState = {}));
-    var LoaderState = s2d.LoaderState;
+    })(LoaderState = s2d.LoaderState || (s2d.LoaderState = {}));
     var Loader = (function () {
         function Loader(id) {
             this._id = null;
@@ -4642,18 +4642,18 @@ var s2d;
 })(s2d || (s2d = {}));
 var s2d;
 (function (s2d) {
+    var LayoutSizeMode;
     (function (LayoutSizeMode) {
         LayoutSizeMode[LayoutSizeMode["None"] = 0] = "None";
         LayoutSizeMode[LayoutSizeMode["MatchDrawerBest"] = 1] = "MatchDrawerBest";
         LayoutSizeMode[LayoutSizeMode["MatchChildrenBest"] = 2] = "MatchChildrenBest";
         //MatchParent
-    })(s2d.LayoutSizeMode || (s2d.LayoutSizeMode = {}));
-    var LayoutSizeMode = s2d.LayoutSizeMode;
+    })(LayoutSizeMode = s2d.LayoutSizeMode || (s2d.LayoutSizeMode = {}));
+    var LayoutAnchorMode;
     (function (LayoutAnchorMode) {
         LayoutAnchorMode[LayoutAnchorMode["None"] = 0] = "None";
         LayoutAnchorMode[LayoutAnchorMode["RelativeToParent"] = 1] = "RelativeToParent";
-    })(s2d.LayoutAnchorMode || (s2d.LayoutAnchorMode = {}));
-    var LayoutAnchorMode = s2d.LayoutAnchorMode;
+    })(LayoutAnchorMode = s2d.LayoutAnchorMode || (s2d.LayoutAnchorMode = {}));
     var LayoutRectOffset = (function () {
         function LayoutRectOffset() {
             this.top = 0;
